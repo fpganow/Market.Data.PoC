@@ -1,0 +1,9 @@
+[submodule "submodules/Market.Data.Bats.Parser"]
+	path = submodules/Market.Data.Bats.Parser
+	url = git@github.com:fpganow/Market.Data.Bats.Parser.git
+[submodule "submodules/Market.Data.Common"]
+	path = submodules/Market.Data.Common
+	url = git@github.com:fpganow/Market.Data.Common.git
+[submodule "submodules/Market.Data.Filter"]
+	path = submodules/Market.Data.Filter
+	url = git@github.com:fpganow/Market.Data.Filter.git
