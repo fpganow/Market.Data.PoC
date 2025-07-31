@@ -13,20 +13,54 @@
 #
 
 # +---------------------------------------------------------------------------+
-# |  New Idea
-#
-# make ip-export-list
-# - lists all available exports by date descending
-# - -t : sort by time, newest first
-ip-export-list:
-	@echo "+----------------------+"
-	@echo "| Listing all exports  |"
-	@echo "+----------------------+"
-	@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | \
-		awk '{ print NR " - " $$6 " " $$7 " " $$8 " - " $$9 }'
+# |  New Idea                                                                 |
+# +---------------------------------------------------------------------------+
+help:
+	@echo "+------+"
+	@echo "| Help |"
+	@echo "+------+"
+	@echo
+	@echo "---------"
+	@echo "IP Export"
+	@echo "---------"
+	@echo
+	@echo "ip-export-list"
+	@echo "    Lists all directories in /mnt/c/NIFPGA/compilation"
+	@echo
+	@echo "ip-export-copy-%"
+	@echo "    Copies .dcp and .vhd files from export by index as per"
+	@echo "    the output of 'make ip-export-list'"
+	@echo
+	@echo "-------------"
+	@echo "IP Management"
+	@echo "-------------"
+	@echo "local-list"
+	@echo "    List all local IP Exports"
+	@echo
+	@echo "local-gen-%"
+	@echo "    Generate Verilog wrapper for IP Export by Vi Name"
+	@echo
 
-# make ip-export-copy-%
-#  - copy ip export #x to current directory
+define AWK_EXPORT_LIST
+BEGIN { \
+	print "+-------+-------------+--------------------------------------------------------+"; \
+	print "| Index | Date        | Name                                                   |"; \
+	print "+-------+-------------+--------------------------------------------------------+"; \
+} \
+{ \
+	print "|     " NR " | " $$6 " " $$7 " " $$8 " | " $$9; \
+} \
+END { \
+	print "+-------+-------------+--------------------------------------------------------+"; \
+}
+endef
+
+ip-export-list:
+	@echo "+---------------------+"
+	@echo "| Listing all exports |"
+	@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | awk '$(AWK_EXPORT_LIST)'
+
+
 ip-export-copy-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
 		| awk '{print "/mnt/c/NIFPGA/compilation/" $$9 "/source_files/"}')
 ip-export-copy-%: export dcp_file=$(shell ls ${IMP_BASE} | grep dcp)
@@ -39,36 +73,81 @@ ip-export-copy-%:
 	@echo "From:"
 	@echo " - ${IMP_BASE}"
 	@echo
-	@echo "Copying DCP_FILE"
+	@echo "Copying DCP_FILE:"
+	@echo "  - ${dcp_file}"
 	@cp ${IMP_BASE}/${dcp_file} .
-	@echo " - setting .dcp_file to ${dcp_file}"
-	@echo " - setting .v_file to ${v_file}"
 	@echo
-	@echo "Copying VHD_WRAPPER"
+	@echo "Copying VHD_WRAPPER:"
+	@echo "  - ${vhd_wrapper}"
 	@cp ${IMP_BASE}/${vhd_wrapper} .
-	@echo " - setting .vhd_wrapper to ${vhd_wrapper}"
 
-#
+
 # ** <Switch to another computer> **
-# make local-list
+define AWK_LOCAL_LIST
+@load "filefuncs"; \
+BEGIN { \
+	FS=" ";  \
+	print "+-------------+----------------------------------------------+";\
+	print "| Date        | Vi Name                                      |"; \
+	print "|             | DCP File                                     |"; \
+	print "|             | VHD File                                     |"; \
+	print "+-------------+----------------------------------------------+";\
+} \
+{ \
+	date_time = $$6 " " $$7 " " $$8; \
+	dcp_file = $$9; \
+	vi_name = dcp_file; \
+	gsub("[.].*$$", "", vi_name); \
+	gsub("NiFpgaAG_", "", vi_name); \
+	vhd_wrapper = "NiFpgaIPWrapper_" vi_name ".vhd"; \
+	v_file = dcp_file; \
+	gsub("dcp", "v", v_file); \
+	v_file_status = ""; \
+	if(stat(v_file, info)) { \
+	    v_file_status = ""; \
+	} else { \
+		v_file_status = info["size"] / 1024 " KB"; \
+	} \
+	print "- " date_time " - " vi_name; \
+	print "                DCP: " dcp_file; \
+	print "                VHD: " vhd_wrapper; \
+	print "                V: " v_file " - " v_file_status; \
+} \
+END { \
+}
+endef
 #  - list all copied exports present in current directory
 local-list:
 local-list:
 	@echo "+---------------------------+"
 	@echo "| Listing all local Exports |"
-	@echo "+---------------------------+"
-	@ls NiFpgaAG*.dcp | cut -d'.' -f1 | cut -d'_' -f 2- | \
-		awk '{ print " - " $$1 }'
+	@ls -l NiFpgaAG*.dcp | awk '$(AWK_LOCAL_LIST)'
 
-# make local-gen-%
 #  - generate verilog version of local version
-local-gen-%: export dcp=$(shell ls -l *$*.dcp)
+local-gen-%: export dcp_file=$(shell ls  *$*.dcp)
+local-gen-%: export v_file=$(shell ls  *$*.dcp | sed 's/dcp/v/g')
 local-gen-%:
 	@echo "+-----------------------------------------+"
 	@echo "| Writing Verilog for Vivado Block Design |"
 	@echo "+-----------------------------------------+"
 	@echo "Using:"
-	@echo "  - ${dcp}"
+	@echo "  - ${dcp_file}"
+	@echo "to generate:"
+	@echo "  - ${v_file}"
+	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
+		-nolog -nojournal -notrace -mode batch \
+		-source ${PWD_WIN3}\\gen.tcl" \
+		-tclargs "${PWD_WIN3}\\${dcp_file}"
+
+
+######  OLD  #######
+# make ip-export-list
+# - lists all available exports by date descending
+# - -t : sort by time, newest first
+#@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | \
+#	awk '{ print NR " - " $$6 " " $$7 " " $$8 " - " $$9 }'
+
+
 
 
 # make compile-%
@@ -144,36 +223,36 @@ run: run-john
 	@echo "RUN"
 
 
-import-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
-		| awk '{print "/mnt/c/NIFPGA/compilation/" $$9 "/source_files/"}')
-import-%: export dcp_file=$(shell ls ${IMP_BASE} | grep dcp)
-import-%: export vhd_wrapper=$(shell ls ${IMP_BASE} | grep vhd)
-import-%: export v_file=$(shell ls ${IMP_BASE} | grep dcp | cut -d'.' -f1)".v"
-import-%:
-	@echo "+---------------------------------+"
-	@echo "| Importing #$*                    |"
-	@echo "+---------------------------------+"
-	@echo "From:"
-	@echo " - ${IMP_BASE}"
-	@echo
-	@echo "Copying DCP_FILE"
-	@cp ${IMP_BASE}/${dcp_file} .
-	@echo " - setting .dcp_file to ${dcp_file}"
-	@echo ${dcp_file} > ./.dcp_file
-	@echo " - setting .v_file to ${v_file}"
-	@echo ${v_file} > ./.v_file
-	@echo "Copying VHD_WRAPPER"
-	@cp ${IMP_BASE}/${vhd_wrapper} .
-	@echo " - setting .vhd_wrapper to ${vhd_wrapper}"
-	@echo ${vhd_wrapper} > ./.vhd_wrapper
-
-show-current:
-	@echo "+---------------------------------+"
-	@echo "| Currently Selected Design       |"
-	@echo "+---------------------------------+"
-	@echo "  DCP_FILE     =  ${DCP_FILE_2}"
-	@echo "  VHD_WRAPPER  =  ${VHD_WRAPPER_2}"
-	@echo "  V_FILE       =  ${V_FILE_2}"
+#import-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
+#		| awk '{print "/mnt/c/NIFPGA/compilation/" $$9 "/source_files/"}')
+#import-%: export dcp_file=$(shell ls ${IMP_BASE} | grep dcp)
+#import-%: export vhd_wrapper=$(shell ls ${IMP_BASE} | grep vhd)
+#import-%: export v_file=$(shell ls ${IMP_BASE} | grep dcp | cut -d'.' -f1)".v"
+#import-%:
+#	@echo "+---------------------------------+"
+#	@echo "| Importing #$*                    |"
+#	@echo "+---------------------------------+"
+#	@echo "From:"
+#	@echo " - ${IMP_BASE}"
+#	@echo
+#	@echo "Copying DCP_FILE"
+#	@cp ${IMP_BASE}/${dcp_file} .
+#	@echo " - setting .dcp_file to ${dcp_file}"
+#	@echo ${dcp_file} > ./.dcp_file
+#	@echo " - setting .v_file to ${v_file}"
+#	@echo ${v_file} > ./.v_file
+#	@echo "Copying VHD_WRAPPER"
+#	@cp ${IMP_BASE}/${vhd_wrapper} .
+#	@echo " - setting .vhd_wrapper to ${vhd_wrapper}"
+#	@echo ${vhd_wrapper} > ./.vhd_wrapper
+#
+#show-current:
+#	@echo "+---------------------------------+"
+#	@echo "| Currently Selected Design       |"
+#	@echo "+---------------------------------+"
+#	@echo "  DCP_FILE     =  ${DCP_FILE_2}"
+#	@echo "  VHD_WRAPPER  =  ${VHD_WRAPPER_2}"
+#	@echo "  V_FILE       =  ${V_FILE_2}"
 
 gen-verilog: export dcp_file=$(shell cat .dcp_file)
 gen-verilog: export v_file=$(shell cat .v_file)
@@ -199,7 +278,7 @@ gen-custom-%:
 	@echo
 	@echo "CUSTOM GEN: $*"
 
-help:
+help2:
 	@echo
 	@echo "Help"
 	@echo "  clean"
