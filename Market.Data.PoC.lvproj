@@ -12,8 +12,8 @@
 		<Property Name="specify.custom.address" Type="Bool">false</Property>
 		<Item Name="FPGA Target" Type="FPGA Target">
 			<Property Name="AutoRun" Type="Bool">false</Property>
-			<Property Name="configString.guid" Type="Str">{933A333D-7081-4A25-96B8-BACE6FE05EFA}ResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA</Property>
-			<Property Name="configString.name" Type="Str">40 MHz Onboard ClockResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA</Property>
+			<Property Name="configString.guid" Type="Str">{933A333D-7081-4A25-96B8-BACE6FE05EFA}ResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA/[rSeriesConfig.Begin][rSeriesConfig.End]</Property>
+			<Property Name="configString.name" Type="Str">40 MHz Onboard ClockResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA/[rSeriesConfig.Begin][rSeriesConfig.End]</Property>
 			<Property Name="ForceCompileConfigUpdate" Type="Bool">true</Property>
 			<Property Name="NI.LV.FPGA.659XR.ActiveSerialIo.Valid" Type="Bool">true</Property>
 			<Property Name="NI.LV.FPGA.659XR.ActiveSerialIo.Version" Type="Int">1</Property>
@@ -663,9 +663,15 @@ set_property IOSTANDARD LVCMOS25 [get_ports {Si570Clkn}]
 				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
 				<Property Name="NI.SortType" Type="Int">3</Property>
 			</Item>
+			<Item Name="Ethernet MAC - Custom.lvclass" Type="LVClass" URL="../fpga/Ethernet MAC - Custom/Ethernet MAC - Custom.lvclass"/>
+			<Item Name="poc.test.vi" Type="VI" URL="../fpga/poc.test.vi">
+				<Property Name="configString.guid" Type="Str">{933A333D-7081-4A25-96B8-BACE6FE05EFA}ResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA/[rSeriesConfig.Begin][rSeriesConfig.End]</Property>
+				<Property Name="configString.name" Type="Str">40 MHz Onboard ClockResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA/[rSeriesConfig.Begin][rSeriesConfig.End]</Property>
+			</Item>
 			<Item Name="poc.vi" Type="VI" URL="../fpga/poc.vi">
-				<Property Name="configString.guid" Type="Str">{933A333D-7081-4A25-96B8-BACE6FE05EFA}ResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA</Property>
-				<Property Name="configString.name" Type="Str">40 MHz Onboard ClockResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA</Property>
+				<Property Name="BuildSpec" Type="Str">{3631D1D2-15A6-421F-843E-F0515B5B43FF}</Property>
+				<Property Name="configString.guid" Type="Str">{933A333D-7081-4A25-96B8-BACE6FE05EFA}ResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA/[rSeriesConfig.Begin][rSeriesConfig.End]</Property>
+				<Property Name="configString.name" Type="Str">40 MHz Onboard ClockResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA/[rSeriesConfig.Begin][rSeriesConfig.End]</Property>
 			</Item>
 			<Item Name="PXIe-6592R IO Socket v1" Type="FPGA Component Level IP">
 				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
@@ -689,7 +695,12 @@ set_property IOSTANDARD LVCMOS25 [get_ports {Si570Clkn}]
 					<Item Name="niInstr Basic Elements v1 FPGA.lvlib" Type="Library" URL="/&lt;instrlib&gt;/_niInstr/Basic Elements/v1/FPGA/niInstr Basic Elements v1 FPGA.lvlib"/>
 					<Item Name="niInstr Ethernet MAC Data Stream v1.lvclass" Type="LVClass" URL="/&lt;instrlib&gt;/_niInstr/Network/Ethernet/MAC/Data Stream/v1/niInstr Ethernet MAC Data Stream v1.lvclass"/>
 					<Item Name="niInstr Ethernet MAC Raw Stream v1.lvclass" Type="LVClass" URL="/&lt;instrlib&gt;/_niInstr/Network/Ethernet/MAC/Raw Stream/v1/niInstr Ethernet MAC Raw Stream v1.lvclass"/>
+					<Item Name="niInstr Ethernet MAC v1.lvclass" Type="LVClass" URL="/&lt;instrlib&gt;/_niInstr/Network/Ethernet/MAC/API/v1/FPGA/niInstr Ethernet MAC v1.lvclass"/>
 					<Item Name="niInstr Ethernet Utilities FPGA v1.lvlib" Type="Library" URL="/&lt;instrlib&gt;/_niInstr/Network/Ethernet/Utility/v1/FPGA/niInstr Ethernet Utilities FPGA v1.lvlib"/>
+					<Item Name="niInstr IPv4 Data Stream v1.lvclass" Type="LVClass" URL="/&lt;instrlib&gt;/_niInstr/Network/IPv4/Data Stream/v1/niInstr IPv4 Data Stream v1.lvclass"/>
+					<Item Name="niInstr IPv4 FPGA v1.lvlib" Type="Library" URL="/&lt;instrlib&gt;/_niInstr/Network/IPv4/FPGA/v1/niInstr IPv4 FPGA v1.lvlib"/>
+					<Item Name="niInstr IPv4 UDP Data Stream v1.lvclass" Type="LVClass" URL="/&lt;instrlib&gt;/_niInstr/Network/IPv4/UDP/Data Stream/v1/niInstr IPv4 UDP Data Stream v1.lvclass"/>
+					<Item Name="niInstr IPv4 UDP FPGA v1.lvlib" Type="Library" URL="/&lt;instrlib&gt;/_niInstr/Network/IPv4/UDP/FPGA/v1/niInstr IPv4 UDP FPGA v1.lvlib"/>
 					<Item Name="niInstr Network Types v1.lvlib" Type="Library" URL="/&lt;instrlib&gt;/_niInstr/Network/Types/v1/niInstr Network Types v1.lvlib"/>
 					<Item Name="xsimk0B830B7E81994019B09E50CE7A175B36.dll" Type="Document" URL="/&lt;instrlib&gt;/_niInstr/Basic Elements/v1/FPGA/Private/DFlopBEResetSimFiles/xsim.dir/DFlopBasicElements/xsimk0B830B7E81994019B09E50CE7A175B36.dll"/>
 					<Item Name="xsimk6A315D12FBC743E4ACD121A1951E87AC.dll" Type="Document" URL="/&lt;instrlib&gt;/_niInstr/Basic Elements/v1/FPGA/Public/ModGen/ff_max_fanout_8SimFiles/xsim.dir/MaxFanoutFf/xsimk6A315D12FBC743E4ACD121A1951E87AC.dll"/>
@@ -745,7 +756,44 @@ set_property IOSTANDARD LVCMOS25 [get_ports {Si570Clkn}]
 					<Property Name="configString.name" Type="Str">40 MHz Onboard ClockResourceName=40 MHz Onboard Clock;TopSignalConnect=Clk40;ClockSignalName=Clk40;MinFreq=40000000.000000;MaxFreq=40000000.000000;VariableFreq=0;NomFreq=40000000.000000;PeakPeriodJitter=250.000000;MinDutyCycle=50.000000;MaxDutyCycle=50.000000;Accuracy=100.000000;RunTime=0;SpreadSpectrum=0;GenericDataHash=D41D8CD98F00B204E9800998ECF8427E;PXIe-6592R/Clk40/falsefalse6705707382fd2b7ff9aed4185160bbc3FPGA_EXECUTION_MODEFPGA_TARGETFPGA_TARGET_CLASSPXIE_6592RFPGA_TARGET_FAMILYKINTEX7TARGET_TYPEFPGA</Property>
 				</Item>
 			</Item>
-			<Item Name="Build Specifications" Type="Build"/>
+			<Item Name="Build Specifications" Type="Build">
+				<Item Name="poc" Type="{F4C5E96F-7410-48A5-BB87-3559BC9B167F}">
+					<Property Name="AllowEnableRemoval" Type="Bool">false</Property>
+					<Property Name="BuildSpecDecription" Type="Str"></Property>
+					<Property Name="BuildSpecName" Type="Str">poc</Property>
+					<Property Name="Comp.BitfileName" Type="Str">market.data.poc_FPGATarget_poc_RUNe+O+Q0zg.lvbitx</Property>
+					<Property Name="Comp.CustomXilinxParameters" Type="Str"></Property>
+					<Property Name="Comp.MaxFanout" Type="Int">-1</Property>
+					<Property Name="Comp.RandomSeed" Type="Bool">false</Property>
+					<Property Name="Comp.Version.Build" Type="Int">0</Property>
+					<Property Name="Comp.Version.Fix" Type="Int">0</Property>
+					<Property Name="Comp.Version.Major" Type="Int">1</Property>
+					<Property Name="Comp.Version.Minor" Type="Int">0</Property>
+					<Property Name="Comp.VersionAutoIncrement" Type="Bool">false</Property>
+					<Property Name="Comp.Vivado.EnableMultiThreading" Type="Bool">true</Property>
+					<Property Name="Comp.Vivado.OptDirective" Type="Str"></Property>
+					<Property Name="Comp.Vivado.PhysOptDirective" Type="Str"></Property>
+					<Property Name="Comp.Vivado.PlaceDirective" Type="Str"></Property>
+					<Property Name="Comp.Vivado.RouteDirective" Type="Str"></Property>
+					<Property Name="Comp.Vivado.RunPowerOpt" Type="Bool">false</Property>
+					<Property Name="Comp.Vivado.Strategy" Type="Str">Default</Property>
+					<Property Name="Comp.Xilinx.DesignStrategy" Type="Str">balanced</Property>
+					<Property Name="Comp.Xilinx.MapEffort" Type="Str">default(noTiming)</Property>
+					<Property Name="Comp.Xilinx.ParEffort" Type="Str">standard</Property>
+					<Property Name="Comp.Xilinx.SynthEffort" Type="Str">normal</Property>
+					<Property Name="Comp.Xilinx.SynthGoal" Type="Str">speed</Property>
+					<Property Name="Comp.Xilinx.UseRecommended" Type="Bool">true</Property>
+					<Property Name="DefaultBuildSpec" Type="Bool">true</Property>
+					<Property Name="DestinationDirectory" Type="Path">FPGA Bitfiles</Property>
+					<Property Name="ProjectPath" Type="Path">/F/work/fpganow/Market.Data.PoC/Market.Data.PoC.lvproj</Property>
+					<Property Name="RelativePath" Type="Bool">true</Property>
+					<Property Name="RunWhenLoaded" Type="Bool">false</Property>
+					<Property Name="SupportDownload" Type="Bool">true</Property>
+					<Property Name="SupportResourceEstimation" Type="Bool">false</Property>
+					<Property Name="TargetName" Type="Str">FPGA Target</Property>
+					<Property Name="TopLevelVI" Type="Ref">/My Computer/FPGA Target/poc.vi</Property>
+				</Item>
+			</Item>
 		</Item>
 		<Item Name="Dependencies" Type="Dependencies"/>
 		<Item Name="Build Specifications" Type="Build"/>
