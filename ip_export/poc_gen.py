@@ -1,3 +1,11 @@
+"""
+Export functions to be called from Test Bench
+
+- MyList
+- OBCommand
+- FilterBench
+"""
+
 from pysv import (
     DataType,
     compile_lib,
@@ -14,7 +22,20 @@ import tomllib
 from typing import Dict, List
 
 
+class EthernetFrame:
+    """
+    """
+    @sv()
+    def __init__(self):
+        """
+        """
+        pass
 
+    @sv(return_type=DataType.Bit)
+    def hasMoreFrames(self):
+        """
+        """
+        return True
 
 class OBCommand(object):
     @sv()
@@ -630,8 +651,8 @@ def compile(compile: bool = True, binding: bool = True):
     # add_sys_path=False # Whether to add system path
     if compile is True:
         lib_path = compile_lib([MyList,
-                                OBCommand,
-                                FilterBench], cwd="build")
+                                EthernetFrame],
+                                cwd="build")
 
     # generate SV binding
     # pkg_name='pysv'
@@ -639,8 +660,8 @@ def compile(compile: bool = True, binding: bool = True):
     #filename='out_sv_file.sv'
     if binding is True:
         generate_sv_binding([MyList,
-                             OBCommand,
-                             FilterBench], filename="pysv_pkg.sv")
+                             EthernetFrame],
+                             filename="pysv_pkg.sv")
 
 if __name__ == "__main__":
     compile()

@@ -63,38 +63,27 @@ module poc_tb();
     reg    [ 0:0]    out_fifo2_tvalid;
     reg    [ 0:0]    out_fifo1_tready;
 
-//    reg    [ 0:0]    in_ip_reset;
-//    reg    [63:0]    in_ip_bytes;
-//    wire   [ 0:0]    out_ip_ready_for_udp_input;
-//    wire   [63:0]    out_ip_bytes_echo;
-//    wire   [ 7:0]    out_ip_bytes_valid;
-//    // Debug
-//    reg    [ 0:0]    in_ip_ready_for_debug;
-//    wire   [ 0:0]    out_ip_debug_valid;
-//    wire   [63:0]    out_ip_debug_element;
-//    reg    [ 7:0]    in_ip_byte_enables;
-//    reg    [ 0:0]    in_ip_data_valid;
-//    // OrderBook.Command
-//    reg    [ 0:0]    in_ip_ready_for_orderbook_command;
-//    wire   [ 0:0]    out_ip_orderbook_command_valid;
-//
-//    wire   [ 7:0]    out_ip_orderbook_command_type;
-//    wire   [ 7:0]    out_ip_side_u8;
-//    wire   [63:0]    out_ip_order_id_u64;
-//    wire   [31:0]    out_ip_quantity_u32;
-//    wire   [63:0]    out_ip_symbol_u64;
-//    wire   [63:0]    out_ip_price_u64;
-//    wire   [31:0]    out_ip_executed_quantity_u32;
-//    wire   [31:0]    out_ip_canceled_quantity_u32;
-//    wire   [31:0]    out_ip_remaining_quantity_u32;
-//    wire   [63:0]    out_ip_seconds_u64;
-//    wire   [63:0]    out_ip_nanoseconds_u64;
-//    wire   [ 0:0]    out_ip_add;
-//    wire   [ 0:0]    out_ip_edit;
-//    wire   [ 0:0]    out_ip_remove;
-//    wire   [31:0]    out_ip_seq_no;
+    // CMD_FIFO
+    reg    [ 0:0]    out_cmd_fifo_tvalid;
+    reg    [ 0:0]    out_cmd_fifo_tlast;
+    reg    [ 7:0]    out_cmd_fifo_tkeep;
+    reg    [63:0]    out_cmd_fifo_tdata;
+    // DEBUG_FIFO
+    reg    [ 0:0]    out_debug_fifo_tvalid;
+    reg    [ 0:0]    out_debug_fifo_tlast;
+    reg    [ 7:0]    out_debug_fifo_tkeep;
+    reg    [63:0]    out_debug_fifo_tdata;
+    // Input
+    reg    [ 0:0]    in_data_tuser;
+    reg    [ 0:0]    in_data_tlast;
+    reg    [ 0:0]    in_data_tvalid;
+    reg    [ 7:0]    in_data_tkeep;
+    reg    [63:0]    in_data_tdata;
+    // IP Reset
+    reg    [ 0:0]    in_ip_reset;
 
-    NiFpgaAG_top_level UUT (
+
+    NiFpgaAG_top_level UUT_0 (
         .reset(reset),
         .enable_in(enable_in),
         .enable_out(enable_out),
@@ -113,44 +102,31 @@ module poc_tb();
         .Clk40(clk40),
 		.tDiagramEnableOut(1)
     );
-//    NiFpgaIPWrapper_bats_parser_ip UUT (
-//        .reset(reset),
-//        .enable_in(enable_in),
-//        .enable_out(enable_out),
-//        .enable_clr(enable_clr),
-//        // Debug
-//        .ctrlind_00_Ready_For_Debug(in_ip_ready_for_debug),
-//        .ctrlind_01_Debug_Valid(out_ip_debug_valid),
-//        .ctrlind_02_Debug_Element(out_ip_debug_element),
-//        // Control
-//        .ctrlind_03_Ready_for_OrderBook_Command(in_ip_ready_for_orderbook_command),
-//        // OrderBook.Command
-//        .ctrlind_04_OrderBook_Command_Valid(out_ip_orderbook_command_valid),
-//        .ctrlind_05_seq_no(out_ip_seq_no),
-//        .ctrlind_06_Remove(out_ip_remove),
-//        .ctrlind_07_Edit(out_ip_edit),
-//        .ctrlind_08_Add(out_ip_add),
-//        .ctrlind_09_Nanoseconds_U64(out_ip_nanoseconds_u64),
-//        .ctrlind_10_Seconds_U64(out_ip_seconds_u64),
-//        .ctrlind_11_Remaining_Quantity_U32(out_ip_remaining_quantity_u32),
-//        .ctrlind_12_Canceled_Quantity_U32(out_ip_canceled_quantity_u32),
-//        .ctrlind_13_Executed_Quantity_U32(out_ip_executed_quantity_u32),
-//        .ctrlind_14_Price_U64(out_ip_price_u64),
-//        .ctrlind_15_Symbol_U64(out_ip_symbol_u64),
-//        .ctrlind_16_Quantity_U32(out_ip_quantity_u32),
-//        .ctrlind_17_Order_Id_U64(out_ip_order_id_u64),
-//        .ctrlind_18_Side_U8(out_ip_side_u8),
-//        .ctrlind_19_OrderBook_Command_Type(out_ip_orderbook_command_type),
-//        .ctrlind_20_reset(in_ip_reset),
-//        .ctrlind_21_Bytes(in_ip_bytes),
-//        .ctrlind_22_Byte_Enables(in_ip_byte_enables),
-//        .ctrlind_23_data_valid(in_ip_data_valid),
-//        .ctrlind_24_Ready_for_Udp_Input(out_ip_ready_for_udp_input),
-//        .ctrlind_25_Bytes_echo(out_ip_bytes_echo),
-//        .ctrlind_26_Bytes_Valid(out_ip_bytes_valid),
-//        .Clk40(clk40)
-//    );
-    // AUTO_GENERATED_CODE_END: parse.py
+	NiFpgaAG_poc_ip UUT (
+        .reset(reset),
+        .enable_in(enable_in),
+        .enable_out(enable_out),
+        .enable_clr(enable_clr),
+        // Outputs
+        .ctrlind_00_CMD_TVALID(out_cmd_fifo_tvalid),
+        .ctrlind_01_CMD_TLAST(out_cmd_fifo_tlast),
+        .ctrlind_02_CMD_TKEEP(out_cmd_fifo_tkeep),
+        .ctrlind_03_CMD_TDATA(out_cmd_fifo_tdata),
+        .ctrlind_04_DEBUG_TVALID(out_debug_fifo_tvalid),
+        .ctrlind_05_DEBUG_TLAST(out_debug_fifo_tlast),
+        .ctrlind_06_DEBUG_TKEEP(out_debug_fifo_tkeep),
+        .ctrlind_07_DEBUG_TDATA(out_debug_fifo_tdata),
+        // Inputs
+        .ctrlind_08_TUSER(in_data_tuser),
+        .ctrlind_09_TLAST(in_data_tlast),
+        .ctrlind_10_TVALID(in_data_tvalid),
+        .ctrlind_11_TKEEP(in_data_tkeep),
+        .ctrlind_12_TDATA(in_data_tdata),
+        // Clocks & Reset & Enable
+        .ctrlind_13_ip_reset(in_ip_reset),
+        .Clk40(clk40),
+        .tDiagramEnableOut(1)
+    );
 
     initial
     begin
@@ -158,16 +134,34 @@ module poc_tb();
 //        int ret;
 //        longint i_word;
 //        int i;
+
         // Set default control signal values
         reset = 0;
         enable_in = 0;
         enable_clr = 0;
+        #(period);
+
+        // Reset IP
+        reset = 1;
+        #(period*50);
+        $display("Reset IP");
+
+        // Enable IP
+        reset = 0;
+        enable_in = 1;
+        #(period*20);
+
+        // Send 1st Ethernet Frame
+        EthernetFrame eth_frame;
+        eth_frame = new();
+        $display("  -  hasMoreFrames = %0d", eth_frame.hasMoreFrames());
+
+
 //        // Set default values
 //        //   Ready.For.Orderbook.Command
 //        //   reset_in
 //        //   data_in
 //        //   data_valid
-        reset = 0;
 //        in_ip_reset = 0;
 //        in_ip_ready_for_orderbook_command = 1;
 //        in_ip_ready_for_debug = 1;
@@ -175,27 +169,16 @@ module poc_tb();
 //        in_ip_byte_enables = 8'h0;
 //        in_ip_bytes = 64'h00000000;
 
-        // Reset IP
-        reset = 1;
-        #(period*50);
-        $display("Reset IP");
 
-        enable_in = 1;
-        reset = 0;
-        #(period*40);
 
-        // Enable IP
-        enable_in = 1;
-        #(period*20);
-
-        in_a = 3'b001;
+//        in_a = 3'b101;
 //        in_ip_byte_enables = 8'b11111100;
-        in_b = 3'b011;
-        #(period*20);
+//        in_b = 3'b011;
+//        #(period*20);
 
 //        wait (out_ip_orderbook_command_valid == 1);
-        $display("    - out_sum: %d",
-                        out_sum);
+//        $display("    - out_sum: %d",
+//                        out_sum);
 //        // LabVIEW/Code Reset
 //        in_ip_reset = 1;
 //        #(period);

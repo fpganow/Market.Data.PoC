@@ -1,3 +1,4 @@
 submodules/builds
 venv
 *.aliases
+Session.vim
