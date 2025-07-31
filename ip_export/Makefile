@@ -22,18 +22,18 @@ VIVADO_LIB  :=  /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
 SIM_DIR     ?=  sim/synth/func
 PYTHON      ?=  python3.8
-DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
+
 PWD         ?=  ${pwd}
 PWD_WIN2    ?=  $(shell pwd | tr "/" "\\\\")
 OLD_PATH    :=  ${PATH}
 
+# User Parameters
+DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
+
 DCP_FILE_2=$(shell cat .dcp_file)
 VHD_WRAPPER_2=$(shell cat .vhd_wrapper)
+V_FILE_2=$(shell cat .v_file)
 
-dump:
-	@echo "DUMP"
-	@echo "DCP: ${DCP_FILE_2}"
-	@echo "VHD_WRAPPER: ${VHD_WRAPPER_2}"
 # IDEA
 # There can only exist 1 dcp and 1 vhd wrapper
 #
@@ -50,6 +50,9 @@ dump:
 #
 #
 #
+OS=$(shell lsb_release -r | awk '{print $$2}')
+PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-${OS}"${PWD_WIN2}
+PWD_WIN3    ?=  $(shell wslpath -w ${PWD})
 
 .EXPORT_ALL_VARIABLES:
 
@@ -57,16 +60,69 @@ export MY_VAR=TEST
 export PATH=$(VIVADO_BIN):$(OLD_PATH)
 export LD_LIBRARY_PATH :=  /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:$(LD_LIBRARY_PATH)
 
+# 1 - make list-exports
+# 2 - Select Import to use
+# 3 - make gen-x
+# 4 - Add .v and .vhd files to Vivado
 
+# -t : sort by time, newest first
 list-exports:
-	@echo "Listing all exports"
-	ls -l /mnt/c/NIFPGA/compilation
+	@echo "+----------------------+"
+	@echo "| Listing all exports  |"
+	@echo "+----------------------+"
+	@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | \
+		awk '{ print NR " - " $$6 " " $$7 " " $$8 " - " $$9 }'
 
+import-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
+		| awk '{print "/mnt/c/NIFPGA/compilation/" $$9 "/source_files/"}')
+import-%: export dcp_file=$(shell ls ${IMP_BASE} | grep dcp)
+import-%: export vhd_wrapper=$(shell ls ${IMP_BASE} | grep vhd)
+import-%: export v_file=$(shell ls ${IMP_BASE} | grep dcp | cut -d'.' -f1)".v"
 import-%:
-	@echo "Importing $*"
+	@echo "+---------------------------------+"
+	@echo "| Importing #$*                    |"
+	@echo "+---------------------------------+"
+	@echo "From:"
+	@echo " - ${IMP_BASE}"
+	@echo
+	@echo "Copying DCP_FILE"
+	@cp ${IMP_BASE}/${dcp_file} .
+	@echo " - setting .dcp_file to ${dcp_file}"
+	@echo ${dcp_file} > ./.dcp_file
+	@echo " - setting .v_file to ${v_file}"
+	@echo ${v_file} > ./.v_file
+	@echo "Copying VHD_WRAPPER"
+	@cp ${IMP_BASE}/${vhd_wrapper} .
+	@echo " - setting .vhd_wrapper to ${vhd_wrapper}"
+	@echo ${vhd_wrapper} > ./.vhd_wrapper
 
-OS=$(shell lsb_release -r | awk '{print $$2}')
-PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-${OS}"${PWD_WIN2}
+show-current:
+	@echo "+---------------------------------+"
+	@echo "| Currently Selected Design       |"
+	@echo "+---------------------------------+"
+	@echo "  DCP_FILE     =  ${DCP_FILE_2}"
+	@echo "  VHD_WRAPPER  =  ${VHD_WRAPPER_2}"
+	@echo "  V_FILE       =  ${V_FILE_2}"
+
+gen-verilog: export dcp_file=$(shell cat .dcp_file)
+gen-verilog: export v_file=$(shell cat .v_file)
+gen-verilog:
+	@echo "+---------------------------------+"
+	@echo "| Generating Synthesis as Verilog |"
+	@echo "+---------------------------------+"
+	@echo " - dcp_file=${dcp_file}"
+	@echo " - v_file=${v_file}"
+	@echo "Invoking gen.tcl to generate ${v_file}"
+	@echo "PWD = ${PWD}"
+	@echo "SIM_DIR  = ${SIM_DIR}"
+	@echo "WIN_DCP  = ${WIN_DCP}"
+	@echo "PWD_WIN  = ${PWD_WIN}"
+	@echo "PWD_WIN3 = ${PWD_WIN3}"
+	@echo "dcp_file= ${dcp_file}"
+	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
+		-nolog -nojournal -notrace -mode batch \
+		-source ${PWD_WIN3}\\gen.tcl" \
+		-tclargs "${PWD_WIN3}\\${dcp_file}"
 
 help:
 	@echo
@@ -144,16 +200,6 @@ py_codegen:
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
 
-v_gen:
-	@echo "  - Writing Verilog"
-	@echo "PWD = ${PWD}"
-	@echo "SIM_DIR = ${SIM_DIR}"
-	@echo "WIN_DCP = ${WIN_DCP}"
-	@echo "PWD_WIN = ${PWD_WIN}"
-	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
-		-nolog -nojournal -notrace -mode batch \
-		-source ${PWD_WIN}\\gen.tcl" \
-		-tclargs "${PWD_WIN}\\${DCP_FILE}"
 
 v_codegen:
 	@echo "  - Generating Synth"

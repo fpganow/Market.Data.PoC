@@ -6,26 +6,37 @@
 
 Find .dcp and .vhd files in C:\NIFPGA\compilation
 
-### Copy .dcp and .vhd files
+### Run ```make list-exports```
 
 ```
-ls -lth /mnt/c/NIFPGA/compilation
+john@Lenovo5:/mnt/c/work/git/fpganow/Market.Data.PoC/ip_export$ make list-exports
++----------------------+
+| Listing all exports  |
++----------------------+
+1 - Jul 1 06:43 - market.data.poc_FPGATarget_fpga.sandbox_FP5ANhv8ceE
+2 - Jul 1 07:46 - market.data.poc_FPGATarget_poc.ip_cg0ONSDSGSw
 ```
 
-```
-ls -lthb /mnt/c/NIFPGA/compilation/ | head -n 2 | tail -n 1 | awk '{print "cp /mnt/c/NIFPGA/compilation/" $NF "source_files/* ."}'
-```
-
-### Generate Verilog version of DCP file
+### Import a specific compilation with ```make import-1```
 
 ```
-make v_gen
++---------------------------------+
+| Importing #2                    |
++---------------------------------+
+From:
+ - /mnt/c/NIFPGA/compilation/market.data.poc_FPGATarget_poc.ip_cg0ONSDSGSw/source_files/
+
+Copying DCP_FILE
+ - setting .dcp_file to NiFpgaAG_poc_ip.dcp
+ - setting .v_file to NiFpgaAG_poc_ip.v
+Copying VHD_WRAPPER
+ - setting .vhd_wrapper to NiFpgaIPWrapper_poc_ip.vhd
 ```
 
-### Copy Verilog version
+### Generate Verilog from Synthesis file
 
 ```
-cp NiFpgaAG_poc_ip.v /mnt/c/work/kr260/eth_pcs_pma_bare_2024.1/
+make gen-verilog
 ```
 
 ### Open Vivado Design
