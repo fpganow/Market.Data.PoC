@@ -1,3 +1,24 @@
+#
+# Requirements:
+#   Python3.11
+#   Ubuntu 24.04 via WSL
+#   OR
+#   Ubuntu 22.04 via WSL
+#   Vivado 2024.1 via WSL
+#   NiFPGA Vivado 2021.1
+#
+# Usage:
+#
+# 1 - Install cboe_pitch
+#   SETUPTOOLS_USE_DISTUTILS=stdlib python3.11 -m pip install -e .
+#
+# 2 - Install rest of Python dependencies
+#   make install_deps
+#
+# 3 - Build
+#   make simulate
+#
+
 SHELL       :=  /bin/bash
 VIVADO_VER  :=  2024.1
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
@@ -6,7 +27,8 @@ PYTHON      ?=  python3.11
 DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
 PWD         ?=  ${pwd}
 PWD_WIN2    ?=  $(shell pwd | tr "/" "\\\\")
-PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-22.04"${PWD_WIN2}
+#PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-22.04"${PWD_WIN2}
+PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-24.04"${PWD_WIN2}
 
 help:
 	@echo
