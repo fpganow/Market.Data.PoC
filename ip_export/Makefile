@@ -41,8 +41,8 @@ VIVADO_VER  :=  2024.1
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
 SIM_DIR     ?=  sim/synth/func
 PYTHON      ?=  python3.11
-DCP_FILE    ?=  NiFpgaAG_top_level.dcp
-#DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
+#DCP_FILE    ?=  NiFpgaAG_top_level.dcp
+DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
 PWD         ?=  ${pwd}
 PWD_WIN2    ?=  $(shell pwd | tr "/" "\\\\")
 
@@ -88,7 +88,7 @@ install_deps:
 	${PYTHON} -m pip install -r ./requirements-test.txt
 
 
-py_test:
+pytest:
 	@echo
 	@echo " - Running Python Tests"
 	${PYTHON} -m pytest --disable-warnings tests_poc_gen.py
@@ -109,7 +109,8 @@ v_codegen:
 		-source ${PWD_WIN}\\sim\\synth\\func\\gen.tcl" \
 		-tclargs "${PWD_WIN}\\${DCP_FILE}"
 
-compile: py_codegen v_codegen
+#compile: py_codegen v_codegen
+compile: py_codegen
 	@echo "  - Compiling"
 	${SRC_XIL} && cd ${SIM_DIR} && ./compile.sh
 

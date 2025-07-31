@@ -83,55 +83,56 @@ module poc_tb();
     reg    [ 0:0]    in_ip_reset;
 
 
-    NiFpgaAG_top_level UUT_0 (
-        .reset(reset),
-        .enable_in(enable_in),
-        .enable_out(enable_out),
-        .enable_clr(enable_clr),
-        .ctrlind_00_MAC_in(in_mac),
-        .ctrlind_01_fifo_2_tdata(out_fifo2_tdata),
-        .ctrlind_02_fifo_2_tready(in_fifo2_tready),
-        .ctrlind_03_Add(in_add),
-        .ctrlind_04_fifo_1_tvalid(in_fifo1_tvalid),
-        .ctrlind_05_fifo_1_tdata(in_fifo1_tdata),
-        .ctrlind_06_B(in_b),
-        .ctrlind_07_A(in_a),
-        .ctrlind_08_Sum(out_sum),
-        .ctrlind_09_fifo_2_tvalid(out_fifo2_tvalid),
-        .ctrlind_10_fifo_1_tready(out_fifo1_tready),
-        .Clk40(clk40),
-		.tDiagramEnableOut(1)
-    );
-//	NiFpgaAG_poc_ip UUT (
+//    NiFpgaAG_top_level UUT_0 (
 //        .reset(reset),
 //        .enable_in(enable_in),
 //        .enable_out(enable_out),
 //        .enable_clr(enable_clr),
-//        // Outputs
-//        .ctrlind_00_CMD_TVALID(out_cmd_fifo_tvalid),
-//        .ctrlind_01_CMD_TLAST(out_cmd_fifo_tlast),
-//        .ctrlind_02_CMD_TKEEP(out_cmd_fifo_tkeep),
-//        .ctrlind_03_CMD_TDATA(out_cmd_fifo_tdata),
-//        .ctrlind_04_DEBUG_TVALID(out_debug_fifo_tvalid),
-//        .ctrlind_05_DEBUG_TLAST(out_debug_fifo_tlast),
-//        .ctrlind_06_DEBUG_TKEEP(out_debug_fifo_tkeep),
-//        .ctrlind_07_DEBUG_TDATA(out_debug_fifo_tdata),
-//        // Inputs
-//        .ctrlind_08_TUSER(in_data_tuser),
-//        .ctrlind_09_TLAST(in_data_tlast),
-//        .ctrlind_10_TVALID(in_data_tvalid),
-//        .ctrlind_11_TKEEP(in_data_tkeep),
-//        .ctrlind_12_TDATA(in_data_tdata),
-//        // Clocks & Reset & Enable
-//        .ctrlind_13_ip_reset(in_ip_reset),
+//        .ctrlind_00_MAC_in(in_mac),
+//        .ctrlind_01_fifo_2_tdata(out_fifo2_tdata),
+//        .ctrlind_02_fifo_2_tready(in_fifo2_tready),
+//        .ctrlind_03_Add(in_add),
+//        .ctrlind_04_fifo_1_tvalid(in_fifo1_tvalid),
+//        .ctrlind_05_fifo_1_tdata(in_fifo1_tdata),
+//        .ctrlind_06_B(in_b),
+//        .ctrlind_07_A(in_a),
+//        .ctrlind_08_Sum(out_sum),
+//        .ctrlind_09_fifo_2_tvalid(out_fifo2_tvalid),
+//        .ctrlind_10_fifo_1_tready(out_fifo1_tready),
 //        .Clk40(clk40),
-//        .tDiagramEnableOut(1)
+//		.tDiagramEnableOut(1)
 //    );
+	NiFpgaAG_poc_ip UUT (
+        .reset(reset),
+        .enable_in(enable_in),
+        .enable_out(enable_out),
+        .enable_clr(enable_clr),
+        // Outputs
+        .ctrlind_00_CMD_TVALID(out_cmd_fifo_tvalid),
+        .ctrlind_01_CMD_TLAST(out_cmd_fifo_tlast),
+        .ctrlind_02_CMD_TKEEP(out_cmd_fifo_tkeep),
+        .ctrlind_03_CMD_TDATA(out_cmd_fifo_tdata),
+        .ctrlind_04_DEBUG_TVALID(out_debug_fifo_tvalid),
+        .ctrlind_05_DEBUG_TLAST(out_debug_fifo_tlast),
+        .ctrlind_06_DEBUG_TKEEP(out_debug_fifo_tkeep),
+        .ctrlind_07_DEBUG_TDATA(out_debug_fifo_tdata),
+        // Inputs
+        .ctrlind_08_TUSER(in_data_tuser),
+        .ctrlind_09_TLAST(in_data_tlast),
+        .ctrlind_10_TVALID(in_data_tvalid),
+        .ctrlind_11_TKEEP(in_data_tkeep),
+        .ctrlind_12_TDATA(in_data_tdata),
+        // Clocks & Reset & Enable
+        .ctrlind_13_ip_reset(in_ip_reset),
+        .Clk40(clk40),
+        .tDiagramEnableOut(1)
+    );
 
     initial
     begin
         MyList my_list;
-        EthernetFrame eth_frame;
+        Pcap pcap;
+//        EthernetFrame eth_frame;
 //        int ret;
 //        longint i_word;
 //        int i;
@@ -152,6 +153,11 @@ module poc_tb();
         enable_in = 1;
         #(period*20);
 
+        // Configure IP
+        // Set 
+        pcap = new("../../../../tests/data/generated_2025_05_02.pcap",
+                "MAC", "IP", 8000);
+        $display("# of Packets: %d", pcap.get_packet_count());
         // Send 1st Ethernet Frame
         //eth_frame = new();
         //$display("  -  hasMoreFrames = %0d", eth_frame.hasMoreFrames());

@@ -17,26 +17,68 @@ from cboe_pitch.pitch24 import FieldConverter
 from collections import deque
 from enum import Enum
 import math
+import os
 from pathlib import Path
+from scapy.all import raw, rdpcap, IP, UDP
 import sys
 import tomllib
 from typing import Dict, List
 
 
-class EthernetFrame(object):
+class Pcap:
     """
+    Open a pcap file and return the bytes per packet
     """
-    @sv()
-    def __init__(self):
+    @sv(pcap_file=DataType.String,
+        mac=DataType.String,
+        ip=DataType.String,
+        dport=DataType.Int)
+    def __init__(self,
+                 pcap_file: str,
+                 mac: str,
+                 ip: str,
+                 dport: int):
         """
         """
-        pass
+        if Path(pcap_file).exists() is False:
+            error_msg = f"File {pcap_file} does not exist"
+            print(f'Pcap.__init__() -> {error_msg}\n')
+            raise Exception(error_msg)
 
-    @sv(return_type=DataType.Bit)
-    def hasMoreFrames(self):
+        #self._pcap_file = pcap_file
+        #self._mac = mac
+        #self._ip = ip
+        #self._dport = dport
+
+        self._packets = []
+        packets = rdpcap(pcap_file)
+        for packet in packets:
+            if packet[UDP].dport == dport:
+                self._packets.append(packet)
+
+
+    @sv(return_type=DataType.String)
+    def to_str(self) -> str:
+        dump = f"{os.getcwd()}"
+        if Path(self._pcap_file).exists() is False:
+            dump += f", FILE DNA"
+        else:
+            dump += "FILE OK"
+        return f"TEST: {dump}"
+
+    @sv(return_type=DataType.Int)
+    def get_packet_count(self) -> int:
         """
         """
-        return True
+        return len(self._packets)
+
+    @sv(index=DataType.Int,
+        return_type=DataType.Object)
+    def get_frame(self, index: int) :
+        """
+        """
+        ethernetFrame = EthernetFrame()
+        return ethernetFrame
 
 class OBCommand(object):
     @sv()
@@ -227,307 +269,307 @@ class OBCommand(object):
         return ob_str
 
 
-class FilterBench(object):
-    @sv(path_or_str=DataType.String,
-        backup_path=DataType.String,
-        clock_period=DataType.Int)
-    def __init__(self,
-                 path_or_str: str,
-                 backup_path: str = None,
-                 clock_period: int = None):
-        toml_file = None
-        self._config_file_name = "<raw string>"
-        self._clock_period = clock_period
-
-        try:
-            if Path(path_or_str).exists() is True:
-                self._config_file_name = path_or_str
-                with open(Path(path_or_str), mode="rb") as fin:
-                    toml_file = tomllib.load(fin)
-            elif Path(backup_path).exists() is True:
-                self._config_file_name = backup_path
-                with open(Path(backup_path), mode="rb") as fin:
-                    toml_file = tomllib.load(fin)
-        except OSError as ose:
-            print(f'Config is a string')
-            print('-'*80); sys.stdout.flush()
-            toml_file = tomllib.loads(path_or_str)
-
-        if toml_file is None:
-            self.LOG_NOW('Exception')
-            raise Exception(f'Failed to load config from {path_or_str}')
-
-        try:
-            self._name = toml_file['name']
-            self._description = toml_file['description']
-            self._watch_list = toml_file['watchlist']
-            self._number_of_messages = toml_file['generator']['number_of_messages']
-
-            self._securities_gen = []
-            for security in toml_file['security']:
-                sec_gen_dict = {}
-                sec_gen_dict['symbol'] = security['symbol']
-                if 'weight' in security:
-                    sec_gen_dict['weight'] = security['weight']
-                else:
-                    sec_gen_dict['weight'] = math.nan
-                if 'book_size_range' in security:
-                    sec_gen_dict['book_size_range'] = security['book_size_range']
-                else:
-                    sec_gen_dict['book_size_range'] = 10
-                if 'price_range' in security:
-                    sec_gen_dict['price_range'] = security['price_range']
-                else:
-                    sec_gen_dict['price_range'] = [75.00, 125.00]
-                if 'size_range' in security:
-                    sec_gen_dict['size_range'] = security['size_range']
-                else:
-                    sec_gen_dict['size_range'] = [25, 200]
-
-                self._securities_gen.append(sec_gen_dict)
-                self._orderids = set()
-
-        except Exception as ex:
-            print(f'Exception caught in FilterBench.__init__:\n{ex}')
-            print('-'*80); sys.stdout.flush()
-
-        #print(f'---+++****' * 80); sys.stdout.flush()
-        self._commands = deque()
-        ob_cmds = self.gen_messages(toml_file)
-        self._commands.extend(ob_cmds)
-        #print(f'toml_file: {toml_file}')
-        # Index by OrderID + Seconds + Nanoseconds
-        self._msgs = {}
-        self._expected_msgs_count = 0
-
-    @sv(return_type=DataType.Int)
-    def get_expected_msgs_count(self) -> int:
-        return self._expected_msgs_count
-
-
-    @sv()
-    def gen_messages(self, toml_file):
-        my_cmds = deque()
-
-        class CmdType(Enum):
-            Time = 0
-            AddOrder = 1
-            OrderExecuted = 2
-            OrderExecutedAtPrice = 3
-            ReduceSize = 4
-            ModifyOrder = 5
-            DeleteOrder = 6
-            GetEverything = 7
-            GetAllOrders = 8
-            GetTop = 9
-
-        def gen_cmd(cmd_type: str,
-                    cmd_side: str,
-                    cmd_orderid: str,
-                    cmd_quantity: int,
-                    cmd_symbol: int,
-                    cmd_price: int,
-                    cmd_executed_qty: int,
-                    cmd_canceled_qty: int,
-                    cmd_remaining_qty: int,
-                    cmd_seconds: int,
-                    cmd_nanoseconds: int,
-                    cmd_add: int,
-                    cmd_edit: int,
-                    cmd_remove: int,
-                    cmd_seq_no: int
-                    ):
-            out_cmd = {}
-            out_cmd['cmd_type'] = CmdType[cmd_type].value
-            out_cmd['cmd_side'] = 0x42 if cmd_side == 'B' else 0x53
-            out_cmd['cmd_orderid'] = FieldConverter.orderid_to_u64(cmd_orderid)
-            out_cmd['cmd_quantity'] = cmd_quantity
-
-            out_cmd['cmd_symbol'] = FieldConverter.symbol_to_u64(cmd_symbol)
-            out_cmd['cmd_price'] = cmd_price
-            out_cmd['cmd_executed_qty'] = cmd_executed_qty
-            out_cmd['cmd_canceled_qty'] = cmd_canceled_qty
-
-            out_cmd['cmd_remaining_qty'] = cmd_remaining_qty
-            out_cmd['cmd_seconds'] = cmd_seconds
-            out_cmd['cmd_nanoseconds'] = cmd_nanoseconds
-            out_cmd['cmd_add'] = cmd_add
-
-            out_cmd['cmd_edit'] = cmd_edit
-            out_cmd['cmd_remove'] = cmd_remove
-            out_cmd['cmd_seq_no'] = cmd_seq_no
-            return out_cmd
-
-        # Read messages from config
-        # or use generator
-        if 'messages' in toml_file:
-            #print(f'Using messages from config file')
-            ob_cmds = []
-            field_map = {}
-            for idx, val in enumerate(toml_file['messages']['csv'][0]):
-                #print(f' {val} = {idx}')
-                field_map[val] = idx
-
-            # cmd_type = get_field('Type')
-            for msg in toml_file['messages']['csv'][1:]:
-                #print(f'OrderId: {msg[field_map["OrderId"]]}')
-                my_cmds.append( gen_cmd(cmd_type=msg[field_map['Type']],
-                                        cmd_side=msg[field_map['Side']],
-                                        cmd_orderid=msg[field_map['OrderId']],
-                                        cmd_quantity=msg[field_map['Quantity']],
-                                        cmd_symbol=msg[field_map['Symbol']],
-                                        cmd_price=msg[field_map['Price']],
-                                        cmd_executed_qty=msg[field_map['Exe Quantity']],
-                                        cmd_canceled_qty=msg[field_map['Can Quantity']],
-                                        cmd_remaining_qty=msg[field_map['Rem Quantity']],
-                                        cmd_seconds=msg[field_map['Seconds']],
-                                        cmd_nanoseconds=msg[field_map['Seconds']],
-                                        cmd_add=msg[field_map['Op']] == 'add',
-                                        cmd_edit=msg[field_map['Op']] == 'edit',
-                                        cmd_remove=msg[field_map['Op']] == 'remove',
-                                        cmd_seq_no=msg[field_map['SeqNo']]
-                                        ) )
-                #print(f'my_cmds[0]: {my_cmds[0]}')
-        else:
-            print(f'Using message generator')
-
-        return my_cmds
-
-    @sv(msg=DataType.String)
-    def LOG_NOW(self, msg: str):
-        print(msg)
-        sys.stdout.flush()
-
-    @sv(return_type=DataType.String)
-    def name(self) -> str:
-        return self._name
-
-    @sv(return_type=DataType.String)
-    def description(self) -> str:
-        return self._description
-
-    @sv(return_type=DataType.String)
-    def watch_list(self) -> List[str]:
-        return self._watch_list
-
-    @sv(return_type=DataType.Int)
-    def number_of_messages(self) -> int:
-        return self._number_of_messages
-
-    @sv(return_type=DataType.String)
-    def get_config_file(self) -> str:
-        return self._config_file_name
-
-    @sv(return_type=DataType.String)
-    def print_header(self) -> str:
-        watch_list = '\n'.join(['  - ' + x for x in self._watch_list])
-        securities_gen = '\n'.join([ str(x) for x in self._securities_gen])
-        return f"""\
-+----------------------------------------------------------------------------+
-{self.name()}
---
-{self.description()}
---
-Watchlist:
-{watch_list}
---
-Generator Options:
-# of messages: {self.number_of_messages()}
---
-Generator.Securities:
-{securities_gen}
-+----------------------------------------------------------------------------+\
-"""
-
-    # WatchList Section
-    @sv(return_type=DataType.Int)
-    def watchlist_get_size(self) -> int:
-        return len(self._watch_list)
-
-    @sv(idx=DataType.Int,
-        return_type=DataType.ULongInt)
-    def watchlist_get_item(self, idx: int) -> int:
-        right_padded = self._watch_list[idx] + ((8 - len(self._watch_list[idx])) * " ")
-        val = int.from_bytes(right_padded.encode(), "big")
-        return val
-
-    @sv(idx=DataType.Int,
-        return_type=DataType.String)
-    def watchlist_get_item_str(self, idx: int) -> str:
-        return self._watch_list[idx]
-
-    # Command Section
-    @sv(in_ob_cmd=DataType.Object)
-    def get_next_command(self, in_ob_cmd) -> None:
-        in_ob_cmd.from_dict(self._commands.popleft())
-
-    @sv(return_type=DataType.Bit)
-    def has_more_commands(self) -> bool:
-        return len(self._commands) > 0
-
-
-    @sv(in_ob_cmd=OBCommand, in_time_ns=DataType.Int)
-    def log_command_send(self,
-                         in_ob_cmd: 'OBCommand',
-                         in_time_ns: int) -> None:
-        #self.LOG_NOW(f'Logging_send: {in_ob_cmd.to_str()}')
-        msg_key = f'{in_ob_cmd.cmd_orderid_str()}-{in_ob_cmd.cmd_seq_no_str()}'
-        self._msgs[msg_key] = {'ob_cmd': in_ob_cmd, 'sent_time': in_time_ns}
-
-        # Should this message pass through the filter?
-        if in_ob_cmd.cmd_type_str() == 'AddOrder':
-            #self.LOG_NOW(f'  --  AddOrder: {in_ob_cmd.cmd_symbol_str()} --')
-            if in_ob_cmd.cmd_symbol_str() in set(self._watch_list):
-                self._expected_msgs_count += 1
-                self._orderids.add(in_ob_cmd.cmd_orderid_str())
-                #self.LOG_NOW(f'  --  self._orderids: {len(self._orderids)}')
-        else:
-            #self.LOG_NOW('  --  Other type --')
-            if in_ob_cmd.cmd_orderid_str() in self._orderids:
-                self._expected_msgs_count += 1
-
-    @sv(in_orderid=DataType.ULongInt,
-        in_seq_no=DataType.ULongInt,
-        in_time_ns=DataType.Int)
-    def log_command_receive(self,
-                            in_orderid: int,
-                            in_seq_no: int,
-                            in_time_ns: int) -> None:
-        in_orderid_str = FieldConverter.u64_to_orderid(in_orderid)
-        in_seq_no_str = f'{in_seq_no}'
-
-        msg_key = f'{in_orderid_str}-{in_seq_no}'
-        #self.LOG_NOW(f'Logging_recv: {msg_key}')
-
-        self._msgs[msg_key]['recv_time'] = in_time_ns
-
-
-    @sv(return_type=DataType.String)
-    def get_results(self):
-        results = """\
----------------------
-Results of benchmark:
----------------------
-
-"""
-        results += """\
--------------------------
-Log of messages
--------------------------
-"""
-
-        # TODO: Calculate benchmarks using clock rate
-        results += '\n'
-        results += f'Clock Period: {self._clock_period}ns\n'
-        results += '\n'
-
-        for key, val in self._msgs.items():
-            # Does message have a received time?
-            if 'recv_time' in val:
-                [oid, seq_no] = key.split('-')
-                delta = val['recv_time'] - val['sent_time']
-                results += f'  {oid}:{seq_no} Delta: {delta}ns\n'
-        return results
+#class FilterBench(object):
+#    @sv(path_or_str=DataType.String,
+#        backup_path=DataType.String,
+#        clock_period=DataType.Int)
+#    def __init__(self,
+#                 path_or_str: str,
+#                 backup_path: str = None,
+#                 clock_period: int = None):
+#        toml_file = None
+#        self._config_file_name = "<raw string>"
+#        self._clock_period = clock_period
+#
+#        try:
+#            if Path(path_or_str).exists() is True:
+#                self._config_file_name = path_or_str
+#                with open(Path(path_or_str), mode="rb") as fin:
+#                    toml_file = tomllib.load(fin)
+#            elif Path(backup_path).exists() is True:
+#                self._config_file_name = backup_path
+#                with open(Path(backup_path), mode="rb") as fin:
+#                    toml_file = tomllib.load(fin)
+#        except OSError as ose:
+#            print(f'Config is a string')
+#            print('-'*80); sys.stdout.flush()
+#            toml_file = tomllib.loads(path_or_str)
+#
+#        if toml_file is None:
+#            self.LOG_NOW('Exception')
+#            raise Exception(f'Failed to load config from {path_or_str}')
+#
+#        try:
+#            self._name = toml_file['name']
+#            self._description = toml_file['description']
+#            self._watch_list = toml_file['watchlist']
+#            self._number_of_messages = toml_file['generator']['number_of_messages']
+#
+#            self._securities_gen = []
+#            for security in toml_file['security']:
+#                sec_gen_dict = {}
+#                sec_gen_dict['symbol'] = security['symbol']
+#                if 'weight' in security:
+#                    sec_gen_dict['weight'] = security['weight']
+#                else:
+#                    sec_gen_dict['weight'] = math.nan
+#                if 'book_size_range' in security:
+#                    sec_gen_dict['book_size_range'] = security['book_size_range']
+#                else:
+#                    sec_gen_dict['book_size_range'] = 10
+#                if 'price_range' in security:
+#                    sec_gen_dict['price_range'] = security['price_range']
+#                else:
+#                    sec_gen_dict['price_range'] = [75.00, 125.00]
+#                if 'size_range' in security:
+#                    sec_gen_dict['size_range'] = security['size_range']
+#                else:
+#                    sec_gen_dict['size_range'] = [25, 200]
+#
+#                self._securities_gen.append(sec_gen_dict)
+#                self._orderids = set()
+#
+#        except Exception as ex:
+#            print(f'Exception caught in FilterBench.__init__:\n{ex}')
+#            print('-'*80); sys.stdout.flush()
+#
+#        #print(f'---+++****' * 80); sys.stdout.flush()
+#        self._commands = deque()
+#        ob_cmds = self.gen_messages(toml_file)
+#        self._commands.extend(ob_cmds)
+#        #print(f'toml_file: {toml_file}')
+#        # Index by OrderID + Seconds + Nanoseconds
+#        self._msgs = {}
+#        self._expected_msgs_count = 0
+#
+#    @sv(return_type=DataType.Int)
+#    def get_expected_msgs_count(self) -> int:
+#        return self._expected_msgs_count
+#
+#
+#    @sv()
+#    def gen_messages(self, toml_file):
+#        my_cmds = deque()
+#
+#        class CmdType(Enum):
+#            Time = 0
+#            AddOrder = 1
+#            OrderExecuted = 2
+#            OrderExecutedAtPrice = 3
+#            ReduceSize = 4
+#            ModifyOrder = 5
+#            DeleteOrder = 6
+#            GetEverything = 7
+#            GetAllOrders = 8
+#            GetTop = 9
+#
+#        def gen_cmd(cmd_type: str,
+#                    cmd_side: str,
+#                    cmd_orderid: str,
+#                    cmd_quantity: int,
+#                    cmd_symbol: int,
+#                    cmd_price: int,
+#                    cmd_executed_qty: int,
+#                    cmd_canceled_qty: int,
+#                    cmd_remaining_qty: int,
+#                    cmd_seconds: int,
+#                    cmd_nanoseconds: int,
+#                    cmd_add: int,
+#                    cmd_edit: int,
+#                    cmd_remove: int,
+#                    cmd_seq_no: int
+#                    ):
+#            out_cmd = {}
+#            out_cmd['cmd_type'] = CmdType[cmd_type].value
+#            out_cmd['cmd_side'] = 0x42 if cmd_side == 'B' else 0x53
+#            out_cmd['cmd_orderid'] = FieldConverter.orderid_to_u64(cmd_orderid)
+#            out_cmd['cmd_quantity'] = cmd_quantity
+#
+#            out_cmd['cmd_symbol'] = FieldConverter.symbol_to_u64(cmd_symbol)
+#            out_cmd['cmd_price'] = cmd_price
+#            out_cmd['cmd_executed_qty'] = cmd_executed_qty
+#            out_cmd['cmd_canceled_qty'] = cmd_canceled_qty
+#
+#            out_cmd['cmd_remaining_qty'] = cmd_remaining_qty
+#            out_cmd['cmd_seconds'] = cmd_seconds
+#            out_cmd['cmd_nanoseconds'] = cmd_nanoseconds
+#            out_cmd['cmd_add'] = cmd_add
+#
+#            out_cmd['cmd_edit'] = cmd_edit
+#            out_cmd['cmd_remove'] = cmd_remove
+#            out_cmd['cmd_seq_no'] = cmd_seq_no
+#            return out_cmd
+#
+#        # Read messages from config
+#        # or use generator
+#        if 'messages' in toml_file:
+#            #print(f'Using messages from config file')
+#            ob_cmds = []
+#            field_map = {}
+#            for idx, val in enumerate(toml_file['messages']['csv'][0]):
+#                #print(f' {val} = {idx}')
+#                field_map[val] = idx
+#
+#            # cmd_type = get_field('Type')
+#            for msg in toml_file['messages']['csv'][1:]:
+#                #print(f'OrderId: {msg[field_map["OrderId"]]}')
+#                my_cmds.append( gen_cmd(cmd_type=msg[field_map['Type']],
+#                                        cmd_side=msg[field_map['Side']],
+#                                        cmd_orderid=msg[field_map['OrderId']],
+#                                        cmd_quantity=msg[field_map['Quantity']],
+#                                        cmd_symbol=msg[field_map['Symbol']],
+#                                        cmd_price=msg[field_map['Price']],
+#                                        cmd_executed_qty=msg[field_map['Exe Quantity']],
+#                                        cmd_canceled_qty=msg[field_map['Can Quantity']],
+#                                        cmd_remaining_qty=msg[field_map['Rem Quantity']],
+#                                        cmd_seconds=msg[field_map['Seconds']],
+#                                        cmd_nanoseconds=msg[field_map['Seconds']],
+#                                        cmd_add=msg[field_map['Op']] == 'add',
+#                                        cmd_edit=msg[field_map['Op']] == 'edit',
+#                                        cmd_remove=msg[field_map['Op']] == 'remove',
+#                                        cmd_seq_no=msg[field_map['SeqNo']]
+#                                        ) )
+#                #print(f'my_cmds[0]: {my_cmds[0]}')
+#        else:
+#            print(f'Using message generator')
+#
+#        return my_cmds
+#
+#    @sv(msg=DataType.String)
+#    def LOG_NOW(self, msg: str):
+#        print(msg)
+#        sys.stdout.flush()
+#
+#    @sv(return_type=DataType.String)
+#    def name(self) -> str:
+#        return self._name
+#
+#    @sv(return_type=DataType.String)
+#    def description(self) -> str:
+#        return self._description
+#
+#    @sv(return_type=DataType.String)
+#    def watch_list(self) -> List[str]:
+#        return self._watch_list
+#
+#    @sv(return_type=DataType.Int)
+#    def number_of_messages(self) -> int:
+#        return self._number_of_messages
+#
+#    @sv(return_type=DataType.String)
+#    def get_config_file(self) -> str:
+#        return self._config_file_name
+#
+#    @sv(return_type=DataType.String)
+#    def print_header(self) -> str:
+#        watch_list = '\n'.join(['  - ' + x for x in self._watch_list])
+#        securities_gen = '\n'.join([ str(x) for x in self._securities_gen])
+#        return f"""\
+#+----------------------------------------------------------------------------+
+#{self.name()}
+#--
+#{self.description()}
+#--
+#Watchlist:
+#{watch_list}
+#--
+#Generator Options:
+## of messages: {self.number_of_messages()}
+#--
+#Generator.Securities:
+#{securities_gen}
+#+----------------------------------------------------------------------------+\
+#"""
+#
+#    # WatchList Section
+#    @sv(return_type=DataType.Int)
+#    def watchlist_get_size(self) -> int:
+#        return len(self._watch_list)
+#
+#    @sv(idx=DataType.Int,
+#        return_type=DataType.ULongInt)
+#    def watchlist_get_item(self, idx: int) -> int:
+#        right_padded = self._watch_list[idx] + ((8 - len(self._watch_list[idx])) * " ")
+#        val = int.from_bytes(right_padded.encode(), "big")
+#        return val
+#
+#    @sv(idx=DataType.Int,
+#        return_type=DataType.String)
+#    def watchlist_get_item_str(self, idx: int) -> str:
+#        return self._watch_list[idx]
+#
+#    # Command Section
+#    @sv(in_ob_cmd=DataType.Object)
+#    def get_next_command(self, in_ob_cmd) -> None:
+#        in_ob_cmd.from_dict(self._commands.popleft())
+#
+#    @sv(return_type=DataType.Bit)
+#    def has_more_commands(self) -> bool:
+#        return len(self._commands) > 0
+#
+#
+#    @sv(in_ob_cmd=OBCommand, in_time_ns=DataType.Int)
+#    def log_command_send(self,
+#                         in_ob_cmd: 'OBCommand',
+#                         in_time_ns: int) -> None:
+#        #self.LOG_NOW(f'Logging_send: {in_ob_cmd.to_str()}')
+#        msg_key = f'{in_ob_cmd.cmd_orderid_str()}-{in_ob_cmd.cmd_seq_no_str()}'
+#        self._msgs[msg_key] = {'ob_cmd': in_ob_cmd, 'sent_time': in_time_ns}
+#
+#        # Should this message pass through the filter?
+#        if in_ob_cmd.cmd_type_str() == 'AddOrder':
+#            #self.LOG_NOW(f'  --  AddOrder: {in_ob_cmd.cmd_symbol_str()} --')
+#            if in_ob_cmd.cmd_symbol_str() in set(self._watch_list):
+#                self._expected_msgs_count += 1
+#                self._orderids.add(in_ob_cmd.cmd_orderid_str())
+#                #self.LOG_NOW(f'  --  self._orderids: {len(self._orderids)}')
+#        else:
+#            #self.LOG_NOW('  --  Other type --')
+#            if in_ob_cmd.cmd_orderid_str() in self._orderids:
+#                self._expected_msgs_count += 1
+#
+#    @sv(in_orderid=DataType.ULongInt,
+#        in_seq_no=DataType.ULongInt,
+#        in_time_ns=DataType.Int)
+#    def log_command_receive(self,
+#                            in_orderid: int,
+#                            in_seq_no: int,
+#                            in_time_ns: int) -> None:
+#        in_orderid_str = FieldConverter.u64_to_orderid(in_orderid)
+#        in_seq_no_str = f'{in_seq_no}'
+#
+#        msg_key = f'{in_orderid_str}-{in_seq_no}'
+#        #self.LOG_NOW(f'Logging_recv: {msg_key}')
+#
+#        self._msgs[msg_key]['recv_time'] = in_time_ns
+#
+#
+#    @sv(return_type=DataType.String)
+#    def get_results(self):
+#        results = """\
+#---------------------
+#Results of benchmark:
+#---------------------
+#
+#"""
+#        results += """\
+#-------------------------
+#Log of messages
+#-------------------------
+#"""
+#
+#        # TODO: Calculate benchmarks using clock rate
+#        results += '\n'
+#        results += f'Clock Period: {self._clock_period}ns\n'
+#        results += '\n'
+#
+#        for key, val in self._msgs.items():
+#            # Does message have a received time?
+#            if 'recv_time' in val:
+#                [oid, seq_no] = key.split('-')
+#                delta = val['recv_time'] - val['sent_time']
+#                results += f'  {oid}:{seq_no} Delta: {delta}ns\n'
+#        return results
 
 
 class MyList(object):
@@ -652,7 +694,7 @@ def compile(compile: bool = True, binding: bool = True):
     # add_sys_path=False # Whether to add system path
     if compile is True:
         lib_path = compile_lib([MyList,
-                                EthernetFrame],
+                                Pcap],
                                 cwd="build")
 
     # generate SV binding
@@ -661,7 +703,7 @@ def compile(compile: bool = True, binding: bool = True):
     #filename='out_sv_file.sv'
     if binding is True:
         generate_sv_binding([MyList,
-                             EthernetFrame],
+                             Pcap],
                              filename="pysv_pkg.sv")
 
 if __name__ == "__main__":
