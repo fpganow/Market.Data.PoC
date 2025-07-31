@@ -1,4 +1,3 @@
-#attrs
 cffi
 pybind11
 pysv

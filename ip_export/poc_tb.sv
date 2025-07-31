@@ -169,10 +169,56 @@ module poc_tb();
             pcap.get_frame(eth_frame, i);
             $display("|    Length (bytes) %4d", eth_frame.get_length_bytes());
             $display("|    Details: %s", eth_frame.get_short());
+            $display("|    # of Words: %d", eth_frame.get_number_of_words());
+            for (int j=0; j < eth_frame.get_number_of_words(); j++)
+            begin
+                $display("|       %x", eth_frame.get_word(j));
+                $display("|       %x", eth_frame.get_word_tkeep(j));
+                in_data_tuser = 1;
+                if (j+1 == eth_frame.get_number_of_words())
+                begin
+                    in_data_tlast = 1;
+                end
+                else
+                begin
+                    in_data_tlast = 0;
+                end
 
+                in_data_tvalid = 1;
+                in_data_tkeep = eth_frame.get_word_tkeep(j);
+                in_data_tdata = eth_frame.get_word(j);
+
+                // Keep values for 1 clock cycle
+                #(period*10);
+            end
         end
 
+        // Reset values
+        in_data_tlast = 0;
+        in_data_tvalid = 0;
+        in_data_tkeep = 0;
+        in_data_tdata = 0;
 
+        // Check outputs
+        #(period*10);
+
+        //out_cmd_fifo_tvalid),
+        //out_cmd_fifo_tlast),
+        //out_cmd_fifo_tkeep),
+        //out_cmd_fifo_tdata),
+        //out_debug_fifo_tvalid),
+        //out_debug_fifo_tlast),
+        //out_debug_fifo_tkeep),
+        //out_debug_fifo_tdata),
+        for (int k=0; k<50; k++)
+        begin
+            $display("|    fifo_tvalid: %d", out_cmd_fifo_tvalid);
+            $display("|    debug_tvalid: %d", out_debug_fifo_tvalid);
+            #(period*10);
+        end
+
+        // CMD
+        // DEBUG
 
 //        // Set default values
 //        //   Ready.For.Orderbook.Command

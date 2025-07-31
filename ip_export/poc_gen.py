@@ -19,12 +19,14 @@ from enum import Enum
 import math
 import os
 from pathlib import Path
+
 import scapy
 #import scapy.all
-import scapy.utils
+#import scapy.utils
 #from scapy.utils import rdpcap
 #import scapy.all as all_scapy
 #from scapy.all import raw, rdpcap, IP, UDP
+
 import sys
 #import tomllib
 from typing import Dict, List
@@ -46,65 +48,47 @@ class EthernetFrame:
             if UDP in packet:
                 self._is_bats = True
                 self._udp_bytes = bytes(packet[UDP].payload)
-            print(f'MAC: {packet.dst}, IP: {packet[IP].dst}, UDP: {packet[UDP].dport}')
-            #breakpoint()
-            #from scapy.layers.l2 import Ether
-            #self._packet = Ether(bytes(packet))
-            #print(f'ETHERNET_FRAME_INIT: Ether: {type(self._packet)}')
-            #print(f'ETHERNET_FRAME_INIT:: Ether: {self._packet}')
-            #self._packet = IP(bytes(packet))
-            #print(f'ETHERNET_FRAME_INIT:: IP: {type(self._packet)}')
-            #print(f'ETHERNET_FRAME_INIT:: IP: {self._packet}')
-            #print(f'ETHERNET_FRAME_INIT:: IP: {self._packet.show()}')
-            #print(f'ETHERNET_FRAME_INIT:: IP: {bytes(self._packet)}')
-            #print(f'ETHERNET_FRAME_INIT:: IP: {len(bytes(self._packet))}')
-            #print(f'ETHERNET_FRAME_INIT:: IP?: {packet[IP]}')
-            #print(f'ETHERNET_FRAME_INIT:: UDP?: {packet[UDP]}')
-            #print(f'ETHERNET_FRAME_INIT:: UDP: {packet[UDP].show()}')
-            #self._packet = UDP(bytes(self._packet))
-            #print(f'TESTING: UDP: {type(self._packet)}')
-            #print(f'TESTING: UDP: {self._packet}')
         except Exception as ex:
-            print(f'ETHERNET_FRAME_INIT:: {ex}')
-        #self._packet = packet[Ether]
-        #print(f'TESTING: init: {type(packet)}')
-        #from copy import deepcopy
-        #from scapy.layers.l2 import Ether
-        #self._packet = Ether(packet)
-        #print(f'TESTING: init: {type(self._packet)}')
-
-        #from scapy.layers.l2 import Ether
-        #print(f'TESTING: len {len(self._packet)}')
-
-
-        #self._packet = packet
+            print(f'ETHERNET_FRAME_INIT: {ex}')
 
     @sv(return_type=DataType.Int)
     def get_length_bytes(self) -> int:
         return len(self._raw_bytes)
 
+    @sv(return_type=DataType.Int)
+    def get_number_of_words(self) -> int:
+        num_words = len(self._raw_bytes) // 8
+        num_words += 1 if len(self._raw_bytes) % 8 > 0 else 0
+        return num_words
+
+    @sv(index=DataType.Int,
+        return_type=DataType.ULongInt)
+    def get_word(self, index):
+        try:
+            if index + 1 == self.get_number_of_words():
+                num_bytes = self.get_length_bytes() % 8
+                pad_size = 8 - num_bytes
+                ret = bytearray(self._raw_bytes[(index*8):(index*8) + num_bytes])
+                pad = bytearray([0] * pad_size)
+                ret = ret + pad
+                return int.from_bytes(ret, byteorder='big')
+            return int.from_bytes(self._raw_bytes[(index*8):(index*8)+8], byteorder='big')
+        except Exception as ex:
+            print(f'ETHERNET_FRAME_GET_WORD: {ex}')
+        return 0
+
+    @sv(index=DataType.Int,
+        return_type=DataType.UByte)
+    def get_word_tkeep(self, index: int):
+        return 255
+
     @sv(return_type=DataType.String)
     def get_short(self) -> str:
-        print(f'ETHERNET_FRAME_GET_SHORT: {self._is_bats}')
         try:
-            print('TRY-1'* 5)
             from scapy.all import IP, UDP
-            print(f'len(self._raw_bytes): {len(self._raw_bytes)}')
-            if self._is_bats is True:
-                print(f'len(self._udp_bytes): {len(self._udp_bytes)}')
-            from scapy.layers.l2 import Ether
-            ether = Ether(bytes(self._packet))
-            print(f'MAC={ether.dst}')
-            ip = IP(bytes(self._packet))
-            print(f'IP in self._packet: {IP in self._packet}')
-            if self._is_bats is True:
-                print(f'UDP in self._packet: {UDP in self._packet}')
-            udp = UDP(bytes(self._packet))
-            print('TRY-2'* 5)
-            return "A"
-            #return f"DST: MAC={self._packet.dst}, IP={self._packet[IP].dst}, DPort={self._packet[UDP].dport}"
+            return f"DST: MAC={self._packet.dst}, IP={self._packet[IP].dst}, DPort={self._packet[UDP].dport}"
         except Exception as ex:
-            return f"EXCEPTION-get_short: {ex}"
+            return f"ETHERNET_FRAME_GET_SHORT: {ex}"
 
 
 class Pcap:
@@ -132,24 +116,13 @@ class Pcap:
         if Path(pcap_file).exists() is False:
             print('FILE DNE')
             raise Exception(f'Pcap file {pcap_file} does not exist, pwd: {os.getcwd}')
-        #print(f'Pcap file {pcap_file} exists')
         self._packets = []
         try:
-            #import scapy.utils
-            #self._packets = scapy.utils.rdpcap(pcap_file)
             from scapy.all import rdpcap
             self._packets = rdpcap(pcap_file)
-            for pkt in self._packets:
-                print(f'type_of_packet: {type(pkt)}')
             # scapy.laters.l2.Ether
         except Exception as ex:
             print(f'Exception Caught in ctor: {ex}')
-
-
-#    @sv(return_type=DataType.String)
-#    def to_str(self) -> str:
-#        dump = f"{os.getcwd()}"
-#        return f"TEST: {dump}"
 
     @sv(return_type=DataType.Int)
     def get_frame_count(self) -> int:
@@ -162,194 +135,6 @@ class Pcap:
         eth_frame.init(self._packets[index])
         return True
 
-
-class OBCommand(object):
-    @sv()
-    def __init__(self):
-        self._cmd_type = 0
-        self._cmd_side = 0
-        self._cmd_orderid = 0
-        self._cmd_quantity = 0
-
-        self._cmd_symbol = 0
-        self._cmd_price = 0
-        self._cmd_executed_qty = 0
-        self._cmd_canceled_qty = 0
-
-        self._cmd_remaining_qty = 0
-        self._cmd_seconds = 0
-        self._cmd_nanoseconds = 0
-        self._cmd_add = 0
-
-        self._cmd_edit = 0
-        self._cmd_remove = 0
-        self._cmd_seq_no = 0
-
-    # Creators
-    def from_dict(self, in_dict):
-        self._cmd_type = in_dict['cmd_type']
-        self._cmd_side = in_dict['cmd_side']
-        self._cmd_orderid = in_dict['cmd_orderid']
-        self._cmd_quantity = in_dict['cmd_quantity']
-
-        self._cmd_symbol = in_dict['cmd_symbol']
-        self._cmd_price = in_dict['cmd_price']
-        self._cmd_executed_qty = in_dict['cmd_executed_qty']
-        self._cmd_canceled_qty = in_dict['cmd_canceled_qty']
-
-        self._cmd_remaining_qty = in_dict['cmd_remaining_qty']
-        self._cmd_seconds = in_dict['cmd_seconds']
-        self._cmd_nanoseconds = in_dict['cmd_nanoseconds']
-        self._cmd_add = in_dict['cmd_add']
-
-        self._cmd_edit = in_dict['cmd_edit']
-        self._cmd_remove = in_dict['cmd_remove']
-        self._cmd_seq_no = in_dict['cmd_seq_no']
-
-    # Properties
-
-    # Command Type
-    @sv(return_type=DataType.UByte)
-    def cmd_type(self) -> int:
-        return self._cmd_type
-    def cmd_type_str(self) -> str:
-        if self._cmd_type == 0:
-            return 'Time'
-        elif self._cmd_type == 1:
-            return 'AddOrder'
-        elif self._cmd_type == 2:
-            return 'OrderExecuted'
-        elif self._cmd_type == 3:
-            return 'OrderExecutedAtPrice'
-        elif self._cmd_type == 4:
-            return 'ReduceSize'
-        elif self._cmd_type == 5:
-            return 'ModifyOrder'
-        elif self._cmd_type == 6:
-            return 'DeleteOrder'
-        elif self._cmd_type == 7:
-            return 'GetEverything'
-        elif self._cmd_type == 8:
-            return 'GetAllOrders'
-        elif self._cmd_type == 9:
-            return 'GetTop'
-
-    # Side
-    @sv(return_type=DataType.UByte)
-    def cmd_side(self) -> int:
-        return self._cmd_side
-    def cmd_side_str(self) -> str:
-        return 'B' if self._cmd_side == ord('B') else 'S'
-
-    # OrderId
-    @sv(return_type=DataType.ULongInt)
-    def cmd_orderid(self) -> int:
-        return self._cmd_orderid
-    @sv(return_type=DataType.String)
-    def cmd_orderid_str(self) -> str:
-        return FieldConverter.u64_to_orderid(self._cmd_orderid)
-
-    # Quantity
-    @sv(return_type=DataType.UInt)
-    def cmd_quantity(self) -> int:
-        return self._cmd_quantity
-
-    # Symbol
-    @sv(return_type=DataType.ULongInt)
-    def cmd_symbol(self) -> int:
-        return self._cmd_symbol
-    @sv(return_type=DataType.String)
-    def cmd_symbol_str(self) -> str:
-        return FieldConverter.u64_to_symbol(self._cmd_symbol)
-
-    # Price
-    @sv(return_type=DataType.Float)
-    def cmd_price(self) -> int:
-        return self._cmd_price
-    def cmd_price_str(self) -> str:
-        return f'{self._cmd_price:.4f}'
-
-    # Executed Quantity
-    @sv(return_type=DataType.UInt)
-    def cmd_executed_qty(self) -> int:
-        return self._cmd_executed_qty
-    def cmd_executed_qty_str(self) -> str:
-        return f'{self._cmd_executed_qty}'
-
-    # Canceled Quantity
-    @sv(return_type=DataType.UInt)
-    def cmd_canceled_qty(self) -> int:
-        return self._cmd_canceled_qty
-    def cmd_canceled_qty_str(self) -> str:
-        return f'{self._cmd_canceled_qty}'
-
-    # Remaining Quantity
-    @sv(return_type=DataType.UInt)
-    def cmd_remaining_qty(self) -> int:
-        return self._cmd_remaining_qty
-    def cmd_remaining_qty_str(self) -> str:
-        return f'{self._cmd_remaining_qty}'
-
-    # Seconds
-    @sv(return_type=DataType.ULongInt)
-    def cmd_seconds(self) -> int:
-        return self._cmd_seconds
-    def cmd_seconds_str(self) -> str:
-        return f'{self._cmd_seconds}'
-
-    # Nanoseconds
-    @sv(return_type=DataType.ULongInt)
-    def cmd_nanoseconds(self) -> int:
-        return self._cmd_nanoseconds
-    def cmd_nanoseconds_str(self) -> str:
-        return f'{self._cmd_nanoseconds}'
-
-    # Operation (Op)
-    @sv(return_type=DataType.Bit)
-    def cmd_add(self) -> bool:
-        return self._cmd_add
-
-    @sv(return_type=DataType.Bit)
-    def cmd_edit(self) -> bool:
-        return self._cmd_edit
-
-    @sv(return_type=DataType.Bit)
-    def cmd_remove(self) -> bool:
-        return self._cmd_remove
-
-    def cmd_op_str(self) -> str:
-        if self._cmd_add is True:
-            return 'add'
-        if self._cmd_edit is True:
-            return 'edit'
-        if self._cmd_remove is True:
-            return 'remove'
-
-    # Sequence Number (No.)
-    @sv(return_type=DataType.UInt)
-    def cmd_seq_no(self) -> int:
-        return self._cmd_seq_no
-    def cmd_seq_no_str(self) -> str:
-        return f'{self._cmd_seq_no}'
-
-    @sv(return_type=DataType.String)
-    def to_str(self) -> str:
-        ob_str = '['
-        ob_str += f"'{self.cmd_type_str()},'"
-        ob_str += f"'{self.cmd_side_str()},'"
-        ob_str += f"'{self.cmd_orderid_str()},'"
-        ob_str += f"{self.cmd_quantity()},"
-        ob_str += f"'{self.cmd_symbol_str()}',"
-        ob_str += f"{self.cmd_price_str()},"
-        ob_str += f"{self.cmd_executed_qty_str()},"
-        ob_str += f"{self.cmd_canceled_qty_str()},"
-        ob_str += f"{self.cmd_remaining_qty_str()},"
-        ob_str += f"{self.cmd_seconds_str()},"
-        ob_str += f"{self.cmd_nanoseconds_str()},"
-        ob_str += f"'{self.cmd_op_str()}',"
-        ob_str += f"{self.cmd_seq_no_str()},"
-        ob_str += ']'
-        return ob_str
 
 
 #class FilterBench(object):
@@ -781,7 +566,7 @@ def compile(generate_code: bool = True,
                                 MyList,
                                 Pcap],
                                 cwd="build",
-                               generate_code=generate_code,
+#                               generate_code=generate_code,
                                clean_up_build=False)
 
     # generate SV binding

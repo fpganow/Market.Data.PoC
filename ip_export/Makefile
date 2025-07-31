@@ -1,10 +1,6 @@
 #
 # Usage:
-#
-# 1 - Install cboe_pitch
-#   SETUPTOOLS_USE_DISTUTILS=stdlib python3 -m pip install -e .
-#
-# 2 - Install rest of Python dependencies
+# 1 - Install Python dependencies
 #   make install_deps
 #
 # 3 - Build
@@ -16,6 +12,8 @@
 #   - https://fpganow.com/index.php/2024/01/03/error-while-running-vivado-simulation-on-ubuntu-22-04/
 #
 
+# 1 - Install cboe_pitch
+#   SETUPTOOLS_USE_DISTUTILS=stdlib python3 -m pip install -e .
 
 SHELL       :=  /bin/bash
 VIVADO_VER  :=  2024.1
@@ -100,7 +98,7 @@ py_shell:
 	$(PYTHON)
 
 install_deps:
-	${PYTHON} -m pip install -r ./requirements-test.txt
+	${PYTHON} -m pip install --user -r ./requirements-test.txt
 
 pytest:
 	@echo
