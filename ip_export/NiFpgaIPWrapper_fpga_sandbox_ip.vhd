@@ -7,22 +7,22 @@
 -- enable_in  :  Enable in port. Minimum re-initialization length: 7 base clock cycles.
 -- enable_out :  Enable out port.
 -- enable_clr :  Enable clear port.
--- ctrlind_00_DEBUG_TVALID : Top level indicator "DEBUG.TVALID", sync to Clk40Derived5x2B00MHz, bool
--- ctrlind_01_DEBUG_TLAST : Top level indicator "DEBUG.TLAST", sync to Clk40Derived5x2B00MHz, bool
--- ctrlind_02_DEBUG_TKEEP : Top level indicator "DEBUG.TKEEP", sync to Clk40Derived5x2B00MHz, u8
--- ctrlind_03_DEBUG_TDATA : Top level indicator "DEBUG.TDATA", sync to Clk40Derived5x2B00MHz, u64
--- ctrlind_04_TREADY : Top level indicator "TREADY", sync to Clk40Derived5x2B00MHz, bool
+-- ctrlind_00_DEBUG_TVALID : Top level indicator "DEBUG.TVALID", sync to Clk40MhzDerived5x2B00MHz, bool
+-- ctrlind_01_DEBUG_TLAST : Top level indicator "DEBUG.TLAST", sync to Clk40MhzDerived5x2B00MHz, bool
+-- ctrlind_02_DEBUG_TKEEP : Top level indicator "DEBUG.TKEEP", sync to Clk40MhzDerived5x2B00MHz, u8
+-- ctrlind_03_DEBUG_TDATA : Top level indicator "DEBUG.TDATA", sync to Clk40MhzDerived5x2B00MHz, u64
+-- ctrlind_04_TREADY : Top level indicator "TREADY", sync to Clk40MhzDerived5x2B00MHz, bool
 -- ctrlind_05_DEBUG_TREADY : Top level control "DEBUG.TREADY", unconnected in VI block diagram
--- ctrlind_06_B_in : Top level control "B.in", sync to Clk40Derived5x2B00MHz, u8
--- ctrlind_07_A_in : Top level control "A.in", sync to Clk40Derived5x2B00MHz, u8
--- ctrlind_08_Sum_Out : Top level indicator "Sum.Out", sync to Clk40Derived5x2B00MHz, u8
--- ctrlind_09_TUSER : Top level control "TUSER", sync to Clk40Derived5x2B00MHz, bool
--- ctrlind_10_TLAST : Top level control "TLAST", sync to Clk40Derived5x2B00MHz, bool
--- ctrlind_11_TVALID : Top level control "TVALID", sync to Clk40Derived5x2B00MHz, bool
--- ctrlind_12_TKEEP : Top level control "TKEEP", sync to Clk40Derived5x2B00MHz, u8
--- ctrlind_13_TDATA : Top level control "TDATA", sync to Clk40Derived5x2B00MHz, u64
--- ctrlind_14_ip_reset : Top level control "ip.reset", sync to Clk40Derived5x2B00MHz, bool
--- Clk40Derived5x2B00MHz : Clock "100MHz", nominal frequency 100.00 MHz, base clock
+-- ctrlind_06_B_in : Top level control "B.in", sync to Clk40MhzDerived5x2B00MHz, u8
+-- ctrlind_07_A_in : Top level control "A.in", sync to Clk40MhzDerived5x2B00MHz, u8
+-- ctrlind_08_Sum_Out : Top level indicator "Sum.Out", sync to Clk40MhzDerived5x2B00MHz, u8
+-- ctrlind_09_TUSER : Top level control "TUSER", sync to Clk40MhzDerived5x2B00MHz, bool
+-- ctrlind_10_TLAST : Top level control "TLAST", sync to Clk40MhzDerived5x2B00MHz, bool
+-- ctrlind_11_TVALID : Top level control "TVALID", sync to Clk40MhzDerived5x2B00MHz, bool
+-- ctrlind_12_TKEEP : Top level control "TKEEP", sync to Clk40MhzDerived5x2B00MHz, u8
+-- ctrlind_13_TDATA : Top level control "TDATA", sync to Clk40MhzDerived5x2B00MHz, u64
+-- ctrlind_14_ip_reset : Top level control "ip.reset", sync to Clk40MhzDerived5x2B00MHz, bool
+-- Clk40MhzDerived5x2B00MHz : Clock "100MHz", nominal frequency 100.00 MHz, base clock
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -48,7 +48,7 @@ entity NiFpgaIPWrapper_fpga_sandbox_ip is
 			ctrlind_12_TKEEP : in std_logic_vector(7 downto 0);
 			ctrlind_13_TDATA : in std_logic_vector(63 downto 0);
 			ctrlind_14_ip_reset : in std_logic_vector(0 downto 0);
-			Clk40Derived5x2B00MHz : in std_logic
+			Clk40MhzDerived5x2B00MHz : in std_logic
 		);
 end NiFpgaIPWrapper_fpga_sandbox_ip;
 
@@ -75,7 +75,7 @@ architecture vhdl_labview of NiFpgaIPWrapper_fpga_sandbox_ip is
 			ctrlind_12_TKEEP : in std_logic_vector(7 downto 0);
 			ctrlind_13_TDATA : in std_logic_vector(63 downto 0);
 			ctrlind_14_ip_reset : in std_logic_vector(0 downto 0);
-			Clk40Derived5x2B00MHz : in std_logic;
+			Clk40MhzDerived5x2B00MHz : in std_logic;
 			tDiagramEnableOut : in std_logic
 		);
 	end component;
@@ -102,7 +102,7 @@ begin
 			ctrlind_12_TKEEP => ctrlind_12_TKEEP,
 			ctrlind_13_TDATA => ctrlind_13_TDATA,
 			ctrlind_14_ip_reset => ctrlind_14_ip_reset,
-			Clk40Derived5x2B00MHz => Clk40Derived5x2B00MHz,
+			Clk40MhzDerived5x2B00MHz => Clk40MhzDerived5x2B00MHz,
 			tDiagramEnableOut => '1'
 		);
 
