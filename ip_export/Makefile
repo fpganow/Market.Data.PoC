@@ -62,10 +62,13 @@ local-list:
 
 # make local-gen-%
 #  - generate verilog version of local version
+local-gen-%: export dcp=$(shell ls -l *$*.dcp)
 local-gen-%:
 	@echo "+-----------------------------------------+"
 	@echo "| Writing Verilog for Vivado Block Design |"
 	@echo "+-----------------------------------------+"
+	@echo "Using:"
+	@echo "  - ${dcp}"
 
 
 # make compile-%
