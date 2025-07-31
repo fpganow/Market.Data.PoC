@@ -34,7 +34,7 @@ OLD_PATH    :=  ${PATH}
 
 export MY_VAR=TEST
 export PATH=$(VIVADO_BIN):$(OLD_PATH)
-export LD_LIBRARY_PATH :=  /tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:$(LD_LIBRARY_PATH)
+export LD_LIBRARY_PATH :=  /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:$(LD_LIBRARY_PATH)
 
 OS=$(shell lsb_release -r | awk '{print $$2}')
 PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-${OS}"${PWD_WIN2}

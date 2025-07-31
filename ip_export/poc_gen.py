@@ -58,10 +58,10 @@ class Pcap:
             #from scapy.all import raw, rdpcap, IP, UDP
             print(f'scapy.__file__: {scapy.__file__}')
             print(f'scapy.utils.__file__: {scapy.utils.__file__}')
-            print(f'scapy.utils.john: {scapy.utils.john}')
+            #print(f'scapy.utils.john: {scapy.utils.john}')
             print(f'scapy.utils.rdpcap: {scapy.utils.rdpcap}')
 
-            print(f'scapy.utils.john(): {scapy.utils.john()}')
+            #print(f'scapy.utils.john(): {scapy.utils.john()}')
             print(f'scapy.utils.rdpcap(): {scapy.utils.rdpcap(pcap_file)}')
             #packets = rdpcap(pcap_file)
 
@@ -80,8 +80,8 @@ class Pcap:
             #    print('Dumping packet')
             #    print(f'Dest MAC: {dir(packet)}')
             #    print(f'raw(packet): {scapy.all.raw(packet)}')
-            packets = scapy.utils.rdpcap()
-            print(f'TRY: {packets}')
+            self._packets = scapy.utils.rdpcap(pcap_file)
+            #print(f'TRY: {packets}')
         except Exception as ex:
             print(f'Exception Caught in ctor: {ex}')
 
