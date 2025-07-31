@@ -1,5 +1,23 @@
 # IP Export
 
+## Instructions
+
+### Make changes to Proof-of-Concept and run "IP Export"
+
+Find .dcp and .vhd files in C:\NIFPGA\compilation
+
+### Copy .dcp and .vhd files
+
+```
+ls -lth /mnt/c/NIFPGA/compilation
+```
+
+```
+ls -lthb /mnt/c/NIFPGA/compilation/ | head -n 2 | tail -n 1 | awk '{print "cp /mnt/c/NIFPGA/compilation/" $NF "source_files/* ."}'
+```
+
+### Generate Verilog version of DCP file
+
 LabVIEW PoC
 - Export to Netlist
  -> /mnt/c/NIFPGA/compilation/.../source_files/
