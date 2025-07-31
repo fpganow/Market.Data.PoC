@@ -40,6 +40,10 @@ help:
 	@echo "local-gen-%"
 	@echo "    Generate Verilog wrapper for IP Export by Vi Name"
 	@echo
+	@echo "----------------"
+	@echo "Local Simulation"
+	@echo "----------------"
+	@echo
 
 define AWK_EXPORT_LIST
 BEGIN { \
@@ -102,16 +106,17 @@ BEGIN { \
 	vhd_wrapper = "NiFpgaIPWrapper_" vi_name ".vhd"; \
 	v_file = dcp_file; \
 	gsub("dcp", "v", v_file); \
-	v_file_status = ""; \
+	v_file_size = "Size: "; \
 	if(stat(v_file, info)) { \
-	    v_file_status = ""; \
+	    v_file_size = "<Missing>"; \
 	} else { \
-		v_file_status = info["size"] / 1024 " KB"; \
+		v_file_size = info["size"] / 1024 " KB"; \
+		v_file_size = v_file_size " (" strftime("%b%e %H:%M", info["mtime"]) ")"; \
 	} \
 	print "- " date_time " - " vi_name; \
 	print "                DCP: " dcp_file; \
 	print "                VHD: " vhd_wrapper; \
-	print "                V: " v_file " - " v_file_status; \
+	print "                V: " v_file " - " v_file_size; \
 } \
 END { \
 }
@@ -140,15 +145,16 @@ local-gen-%:
 		-tclargs "${PWD_WIN3}\\${dcp_file}"
 
 
+py-codegen-%:
+	@echo "+----------------------------+"
+	@echo "| Generating Python Bindings |"
+	@echo "+----------------------------+"
+	@echo "Using:"
+
 ######  OLD  #######
 # make ip-export-list
 # - lists all available exports by date descending
 # - -t : sort by time, newest first
-#@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | \
-#	awk '{ print NR " - " $$6 " " $$7 " " $$8 " - " $$9 }'
-
-
-
 
 # make compile-%
 # make elaborate-%
@@ -355,16 +361,16 @@ py_codegen:
 	mv ./build/libpysv.so ./sim
 
 
-v_codegen:
-	@echo "  - Generating Synth"
-	@echo "PWD = ${PWD}"
-	@echo "SIM_DIR = ${SIM_DIR}"
-	@echo "WIN_DCP = ${WIN_DCP}"
-	@echo "PWD_WIN = ${PWD_WIN}"
-	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
-		-nolog -nojournal -notrace -mode batch \
-		-source ${PWD_WIN}\\sim\\synth\\func\\gen.tcl" \
-		-tclargs "${PWD_WIN}\\${DCP_FILE}"
+#v_codegen:
+#	@echo "  - Generating Synth"
+#	@echo "PWD = ${PWD}"
+#	@echo "SIM_DIR = ${SIM_DIR}"
+#	@echo "WIN_DCP = ${WIN_DCP}"
+#	@echo "PWD_WIN = ${PWD_WIN}"
+#	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
+#		-nolog -nojournal -notrace -mode batch \
+#		-source ${PWD_WIN}\\sim\\synth\\func\\gen.tcl" \
+#		-tclargs "${PWD_WIN}\\${DCP_FILE}"
 
 # Message Generator Section
 display_short:
