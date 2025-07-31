@@ -7,7 +7,7 @@ from hamcrest import (
 )
 from unittest import TestCase
 
-from poc_gen import Pcap, EthernetFrame
+from poc_gen import Pcap
 
 from pathlib import Path
 from scapy.all import raw, rdpcap, IP, UDP
@@ -15,13 +15,13 @@ from scapy.all import raw, rdpcap, IP, UDP
 class EthernetFrame(object):
     """
     """
-    @sv()
+#    @sv()
     def __init__(self):
         """
         """
         pass
 
-    @sv(return_type=DataType.Bit)
+#    @sv(return_type=DataType.Bit)
     def hasMoreFrames(self):
         """
         """
@@ -51,6 +51,22 @@ class TestPcapFile(TestCase):
         assert_that(pcap.get_packet_count(), equal_to(1))
 
 
+#        if Path(pcap_file).exists() is False:
+#            print('ERROR')
+#            error_msg = f"File {pcap_file} does not exist"
+#            print(f'Pcap.__init__() -> {error_msg}\n')
+#           raise Exception(error_msg)
+
+        #self._pcap_file = pcap_file
+        #self._mac = mac
+        #self._ip = ip
+        #self._dport = dport
+
+#        self._packets = []
+#        packets = rdpcap(pcap_file)
+#        for packet in packets:
+#            if packet[UDP].dport == dport:
+#                self._packets.append(packet)
 
 #class TestWatchList(TestCase):
 #    def test_get_single_watchlist(self):

@@ -19,6 +19,7 @@ from enum import Enum
 import math
 import os
 from pathlib import Path
+import scapy
 from scapy.all import raw, rdpcap, IP, UDP
 import sys
 import tomllib
@@ -26,9 +27,6 @@ from typing import Dict, List
 
 
 class Pcap:
-    """
-    Open a pcap file and return the bytes per packet
-    """
     @sv(pcap_file=DataType.String,
         mac=DataType.String,
         ip=DataType.String,
@@ -38,47 +36,41 @@ class Pcap:
                  mac: str,
                  ip: str,
                  dport: int):
-        """
-        """
+        print('CTOR')
         if Path(pcap_file).exists() is False:
-            error_msg = f"File {pcap_file} does not exist"
-            print(f'Pcap.__init__() -> {error_msg}\n')
-            raise Exception(error_msg)
-
-        #self._pcap_file = pcap_file
-        #self._mac = mac
-        #self._ip = ip
-        #self._dport = dport
-
+            print('FILE DNE')
+            raise Exception(f'Pcap file {pcap_file} does not exist, pwd: {os.getcwd}')
+        else:
+            print(f'Pcap file {pcap_file} exists')
         self._packets = []
-        packets = rdpcap(pcap_file)
-        for packet in packets:
-            if packet[UDP].dport == dport:
-                self._packets.append(packet)
+        try:
+            print('PRE-TRY')
+            #print(f'sys.path: {sys.path}')
+            import scapy
+            import scapy.compat
+            import scapy.utils
+            #from scapy.compat import raw
+            #from scapy.all import raw, rdpcap, IP, UDP
+            #packets = scapy.utils.rdpcap(pcap_file)
+            packets = scapy.utils.rdpcap2()
+            print(f'TRY: {packets}')
+        except Exception as ex:
+            print(f'EXCEPTION: {ex}')
 
 
     @sv(return_type=DataType.String)
     def to_str(self) -> str:
         dump = f"{os.getcwd()}"
-        if Path(self._pcap_file).exists() is False:
-            dump += f", FILE DNA"
-        else:
-            dump += "FILE OK"
         return f"TEST: {dump}"
 
     @sv(return_type=DataType.Int)
     def get_packet_count(self) -> int:
-        """
-        """
-        return len(self._packets)
+        return 0
 
     @sv(index=DataType.Int,
         return_type=DataType.Object)
     def get_frame(self, index: int) :
-        """
-        """
-        ethernetFrame = EthernetFrame()
-        return ethernetFrame
+        return None
 
 class OBCommand(object):
     @sv()
