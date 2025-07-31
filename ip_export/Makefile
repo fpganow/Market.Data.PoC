@@ -12,6 +12,76 @@
 #   - https://fpganow.com/index.php/2024/01/03/error-while-running-vivado-simulation-on-ubuntu-22-04/
 #
 
+# +---------------------------------------------------------------------------+
+# |  New Idea
+#
+# make ip-export-list
+# - lists all available exports by date descending
+# - -t : sort by time, newest first
+ip-export-list:
+	@echo "+----------------------+"
+	@echo "| Listing all exports  |"
+	@echo "+----------------------+"
+	@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | \
+		awk '{ print NR " - " $$6 " " $$7 " " $$8 " - " $$9 }'
+
+# make ip-export-copy-%
+#  - copy ip export #x to current directory
+ip-export-copy-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
+		| awk '{print "/mnt/c/NIFPGA/compilation/" $$9 "/source_files/"}')
+ip-export-copy-%: export dcp_file=$(shell ls ${IMP_BASE} | grep dcp)
+ip-export-copy-%: export vhd_wrapper=$(shell ls ${IMP_BASE} | grep vhd)
+ip-export-copy-%: export v_file=$(shell ls ${IMP_BASE} | grep dcp | cut -d'.' -f1)".v"
+ip-export-copy-%:
+	@echo "+---------------------------------+"
+	@echo "| Importing #$*                    |"
+	@echo "+---------------------------------+"
+	@echo "From:"
+	@echo " - ${IMP_BASE}"
+	@echo
+	@echo "Copying DCP_FILE"
+	@cp ${IMP_BASE}/${dcp_file} .
+	@echo " - setting .dcp_file to ${dcp_file}"
+	@echo " - setting .v_file to ${v_file}"
+	@echo
+	@echo "Copying VHD_WRAPPER"
+	@cp ${IMP_BASE}/${vhd_wrapper} .
+	@echo " - setting .vhd_wrapper to ${vhd_wrapper}"
+
+#
+# ** <Switch to another computer> **
+# make local-list
+#  - list all copied exports present in current directory
+local-list:
+local-list:
+	@echo "+---------------------------+"
+	@echo "| Listing all local Exports |"
+	@echo "+---------------------------+"
+	@ls NiFpgaAG*.dcp | cut -d'.' -f1 | cut -d'_' -f 2- | \
+		awk '{ print " - " $$1 }'
+
+# make local-gen-%
+#  - generate verilog version of local version
+local-gen-%:
+	@echo "+-----------------------------------------+"
+	@echo "| Writing Verilog for Vivado Block Design |"
+	@echo "+-----------------------------------------+"
+
+
+# make compile-%
+# make elaborate-%
+# make simulate-%
+# make wave-%
+#
+# With defaults selecting last modified
+# make compile-%
+# make elaborate-%
+# make simulate-%
+# make wave-%
+
+
+
+
 # 1 - Install cboe_pitch
 #   SETUPTOOLS_USE_DISTUTILS=stdlib python3 -m pip install -e .
 
@@ -30,9 +100,9 @@ OLD_PATH    :=  ${PATH}
 # User Parameters
 DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
 
-DCP_FILE_2=$(shell cat .dcp_file)
-VHD_WRAPPER_2=$(shell cat .vhd_wrapper)
-V_FILE_2=$(shell cat .v_file)
+#DCP_FILE_2=$(shell cat .dcp_file)
+#VHD_WRAPPER_2=$(shell cat .vhd_wrapper)
+#V_FILE_2=$(shell cat .v_file)
 
 # IDEA
 # There can only exist 1 dcp and 1 vhd wrapper
@@ -60,18 +130,6 @@ export MY_VAR=TEST
 export PATH=$(VIVADO_BIN):$(OLD_PATH)
 export LD_LIBRARY_PATH :=  /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:$(LD_LIBRARY_PATH)
 
-#
-# make ip-export-list
-#
-# make ip-export-copy-%
-#
-# make local-list
-#
-# make local-gen-%
-#
-# make compile-%
-# make elaborate-%
-# make simulate-%
 
 
 run-%:
@@ -82,13 +140,6 @@ run: export FILE=JJJ
 run: run-john
 	@echo "RUN"
 
-# -t : sort by time, newest first
-list-exports:
-	@echo "+----------------------+"
-	@echo "| Listing all exports  |"
-	@echo "+----------------------+"
-	@ls -l /mnt/c/NIFPGA/compilation | tail -n +2 | \
-		awk '{ print NR " - " $$6 " " $$7 " " $$8 " - " $$9 }'
 
 import-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
 		| awk '{print "/mnt/c/NIFPGA/compilation/" $$9 "/source_files/"}')
