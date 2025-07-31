@@ -27,12 +27,43 @@ PWD         ?=  ${pwd}
 PWD_WIN2    ?=  $(shell pwd | tr "/" "\\\\")
 OLD_PATH    :=  ${PATH}
 
+DCP_FILE_2=$(shell cat .dcp_file)
+VHD_WRAPPER_2=$(shell cat .vhd_wrapper)
+
+dump:
+	@echo "DUMP"
+	@echo "DCP: ${DCP_FILE_2}"
+	@echo "VHD_WRAPPER: ${VHD_WRAPPER_2}"
+# IDEA
+# There can only exist 1 dcp and 1 vhd wrapper
+#
+# list-exports
+#   Lists all exports in /mnt/C/NIFPGA/compilation
+#
+# import-export-0
+#   Delete current dcp and vhd wrapper
+#   Copy new dcp and vhd files from NIFPGA compilation directory
+#
+# generate-verilog
+#
+#
+#
+#
+#
 
 .EXPORT_ALL_VARIABLES:
 
 export MY_VAR=TEST
 export PATH=$(VIVADO_BIN):$(OLD_PATH)
 export LD_LIBRARY_PATH :=  /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:$(LD_LIBRARY_PATH)
+
+
+list-exports:
+	@echo "Listing all exports"
+	ls -l /mnt/c/NIFPGA/compilation
+
+import-%:
+	@echo "Importing $*"
 
 OS=$(shell lsb_release -r | awk '{print $$2}')
 PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-${OS}"${PWD_WIN2}
@@ -68,6 +99,9 @@ help:
 	@echo "  SIM_DIR=sim/impl/func make simulate"
 	@echo "  SIM_DIR=sim/imply/timing make simulate"
 
+sandbox:
+	@echo "Listing all NIFPGA Compilations"
+	@ls -dl /mnt/c/NIFPGA/compilation/*
 
 clean_%: export build_type=$(shell echo "$*" | awk -F'_' '{ print $$1 }')
 clean_%: export sim_type=$(shell echo "$*" | awk -F'_' '{ print $$2 }')
