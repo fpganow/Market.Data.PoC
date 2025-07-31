@@ -66,6 +66,21 @@ class Pcap:
             #packets = rdpcap(pcap_file)
 
             packets = "<none>"
+            #import scapy
+            #import cboe_pitch
+            #import scapy.compat
+            #import scapy.all
+            #import scapy.utils
+            #print(f'scapy.__file__: {scapy.__file__}')
+            #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
+            #from scapy.compat import raw
+            #from scapy.all import raw, rdpcap, IP, UDP
+            #packets = scapy.utils.rdpcap(pcap_file)
+            #for packet in packets:
+            #    print('Dumping packet')
+            #    print(f'Dest MAC: {dir(packet)}')
+            #    print(f'raw(packet): {scapy.all.raw(packet)}')
+            packets = scapy.utils.rdpcap()
             print(f'TRY: {packets}')
         except Exception as ex:
             print(f'Exception Caught in ctor: {ex}')
