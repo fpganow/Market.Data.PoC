@@ -57,16 +57,12 @@ py_codegen:
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
 
-# open_checkpoint "../../../NiFpgaAG_poc.dcp"
-# write_verilog "NiFpgaAG_func_synth.v"
-#v_codegen: export WIN_DCP=$(shell powershell.exe pwd)
 v_codegen:
 	@echo "  - Generating Synth"
 	@echo "PWD = ${PWD}"
 	@echo "SIM_DIR = ${SIM_DIR}"
 	@echo "WIN_DCP = ${WIN_DCP}"
 	@echo "PWD_WIN = ${PWD_WIN}"
-	@#echo "PWD_WIN2 = ${PWD_WIN2}"
 	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
 		-nolog -nojournal -notrace -mode batch \
 		-source ${PWD_WIN}\\sim\\synth\\func\\gen.tcl" \

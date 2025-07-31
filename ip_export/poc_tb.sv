@@ -32,6 +32,9 @@ module poc_tb();
         #duty_cycle;
     end
 
+    // TODO: Import IP
+    // entity NiFpgaIPWrapper_top_level is
+
 //    // Variables for NiFpgaIPWrapper_bats_parser_ip
 //    // reset: asynchronous reset (active high)
 //    // enable_in: Must be synchronous to base clock.  Assert to
