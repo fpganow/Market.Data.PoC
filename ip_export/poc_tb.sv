@@ -141,6 +141,7 @@ module poc_tb();
         reset = 0;
         enable_in = 0;
         enable_clr = 0;
+        in_ip_reset = 0;
         #(period);
 
         // Reset IP
@@ -153,7 +154,29 @@ module poc_tb();
         enable_in = 1;
         #(period*20);
 
+        // Reset IP - User
+        in_ip_reset = 1;
+        #(period*1);
+        in_ip_reset = 0;
+        //#(period*1);
+
         // Configure IP
+        for (int k=0; k<500; k++)
+        begin
+            if (out_cmd_fifo_tvalid == 1)
+            begin
+                $display("|    fifo_tvalid: %d = %x",
+                                out_cmd_fifo_tvalid,
+                                out_cmd_fifo_tdata);
+            end
+            if (out_debug_fifo_tvalid == 1)
+            begin
+                $display("|    debug_tvalid: %d = %x",
+                                out_debug_fifo_tvalid,
+                                out_debug_fifo_tdata);
+            end
+            #(period);
+        end
 
         $display("+---------------------------------------------------------------------------------+");
         $display("|  Pcap Section                                                                   |");
@@ -162,6 +185,7 @@ module poc_tb();
                 "MAC", "IP", 8000);
         $display("|  # of Ethernet Frames: %2d", pcap.get_frame_count());
 
+        #(duty_cycle*1);
         for (int i=0; i < pcap.get_frame_count(); i++)
         begin
             $display("| - Sending Ethernet Frame #%2d", (i+1));
@@ -172,8 +196,8 @@ module poc_tb();
             $display("|    # of Words: %d", eth_frame.get_number_of_words());
             for (int j=0; j < eth_frame.get_number_of_words(); j++)
             begin
-                $display("|       %x", eth_frame.get_word(j));
-                $display("|       %x", eth_frame.get_word_tkeep(j));
+                $display("|       %x", eth_frame.get_word(j, 1));
+                $display("|       %x", eth_frame.get_word_tkeep(j, 1));
                 in_data_tuser = 1;
                 if (j+1 == eth_frame.get_number_of_words())
                 begin
@@ -185,11 +209,11 @@ module poc_tb();
                 end
 
                 in_data_tvalid = 1;
-                in_data_tkeep = eth_frame.get_word_tkeep(j);
-                in_data_tdata = eth_frame.get_word(j);
+                in_data_tkeep = eth_frame.get_word_tkeep(j, 1);
+                in_data_tdata = eth_frame.get_word(j, 1);
 
                 // Keep values for 1 clock cycle
-                #(period*10);
+                #(period*1);
             end
         end
 
@@ -200,6 +224,22 @@ module poc_tb();
         in_data_tdata = 0;
 
         // Check outputs
+        for (int k=0; k<500; k++)
+        begin
+            if (out_cmd_fifo_tvalid == 1)
+            begin
+                $display("|    fifo_tvalid: %d = %x",
+                                out_cmd_fifo_tvalid,
+                                out_cmd_fifo_tdata);
+            end
+            if (out_debug_fifo_tvalid == 1)
+            begin
+                $display("|    debug_tvalid: %d = %x",
+                                out_debug_fifo_tvalid,
+                                out_debug_fifo_tdata);
+            end
+            #(period);
+        end
         #(period*10);
 
         //out_cmd_fifo_tvalid),
@@ -210,11 +250,17 @@ module poc_tb();
         //out_debug_fifo_tlast),
         //out_debug_fifo_tkeep),
         //out_debug_fifo_tdata),
-        for (int k=0; k<50; k++)
+        for (int k=0; k<500; k++)
         begin
-            $display("|    fifo_tvalid: %d", out_cmd_fifo_tvalid);
-            $display("|    debug_tvalid: %d", out_debug_fifo_tvalid);
-            #(period*10);
+            if (out_cmd_fifo_tvalid == 1)
+            begin
+                $display("|    fifo_tvalid: %d", out_cmd_fifo_tvalid);
+            end
+            if (out_debug_fifo_tvalid == 1)
+            begin
+                $display("|    debug_tvalid: %d", out_debug_fifo_tvalid);
+            end
+            #(period);
         end
 
         // CMD

@@ -21,14 +21,8 @@ import os
 from pathlib import Path
 
 import scapy
-#import scapy.all
-#import scapy.utils
-#from scapy.utils import rdpcap
-#import scapy.all as all_scapy
-#from scapy.all import raw, rdpcap, IP, UDP
 
 import sys
-#import tomllib
 from typing import Dict, List
 
 
@@ -62,8 +56,9 @@ class EthernetFrame:
         return num_words
 
     @sv(index=DataType.Int,
+        order=DataType.Bit,
         return_type=DataType.ULongInt)
-    def get_word(self, index):
+    def get_word(self, index, order):
         try:
             if index + 1 == self.get_number_of_words():
                 num_bytes = self.get_length_bytes() % 8
@@ -71,16 +66,29 @@ class EthernetFrame:
                 ret = bytearray(self._raw_bytes[(index*8):(index*8) + num_bytes])
                 pad = bytearray([0] * pad_size)
                 ret = ret + pad
+                if order == 1:
+                    return int.from_bytes(ret, byteorder='little')
                 return int.from_bytes(ret, byteorder='big')
+
+            if order == 1:
+                return int.from_bytes(self._raw_bytes[(index*8):(index*8)+8], byteorder='little')
+#            return int.from_bytes(self._raw_bytes[(index*8):(index*8)+8], byteorder='little')
             return int.from_bytes(self._raw_bytes[(index*8):(index*8)+8], byteorder='big')
         except Exception as ex:
             print(f'ETHERNET_FRAME_GET_WORD: {ex}')
         return 0
 
     @sv(index=DataType.Int,
+        order=DataType.Bit,
         return_type=DataType.UByte)
-    def get_word_tkeep(self, index: int):
-        return 255
+    def get_word_tkeep(self, index: int, order):
+        if index + 1 == self.get_number_of_words():
+            num_bytes = self.get_length_bytes() % 8
+            unshifted = int(math.pow(2, num_bytes)-1)
+            if order == 0:
+                return (unshifted << (8-num_bytes))
+            return unshifted
+        return 0xff
 
     @sv(return_type=DataType.String)
     def get_short(self) -> str:

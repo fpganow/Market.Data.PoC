@@ -54,7 +54,20 @@ class TestPcapFile(TestCase):
         assert_that(eth_frame.get_short(), equal_to(
             "DST: MAC=00:0a:35:18:3c:1f, IP=10.0.1.14, DPort=8000"))
         assert_that(eth_frame.get_number_of_words(), equal_to(39))
-        assert_that(eth_frame.get_word(0), equal_to(0x000a35183c1f0015))
-        assert_that(eth_frame.get_word(37), equal_to(0x0000c84d08000000))
-        assert_that(eth_frame.get_word(38), equal_to(0x0000010000000000))
-        assert_that(eth_frame.get_tkeep(38), equal_to(0b1110_0000))
+
+        assert_that(eth_frame.get_word(0, False), equal_to(0x000a35183c1f0015))
+        assert_that(eth_frame.get_word_tkeep(0, False), equal_to(0b1111_1111))
+
+        assert_that(eth_frame.get_word(37, False), equal_to(0x0000c84d08000000))
+        assert_that(eth_frame.get_word(38, False), equal_to(0x0000010000000000))
+        assert_that(eth_frame.get_word_tkeep(38, False), equal_to(0b1110_0000))
+
+        # Reversed
+        assert_that(eth_frame.get_word(0, True), equal_to(0x15001f3c18350a00))
+        assert_that(eth_frame.get_word_tkeep(0, True), equal_to(0b1111_1111))
+
+        assert_that(eth_frame.get_word(37, True), equal_to(0x000000084dc80000))
+        print(f'HEX: {hex(eth_frame.get_word_tkeep(38, False))}')
+        print(f'HEX: {hex(eth_frame.get_word_tkeep(38, True))}')
+        assert_that(eth_frame.get_word(38, True), equal_to(0x00_00_00_00_00_01_00_00))
+        assert_that(eth_frame.get_word_tkeep(38, True), equal_to(0b0000_0111))
