@@ -116,3 +116,15 @@ class TestPcapFile(TestCase):
 #        # [12] edit
 #        # [13] remove
 
+            #import scapy
+            #import scapy.utils
+            #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
+            #from scapy.compat import raw
+            #from scapy.all import raw, rdpcap, IP, UDP
+            #packets = scapy.utils.rdpcap(pcap_file)
+            #for packet in packets:
+                #print('Dumping packet')
+                #breakpoint()
+                #print(f'Dest MAC: {dir(packet)}')
+                #print(f'raw(packet): {scapy.all.raw(packet)}')
+             #packets = scapy.utils.rdpcap2()

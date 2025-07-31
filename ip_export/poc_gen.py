@@ -21,10 +21,10 @@ import os
 from pathlib import Path
 import scapy
 #import scapy.all
-import scapy.utils
+#import scapy.utils
 #from scapy.utils import rdpcap
 #import scapy.all as all_scapy
-#from scapy.all import raw, rdpcap, IP, UDP
+from scapy.all import raw, rdpcap, IP, UDP
 import sys
 #import tomllib
 from typing import Dict, List
@@ -55,7 +55,7 @@ class Pcap:
             print(f'scapy.__file__: {scapy.__file__}')
             #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
             #print(f'rdpcap: {all_scapy}')
-            #packets = rdpcap(pcap_file)
+            packets = rdpcap(pcap_file)
 
             print(f'TRY: {packets}')
         except Exception as ex:

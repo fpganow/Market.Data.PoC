@@ -85,9 +85,12 @@ clean: clean_synth_func clean_synth_timing clean_impl_func clean_impl_timing
 	@rm -rf .pytest_cache
 	@rm -f *.jou *.log
 
+use_arg:
+	@echo "Arg: ${arg}"
+
 use_vivado_py:
-	export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 -m pip install -r ./requirements-test.txt
-	export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 -m pip install -e ../submodules/cboe_pitch
+	export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ${arg}
+	#export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 -m pip install -e ../submodules/cboe_pitch
 
 install_deps:
 	${PYTHON} -m pip install -r ./requirements-test.txt
@@ -100,7 +103,8 @@ pytest:
 
 py_codegen:
 	#export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ./poc_gen.py
-	${PYTHON} ./poc_gen.py
+	export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ./poc_gen.py
+	#${PYTHON} ./poc_gen.py
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
 
