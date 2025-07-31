@@ -127,6 +127,9 @@ local-list:
 	@echo "+---------------------------+"
 	@echo "| Listing all local Exports |"
 	@ls -l NiFpgaAG*.dcp | awk '$(AWK_LOCAL_LIST)'
+	@echo
+	@echo "Generate local via 'make local-gen-<Vi Name>"
+	@echo
 
 #  - generate verilog version of local version
 local-gen-%: export dcp_file=$(shell ls  *$*.dcp)
