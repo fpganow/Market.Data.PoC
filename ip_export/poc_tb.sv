@@ -93,6 +93,7 @@ module poc_tb();
         .tDiagramEnableOut(1)
     );
 
+    // Main Thread
     initial
     begin
         MyList my_list;
@@ -104,6 +105,7 @@ module poc_tb();
         enable_in = 0;
         enable_clr = 0;
         in_ip_reset = 0;
+        // Default values for Data
         in_data_tlast = 0;
         in_data_tvalid = 0;
         in_data_tkeep = 0;
@@ -131,7 +133,6 @@ module poc_tb();
         in_ip_reset = 1;
         #(period*2);
         in_ip_reset = 0;
-        //#(period*1);
 
         // Configure IP
         for (int k=0; k<5000; k++)
