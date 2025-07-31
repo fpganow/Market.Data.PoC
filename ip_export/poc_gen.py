@@ -20,9 +20,11 @@ import math
 import os
 from pathlib import Path
 import scapy
-from scapy.all import raw, rdpcap, IP, UDP
+import scapy.all
+import scapy.utils
+#from scapy.all import raw, rdpcap, IP, UDP
 import sys
-import tomllib
+#import tomllib
 from typing import Dict, List
 
 
@@ -45,14 +47,22 @@ class Pcap:
         self._packets = []
         try:
             print('PRE-TRY')
-            #print(f'sys.path: {sys.path}')
-            import scapy
-            import scapy.compat
+            print(f'sys.path: {sys.path}')
+            #import scapy
+            #import cboe_pitch
+            #import scapy.compat
+            import scapy.all
             import scapy.utils
+            #print(f'scapy.__file__: {scapy.__file__}')
+            #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
             #from scapy.compat import raw
             #from scapy.all import raw, rdpcap, IP, UDP
-            #packets = scapy.utils.rdpcap(pcap_file)
-            packets = scapy.utils.rdpcap2()
+            packets = scapy.utils.rdpcap(pcap_file)
+            for packet in packets:
+                print('Dumping packet')
+                print(f'Dest MAC: {dir(packet)}')
+                print(f'raw(packet): {scapy.all.raw(packet)}')
+            #packets = scapy.utils.rdpcap2()
             print(f'TRY: {packets}')
         except Exception as ex:
             print(f'EXCEPTION: {ex}')

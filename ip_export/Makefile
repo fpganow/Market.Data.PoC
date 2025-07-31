@@ -10,7 +10,7 @@
 # Usage:
 #
 # 1 - Install cboe_pitch
-#   SETUPTOOLS_USE_DISTUTILS=stdlib python3.11 -m pip install -e .
+#   SETUPTOOLS_USE_DISTUTILS=stdlib python3 -m pip install -e .
 #
 # 2 - Install rest of Python dependencies
 #   make install_deps
@@ -40,7 +40,7 @@ SHELL       :=  /bin/bash
 VIVADO_VER  :=  2024.1
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
 SIM_DIR     ?=  sim/synth/func
-PYTHON      ?=  python3.11
+PYTHON      ?=  python3
 #DCP_FILE    ?=  NiFpgaAG_top_level.dcp
 DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
 PWD         ?=  ${pwd}
