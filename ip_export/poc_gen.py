@@ -2,6 +2,7 @@
 Export functions to be called from Test Bench
 
 - MyList
+- EthernetFrame
 - OBCommand
 - FilterBench
 """
@@ -22,7 +23,7 @@ import tomllib
 from typing import Dict, List
 
 
-class EthernetFrame:
+class EthernetFrame(object):
     """
     """
     @sv()

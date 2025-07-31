@@ -5,6 +5,8 @@ from unittest import TestCase
 from filter_msg_gen import FilterBench
 
 
+class Test
+
 class TestCommandGenerator(TestCase):
     def test_basic_config_from_file(self):
         # GIVEN
