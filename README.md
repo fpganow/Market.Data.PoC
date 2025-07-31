@@ -6,7 +6,7 @@ Putting it all together into a Proof-of-Concept
 
 If you cloned without ```--recurse-submodules```, you need to run:
 ```
-git submodule update --init --recursive
+git submodule update --init --recursive --remote
 ```
 
 ## Hardware
