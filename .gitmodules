@@ -7,3 +7,6 @@
 [submodule "submodules/Market.Data.Filter"]
 	path = submodules/Market.Data.Filter
 	url = git@github.com:fpganow/Market.Data.Filter.git
+[submodule "submodules/cboe_pitch"]
+	path = submodules/cboe_pitch
+	url = git@github.com:fpganow/cboe_pitch.git
