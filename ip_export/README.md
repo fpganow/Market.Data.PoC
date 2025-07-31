@@ -18,6 +18,18 @@ ls -lthb /mnt/c/NIFPGA/compilation/ | head -n 2 | tail -n 1 | awk '{print "cp /m
 
 ### Generate Verilog version of DCP file
 
+```
+make v_gen
+```
+
+### Copy Verilog version
+
+```
+cp NiFpgaAG_poc_ip.v /mnt/c/work/kr260/eth_pcs_pma_bare_2024.1/
+```
+
+### Open Vivado Design
+
 LabVIEW PoC
 - Export to Netlist
  -> /mnt/c/NIFPGA/compilation/.../source_files/
@@ -43,7 +55,7 @@ xxv_ethernet_0
 
 - GPIO_0 channel 0 -> Reset
 - GPIO_0 channel 1 -> Enable
-- 
+
 
 
 # To run the LabVIEW FPGA IP, one needs to:
