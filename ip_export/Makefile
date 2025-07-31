@@ -55,7 +55,7 @@ help:
 	@echo "  - clean"
 	@echo "  - install_deps"
 	@echo "  - py_codegen"
-	@echo "  - py_test"
+	@echo "  - pytest"
 	@echo "  - compile"
 	@echo "  - elaborate"
 	@echo "  - simulate"
