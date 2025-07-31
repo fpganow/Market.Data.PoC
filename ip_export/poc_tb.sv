@@ -188,6 +188,14 @@ module poc_tb();
         enable_in = 1;
         #(period*20);
 
+        in_a = 3'b001;
+//        in_ip_byte_enables = 8'b11111100;
+        in_b = 3'b011;
+        #(period*20);
+
+//        wait (out_ip_orderbook_command_valid == 1);
+        $display("    - out_sum: %d",
+                        out_sum);
 //        // LabVIEW/Code Reset
 //        in_ip_reset = 1;
 //        #(period);
