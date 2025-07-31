@@ -835,15 +835,6 @@ set_property IOSTANDARD LVCMOS25 [get_ports {Si570Clkn}]
 					<Item Name="Clear Errors.vi" Type="VI" URL="/&lt;vilib&gt;/Utility/error.llb/Clear Errors.vi"/>
 					<Item Name="lvSimController.dll" Type="Document" URL="/&lt;vilib&gt;/rvi/Simulation/lvSimController.dll"/>
 				</Item>
-				<Item Name="bats.parser.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/bats.parser.vi"/>
-				<Item Name="bats.parser.state.data.ctl" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/bats.parser.state.data.ctl"/>
-				<Item Name="bats.parser.state.command.ctl" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/bats.parser.state.command.ctl"/>
-				<Item Name="add.data.to.buffer.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/add.data.to.buffer.vi"/>
-				<Item Name="compress.buffer.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/compress.buffer.vi"/>
-				<Item Name="new.uxx.be.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/new.uxx.be.vi"/>
-				<Item Name="Time.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/message.types/Time.vi"/>
-				<Item Name="AddOrder.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/message.types/AddOrder.vi"/>
-				<Item Name="OrderExecuted.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/message.types/OrderExecuted.vi"/>
 			</Item>
 			<Item Name="Build Specifications" Type="Build">
 				<Item Name="poc" Type="{F4C5E96F-7410-48A5-BB87-3559BC9B167F}">
@@ -950,6 +941,9 @@ set_property IOSTANDARD LVCMOS25 [get_ports {Si570Clkn}]
 			</Item>
 			<Item Name="hosts.deserialize.orderbook.commands.vi" Type="VI" URL="../submodules/Market.Data.Common/host/hosts.deserialize.orderbook.commands.vi"/>
 			<Item Name="fpganow.common.fpga.lvlib" Type="Library" URL="../submodules/Market.Data.Common/fpga/fpganow.common.fpga.lvlib"/>
+			<Item Name="NiFpgaLv.dll" Type="Document" URL="NiFpgaLv.dll">
+				<Property Name="NI.PreserveRelativePath" Type="Bool">true</Property>
+			</Item>
 		</Item>
 		<Item Name="Build Specifications" Type="Build"/>
 	</Item>
