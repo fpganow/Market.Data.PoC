@@ -3,7 +3,10 @@ VIVADO_VER  :=  2023.2
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
 SIM_DIR     ?=  sim/synth/func
 PYTHON      ?=  python3.11
-
+DCP_FILE    ?=  NiFpgaAG_top_level.dcp
+PWD         ?=  ${pwd}
+PWD_WIN2    ?=  $(shell pwd | tr "/" "\\\\")
+PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-22.04"${PWD_WIN2}
 
 help:
 	@echo
@@ -49,13 +52,27 @@ py_test:
 	@echo " - Running Python Tests"
 	${PYTHON} -m pytest --disable-warnings tests_poc_gen.py
 
-
 py_codegen:
 	${PYTHON} ./poc_gen.py
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
 
-compile: py_codegen
+# open_checkpoint "../../../NiFpgaAG_poc.dcp"
+# write_verilog "NiFpgaAG_func_synth.v"
+#v_codegen: export WIN_DCP=$(shell powershell.exe pwd)
+v_codegen:
+	@echo "  - Generating Synth"
+	@echo "PWD = ${PWD}"
+	@echo "SIM_DIR = ${SIM_DIR}"
+	@echo "WIN_DCP = ${WIN_DCP}"
+	@echo "PWD_WIN = ${PWD_WIN}"
+	@#echo "PWD_WIN2 = ${PWD_WIN2}"
+	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
+		-nolog -nojournal -notrace -mode batch \
+		-source ${PWD_WIN}\\sim\\synth\\func\\gen.tcl" \
+		-tclargs "${PWD_WIN}\\${DCP_FILE}"
+
+compile: py_codegen v_codegen
 	@echo "  - Compiling"
 	${SRC_XIL} && cd ${SIM_DIR} && ./compile.sh
 
