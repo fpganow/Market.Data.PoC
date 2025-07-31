@@ -1,5 +1,32 @@
 # IP Export
 
+LabVIEW PoC
+- Export to Netlist
+ -> /mnt/c/NIFPGA/compilation/.../source_files/
+   NiFpgaAG_poc_ip.dcp
+   NiFpgaIPWrapper_poc_ip.vhd
+- Generate verilog from dcp file
+- Copy to Xilin Vivado Project Directory
+- Add:
+  NiFpgaIPWrapper_poc_ip.vhd
+  NiFpgaAG_poc_ip.v
+- Add to Block Design
+
+Vivado Block Design
+
+xxv_ethernet_0
+ tx_fifo -
+         - axis2xgmii
+ xgmii2axis -
+            - rx_fifo_0
+            - NiFpgaIPWrapper_poc_ip.vhd -
+                                         - rx_fifo_1
+                                         - rx_fifo_2
+
+- GPIO_0 channel 0 -> Reset
+- GPIO_0 channel 1 -> Enable
+- 
+
 
 # To run the LabVIEW FPGA IP, one needs to:
 
@@ -7,7 +34,7 @@
 # [Hard coded] Set MAC Address
 # [Hard coded] Set IP Address
 # [Hard coded] Set Port
-# Reset
+# Implement and use TREADY
 # [Filter] Set Watchlist
 
 ## For now, just have to start sending Ethernet Frames

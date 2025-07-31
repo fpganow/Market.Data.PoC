@@ -21,15 +21,61 @@ module poc_tb();
     localparam period = 25;
     localparam duty_cycle = period / 2;
 
-    reg clk40;
+    reg clk;
 
+    // Generate 40MHz Clock
     always
     begin
-        clk40 = 1'b0;
+        clk = 1'b0;
         #duty_cycle;
 
-        clk40 = 1'b1;
+        clk = 1'b1;
         #duty_cycle;
+    end
+
+    longint unsigned my_fifo_array[][4];
+    int my_fifo_len = 0;
+    int index = 0;
+    longint unsigned debug_data[4];
+
+    // Poll DEBUG FIFO
+    always @(posedge clk)
+    begin
+        if (out_debug_fifo_tvalid == 1)
+        begin
+            debug_data[index] = out_debug_fifo_tdata;
+            if (index == 3)
+            begin
+                my_fifo_array = new[my_fifo_array.size() + 1](my_fifo_array);
+                my_fifo_array[my_fifo_len] = debug_data;
+                my_fifo_len += 1;
+                index = 0;
+                $display("%6d\tDEBUG\t0x%x 0x%x 0x%x 0x%x",
+                            $time,
+                            debug_data[0],
+                            debug_data[1],
+                            debug_data[2],
+                            debug_data[3]);
+            end
+            else
+            begin
+                index += 1;
+            end
+            //$display("%6d\tDEBUG\t0x%x",
+            //                $time,
+            //                out_debug_fifo_tdata);
+        end
+    end
+
+    // Poll CMD FIFO
+    always @(posedge clk)
+    begin
+        if (out_cmd_fifo_tvalid == 1)
+        begin
+            $display("%6d\tCMD\t0x%x",
+                            $time,
+                            out_cmd_fifo_tdata);
+        end
     end
 
     // Variables for NiFpgaIPWrapper_bats_parser_ip
@@ -89,7 +135,7 @@ module poc_tb();
         .ctrlind_12_TDATA(in_data_tdata),
         // Clocks & Reset & Enable
         .ctrlind_13_ip_reset(in_ip_reset),
-        .Clk40(clk40),
+        .Clk40Derived168x43B56_28MHz(clk),
         .tDiagramEnableOut(1)
     );
 
@@ -102,7 +148,7 @@ module poc_tb();
 
         // Set default control signal values
         reset = 0;
-        enable_in = 0;
+        enable_in = 1;
         enable_clr = 0;
         in_ip_reset = 0;
         // Default values for Data
@@ -126,7 +172,7 @@ module poc_tb();
 
         // Enable IP
         reset = 0;
-        enable_in = 1;
+        //#enable_in = 1;
         #(period*10);
 
         // Reset IP - User
@@ -135,25 +181,8 @@ module poc_tb();
         in_ip_reset = 0;
 
         // Configure IP
-        for (int k=0; k<5000; k++)
-        begin
-            if (out_cmd_fifo_tvalid == 1)
-            begin
-                $display("|    [%d] fifo_tvalid: %d = %x",
-                                k,
-                                out_cmd_fifo_tvalid,
-                                out_cmd_fifo_tdata);
-            end
-            if (out_debug_fifo_tvalid == 1)
-            begin
-                $display("|    [%d] debug_tvalid: %d = %x",
-                                k,
-                                out_debug_fifo_tvalid,
-                                out_debug_fifo_tdata);
-            end
-            #(period);
-        end
 
+        // Send Pcap data in
         $display("+---------------------------------------------------------------------------------+");
         $display("|  Pcap Section                                                                   |");
         $display("+---------------------------------------------------------------------------------+");
@@ -172,9 +201,10 @@ module poc_tb();
             $display("|    # of Words: %d", eth_frame.get_number_of_words());
             for (int j=0; j < eth_frame.get_number_of_words(); j++)
             begin
-                $display("|       %x %x",
-                                  eth_frame.get_word_tkeep(j, 0),
-                                  eth_frame.get_word(j, 0));
+                $display("%6d\tSEND\t0x%x\t0x%x",
+                                  $time,
+                                  eth_frame.get_word(j, 0),
+                                  eth_frame.get_word_tkeep(j, 0));
                 in_data_tuser = 1;
                 if (j+1 == eth_frame.get_number_of_words())
                 begin
@@ -200,38 +230,19 @@ module poc_tb();
         in_data_tkeep = 0;
         in_data_tdata = 0;
 
-        // Check outputs
-        for (int k=0; k<500; k++)
-        begin
-            if (out_cmd_fifo_tvalid == 1)
-            begin
-                $display("|    fifo_tvalid: %d = %x",
-                                out_cmd_fifo_tvalid,
-                                out_cmd_fifo_tdata);
-            end
-            if (out_debug_fifo_tvalid == 1)
-            begin
-                $display("|    debug_tvalid: %d = %x",
-                                out_debug_fifo_tvalid,
-                                out_debug_fifo_tdata);
-            end
-            #(period);
-        end
-        #(period*10);
-
-
-        // CMD
-        // DEBUG
+        // Wait for CMD and DEBUG FIFOs to drain
+        $display("Dumping FIFO Array");
+        $display("my_fifo_len=%d", my_fifo_len);
 
         pysv_finalize();
         $display("+---------------------------------------------------------------------------------+");
         $display("|  Finished Testing PYSV                                                          |");
         $display("+---------------------------------------------------------------------------------+");
-// */
 
         $display("----------------------------------------------------------------");
         $display("  End of TEST BENCH  ");
         $display("----------------------------------------------------------------");
+        // */
 
         $finish;
     end
