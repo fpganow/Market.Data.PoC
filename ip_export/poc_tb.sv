@@ -33,25 +33,36 @@ module poc_tb();
     end
 
     // TODO: Import IP
-    // entity NiFpgaIPWrapper_top_level is
 
-//    // Variables for NiFpgaIPWrapper_bats_parser_ip
-//    // reset: asynchronous reset (active high)
-//    // enable_in: Must be synchronous to base clock.  Assert to
-//    //            start running the IP, must remain asserted
-//    //            when the IP is running.  Deassert when resetting
-//    //            the IP.
-//    // enable_out: Ignore this for free running IP. Otherwise it is
-//    //             asserted when the IP has stopped.
-//    // enable_clr: Assert for one cycle to prepare IP for a single shot.
-//    // AUTO_GENERATED_CODE_START: parse.py ['./NiFpgaIPWrapper_bats_parser_ip.vhd']
-//    // Source file: ./NiFpgaIPWrapper_bats_parser_ip.vhd
-//    // Variables for NiFpgaIPWrapper_bats_parser_ip
-//    reg              reset;
-//    reg              enable_in;
-//    wire             enable_out;
-//    reg              enable_clr;
-//    // Control
+    // Variables for NiFpgaIPWrapper_bats_parser_ip
+    // reset: asynchronous reset (active high)
+    // enable_in: Must be synchronous to base clock.  Assert to
+    //            start running the IP, must remain asserted
+    //            when the IP is running.  Deassert when resetting
+    //            the IP.
+    // enable_out: Ignore this for free running IP. Otherwise it is
+    //             asserted when the IP has stopped.
+    // enable_clr: Assert for one cycle to prepare IP for a single shot.
+    // AUTO_GENERATED_CODE_START: parse.py ['./NiFpgaIPWrapper_bats_parser_ip.vhd']
+    // Source file: ./NiFpgaIPWrapper_bats_parser_ip.vhd
+    // Variables for NiFpgaIPWrapper_bats_parser_ip
+    reg              reset;
+    reg              enable_in;
+    wire             enable_out;
+    reg              enable_clr;
+    // Control
+    reg    [47:0]    in_mac;
+    reg    [63:0]    out_fifo2_tdata;
+    reg    [ 0:0]    in_fifo2_tready;
+    reg    [ 3:0]    in_add;
+    reg    [ 0:0]    in_fifo1_tvalid;
+    reg    [63:0]    in_fifo1_tdata;
+    reg    [ 3:0]    in_a;
+    reg    [ 3:0]    in_b;
+    reg    [ 4:0]    out_sum;
+    reg    [ 0:0]    out_fifo2_tvalid;
+    reg    [ 0:0]    out_fifo1_tready;
+
 //    reg    [ 0:0]    in_ip_reset;
 //    reg    [63:0]    in_ip_bytes;
 //    wire   [ 0:0]    out_ip_ready_for_udp_input;
@@ -82,7 +93,26 @@ module poc_tb();
 //    wire   [ 0:0]    out_ip_edit;
 //    wire   [ 0:0]    out_ip_remove;
 //    wire   [31:0]    out_ip_seq_no;
-//
+
+    NiFpgaAG_top_level UUT (
+        .reset(reset),
+        .enable_in(enable_in),
+        .enable_out(enable_out),
+        .enable_clr(enable_clr),
+        .ctrlind_00_MAC_in(in_mac),
+        .ctrlind_01_fifo_2_tdata(out_fifo2_tdata),
+        .ctrlind_02_fifo_2_tready(in_fifo2_tready),
+        .ctrlind_03_Add(in_add),
+        .ctrlind_04_fifo_1_tvalid(in_fifo1_tvalid),
+        .ctrlind_05_fifo_1_tdata(in_fifo1_tdata),
+        .ctrlind_06_B(in_b),
+        .ctrlind_07_A(in_a),
+        .ctrlind_08_Sum(out_sum),
+        .ctrlind_09_fifo_2_tvalid(out_fifo2_tvalid),
+        .ctrlind_10_fifo_1_tready(out_fifo1_tready),
+        .Clk40(clk40),
+		.tDiagramEnableOut(1)
+    );
 //    NiFpgaIPWrapper_bats_parser_ip UUT (
 //        .reset(reset),
 //        .enable_in(enable_in),
@@ -128,36 +158,36 @@ module poc_tb();
 //        int ret;
 //        longint i_word;
 //        int i;
-//        // Set default control signal values
-//        reset = 0;
-//        enable_in = 0;
-//        enable_clr = 0;
+        // Set default control signal values
+        reset = 0;
+        enable_in = 0;
+        enable_clr = 0;
 //        // Set default values
 //        //   Ready.For.Orderbook.Command
 //        //   reset_in
 //        //   data_in
 //        //   data_valid
-//        reset = 0;
+        reset = 0;
 //        in_ip_reset = 0;
 //        in_ip_ready_for_orderbook_command = 1;
 //        in_ip_ready_for_debug = 1;
 //        in_ip_data_valid = 0;
 //        in_ip_byte_enables = 8'h0;
 //        in_ip_bytes = 64'h00000000;
-//
-//        // Reset IP
-//        reset = 1;
-//        #(period*50);
-//        $display("Reset IP");
-//
-//        enable_in = 1;
-//        reset = 0;
-//        #(period*40);
-//
-//        // Enable IP
-//        enable_in = 1;
-//        #(period*20);
-//
+
+        // Reset IP
+        reset = 1;
+        #(period*50);
+        $display("Reset IP");
+
+        enable_in = 1;
+        reset = 0;
+        #(period*40);
+
+        // Enable IP
+        enable_in = 1;
+        #(period*20);
+
 //        // LabVIEW/Code Reset
 //        in_ip_reset = 1;
 //        #(period);
