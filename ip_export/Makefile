@@ -47,11 +47,11 @@ install_deps:
 py_test:
 	@echo
 	@echo " - Running Python Tests"
-	${PYTHON} -m pytest --disable-warnings tests_filter_msg_gen.py
+	${PYTHON} -m pytest --disable-warnings tests_poc_gen.py
 
 
 py_codegen:
-	${PYTHON} ./filter_msg_gen.py
+	${PYTHON} ./poc_gen.py
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
 
