@@ -110,6 +110,17 @@ py_codegen:
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
 
+v_gen:
+	@echo "  - Writing Verilog"
+	@echo "PWD = ${PWD}"
+	@echo "SIM_DIR = ${SIM_DIR}"
+	@echo "WIN_DCP = ${WIN_DCP}"
+	@echo "PWD_WIN = ${PWD_WIN}"
+	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
+		-nolog -nojournal -notrace -mode batch \
+		-source ${PWD_WIN}\\gen.tcl" \
+		-tclargs "${PWD_WIN}\\${DCP_FILE}"
+
 v_codegen:
 	@echo "  - Generating Synth"
 	@echo "PWD = ${PWD}"
