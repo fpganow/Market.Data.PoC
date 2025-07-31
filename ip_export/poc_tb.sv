@@ -25,14 +25,12 @@ module poc_tb();
 
     always
     begin
-        clk40 = 1'b1;
-        #duty_cycle;
-
         clk40 = 1'b0;
         #duty_cycle;
-    end
 
-    // TODO: Import IP
+        clk40 = 1'b1;
+        #duty_cycle;
+    end
 
     // Variables for NiFpgaIPWrapper_bats_parser_ip
     // reset: asynchronous reset (active high)
@@ -50,19 +48,6 @@ module poc_tb();
     reg              enable_in;
     wire             enable_out;
     reg              enable_clr;
-    // Control
-    reg    [47:0]    in_mac;
-    reg    [63:0]    out_fifo2_tdata;
-    reg    [ 0:0]    in_fifo2_tready;
-    reg    [ 3:0]    in_add;
-    reg    [ 0:0]    in_fifo1_tvalid;
-    reg    [63:0]    in_fifo1_tdata;
-    reg    [ 3:0]    in_a;
-    reg    [ 3:0]    in_b;
-    reg    [ 4:0]    out_sum;
-    reg    [ 0:0]    out_fifo2_tvalid;
-    reg    [ 0:0]    out_fifo1_tready;
-
     // CMD_FIFO
     reg    [ 0:0]    out_cmd_fifo_tvalid;
     reg    [ 0:0]    out_cmd_fifo_tlast;
@@ -82,26 +67,6 @@ module poc_tb();
     // IP Reset
     reg    [ 0:0]    in_ip_reset;
 
-
-//    NiFpgaAG_top_level UUT_0 (
-//        .reset(reset),
-//        .enable_in(enable_in),
-//        .enable_out(enable_out),
-//        .enable_clr(enable_clr),
-//        .ctrlind_00_MAC_in(in_mac),
-//        .ctrlind_01_fifo_2_tdata(out_fifo2_tdata),
-//        .ctrlind_02_fifo_2_tready(in_fifo2_tready),
-//        .ctrlind_03_Add(in_add),
-//        .ctrlind_04_fifo_1_tvalid(in_fifo1_tvalid),
-//        .ctrlind_05_fifo_1_tdata(in_fifo1_tdata),
-//        .ctrlind_06_B(in_b),
-//        .ctrlind_07_A(in_a),
-//        .ctrlind_08_Sum(out_sum),
-//        .ctrlind_09_fifo_2_tvalid(out_fifo2_tvalid),
-//        .ctrlind_10_fifo_1_tready(out_fifo1_tready),
-//        .Clk40(clk40),
-//		.tDiagramEnableOut(1)
-//    );
 	NiFpgaAG_poc_ip UUT (
         .reset(reset),
         .enable_in(enable_in),
@@ -133,45 +98,55 @@ module poc_tb();
         MyList my_list;
         Pcap pcap;
         EthernetFrame eth_frame = new();
-//        int ret;
-//        longint i_word;
-//        int i;
 
         // Set default control signal values
         reset = 0;
         enable_in = 0;
         enable_clr = 0;
         in_ip_reset = 0;
-        #(period);
+        in_data_tlast = 0;
+        in_data_tvalid = 0;
+        in_data_tkeep = 0;
+        in_data_tdata = 0;
 
         // Reset IP
         reset = 1;
-        #(period*50);
+        #(period*10);
         $display("Reset IP");
+        // reset : Reset port. Minimum assertion length: 8 base clock cycles.
+        //         Minimum de-assertion length: 40 base clock cycles.
+        // enable_in : Enable in port. Minimum re-initialization 
+        //             length: 7 base clock cycles.
+
+        // De-assertion of Reset IP
+        reset = 0;
+        #(period*45);
 
         // Enable IP
         reset = 0;
         enable_in = 1;
-        #(period*20);
+        #(period*10);
 
         // Reset IP - User
         in_ip_reset = 1;
-        #(period*1);
+        #(period*2);
         in_ip_reset = 0;
         //#(period*1);
 
         // Configure IP
-        for (int k=0; k<500; k++)
+        for (int k=0; k<5000; k++)
         begin
             if (out_cmd_fifo_tvalid == 1)
             begin
-                $display("|    fifo_tvalid: %d = %x",
+                $display("|    [%d] fifo_tvalid: %d = %x",
+                                k,
                                 out_cmd_fifo_tvalid,
                                 out_cmd_fifo_tdata);
             end
             if (out_debug_fifo_tvalid == 1)
             begin
-                $display("|    debug_tvalid: %d = %x",
+                $display("|    [%d] debug_tvalid: %d = %x",
+                                k,
                                 out_debug_fifo_tvalid,
                                 out_debug_fifo_tdata);
             end
@@ -196,8 +171,9 @@ module poc_tb();
             $display("|    # of Words: %d", eth_frame.get_number_of_words());
             for (int j=0; j < eth_frame.get_number_of_words(); j++)
             begin
-                $display("|       %x", eth_frame.get_word(j, 1));
-                $display("|       %x", eth_frame.get_word_tkeep(j, 1));
+                $display("|       %x %x",
+                                  eth_frame.get_word_tkeep(j, 0),
+                                  eth_frame.get_word(j, 0));
                 in_data_tuser = 1;
                 if (j+1 == eth_frame.get_number_of_words())
                 begin
@@ -209,8 +185,8 @@ module poc_tb();
                 end
 
                 in_data_tvalid = 1;
-                in_data_tkeep = eth_frame.get_word_tkeep(j, 1);
-                in_data_tdata = eth_frame.get_word(j, 1);
+                in_data_tkeep = eth_frame.get_word_tkeep(j, 0);
+                in_data_tdata = eth_frame.get_word(j, 0);
 
                 // Keep values for 1 clock cycle
                 #(period*1);
@@ -242,186 +218,9 @@ module poc_tb();
         end
         #(period*10);
 
-        //out_cmd_fifo_tvalid),
-        //out_cmd_fifo_tlast),
-        //out_cmd_fifo_tkeep),
-        //out_cmd_fifo_tdata),
-        //out_debug_fifo_tvalid),
-        //out_debug_fifo_tlast),
-        //out_debug_fifo_tkeep),
-        //out_debug_fifo_tdata),
-        for (int k=0; k<500; k++)
-        begin
-            if (out_cmd_fifo_tvalid == 1)
-            begin
-                $display("|    fifo_tvalid: %d", out_cmd_fifo_tvalid);
-            end
-            if (out_debug_fifo_tvalid == 1)
-            begin
-                $display("|    debug_tvalid: %d", out_debug_fifo_tvalid);
-            end
-            #(period);
-        end
 
         // CMD
         // DEBUG
-
-//        // Set default values
-//        //   Ready.For.Orderbook.Command
-//        //   reset_in
-//        //   data_in
-//        //   data_valid
-//        in_ip_reset = 0;
-//        in_ip_ready_for_orderbook_command = 1;
-//        in_ip_ready_for_debug = 1;
-//        in_ip_data_valid = 0;
-//        in_ip_byte_enables = 8'h0;
-//        in_ip_bytes = 64'h00000000;
-
-
-
-//        in_a = 3'b101;
-//        in_ip_byte_enables = 8'b11111100;
-//        in_b = 3'b011;
-//        #(period*20);
-
-//        wait (out_ip_orderbook_command_valid == 1);
-//        $display("    - out_sum: %d",
-//                        out_sum);
-//        // LabVIEW/Code Reset
-//        in_ip_reset = 1;
-//        #(period);
-//
-//        in_ip_reset = 0;
-//        #(period*5);
-
-//        $display("+=================================================================================+");
-//        $display("|  Hard-coded Sequenced Unit Header                                               |");
-//        $display("+---------------------------------------------------------------------------------+");
-//        $display("  Test #1 - Send hard-coded Sequenced Unit Header");
-//        $display("    - 1st WORD");
-//        in_ip_data_valid = 1;
-//        in_ip_byte_enables = 8'b11111111;
-//        in_ip_bytes = 64'h0e00010102000000;
-//        $display("    - 2nd WORD");
-//        #(period*1);
-//        in_ip_data_valid = 1;
-//        in_ip_byte_enables = 8'b11111100;
-//        in_ip_bytes = 64'h062020d206000000;
-//        $display("    - Clear data_valid");
-//        #(period*1);
-//        in_ip_data_valid = 0;
-//        in_ip_byte_enables = 8'b00000000;
-//        in_ip_bytes = 64'h0000000000000000;
-//
-//        $display("    + Assert result");
-//        #(period*1);
-//        wait (out_ip_orderbook_command_valid == 1);
-//        $display("    - out_ip_orderbook_command_valid: %d",
-//                        out_ip_orderbook_command_valid);
-//        $display("    - out_ip_seconds_u64: %d (0x%x)",
-//                        out_ip_seconds_u64,
-//                        out_ip_seconds_u64);
-//        $display("    - out_ip_orderbook_command_type: %d",
-//                        out_ip_orderbook_command_type);
-//
-//        $display("+=================================================================================+");
-//        $display("|  Testing PYSV                                                                   |");
-//        $display("+---------------------------------------------------------------------------------+");
-//
-//        // Test #1 - Create Custom List via PYSV
-//        $display("  Test #1 - Create List via PYSV");
-//        my_list = new();
-//        my_list.append(100);
-//        my_list.append(200);
-//        my_list.append(300);
-//        my_list.append(400);
-//        $display("  -  Length = %0d", my_list.get_length());
-//        assert (my_list.get_length() == 4);
-//        $display("  -  Bytes = %s", my_list.to_str(0));
-//        assert (my_list.to_str(0) == "[0x64 0xC8 0x12C 0x190]") else $error("Assertion failed %s", my_list.to_str(0));
-//        assert (my_list.get_idx(0) == 100);
-//        assert (my_list.get_idx(1) == 200);
-//        assert (my_list.get_idx(2) == 300);
-//        assert (my_list.get_idx(3) == 400);
-//        $display("  *  Passed");
-//
-//        // Test #2 - Create List, Append and Prepend to it
-//        $display("+---------------------------------------------------------------------------------+");
-//        $display("  Test #2 - Create List, Append and Prepend to it");
-//        my_list = new();
-//        $display("  - Generating and appending 1st Time message");
-//        ret = get_time(34200, my_list, 0);
-//        $display("  - Length = %0d", my_list.get_length());
-//        assert (my_list.get_length() == 6);
-//        assert (my_list.to_str(0) == "[0x06 0x20 0x98 0x85 0x00 0x00]") else $error("Assertion failed %s", my_list.to_str(0));
-//        $display("  - Generating and prepending 2nd Time message");
-//        ret = get_time(34201, my_list, 1);
-//        assert (my_list.to_str(0) == "[0x06 0x20 0x99 0x85 0x00 0x00 0x06 0x20 0x98 0x85 0x00 0x00]") else 
-//            $error("Assertion failed %s", my_list.to_str(0));
-//        $display("  *  Passed");
-
-//        // Test #3 - Create Time Message and prepend appropriate Seq Unit Header
-//        $display("+---------------------------------------------------------------------------------+");
-//        $display("  Test #3 - Create Time Message and prepend appropriate Seq Unit Header");
-//        $display("  -  Time = 35,199");
-//        my_list = new();
-//        ret = get_time(35199, my_list, 0);
-//        assert (my_list.get_length() == 6);
-//        assert (my_list.to_str(0) == "[0x06 0x20 0x7F 0x89 0x00 0x00]") else
-//            $error("Invalid bytes for Time message: %s", my_list.to_str(0));
-//
-//        ret = get_seq_unit_hdr(1, 1, my_list);
-//        assert (ret == 0) else $display("Bad exit code");
-//        assert (my_list.get_length() == 14) else 
-//            $error("Bad length, was %d", my_list.get_length());
-//        assert (my_list.to_str(0) == "[0x0E 0x00 0x02 0x01 0x01 0x00 0x00 0x00 0x06 0x20 0x7F 0x89 0x00 0x00]") else 
-//            $error("Invalid bytes for Sequenced Unit Header, %s", my_list.to_str(0));
-//        // TODO: How can systemverilog know if a previous assertion failed and make this 'passed' mean something?
-//            // -? External library such as VUnit? https://vunit.github.io/user_guide.html
-//        $display("  *  Passed");
-//
-//        // Test #4 - Use SeqUnitHdr with single Time Message, pass through BATS.Parser IP
-//        $display("+---------------------------------------------------------------------------------+");
-//        $display("  Test #4 - Create SeqUnitHdr with single Time Message, pass through BATS.Parser IP");
-//        my_list = new();
-//        ret = get_time(32199, my_list, 0);
-//        ret = get_seq_unit_hdr(1, 1, my_list);
-//        assert (ret == 0);
-//        $display("  -  Return value = %0d", ret);
-//        assert (my_list.get_length() == 14);
-//        $display("  -  Length = %0d", my_list.get_length());
-//
-//        i_word = my_list.get_word(0);
-//        $display("  -  i_word[0] = 0x%0x", i_word);
-//
-//        in_ip_data_valid = 1;
-//        in_ip_byte_enables = 8'b11111111;        
-//        in_ip_bytes = i_word;
-//
-//        #(period*1);
-//        i_word = my_list.get_word(1);
-//        in_ip_data_valid = 1;
-//        in_ip_byte_enables = 8'b11111100;
-//        in_ip_bytes = i_word;
-//
-//        #(period*1);
-//        in_ip_data_valid = 0;
-//        in_ip_byte_enables = 8'b00000000;
-//        in_ip_bytes = 64'h0000000000000000;
-//
-//        $display("  - Sent 2nd Test time message");
-//        $display("    Results:");
-//        wait (out_ip_orderbook_command_valid == 1);
-//        $display("    - out_ip_orderbook_command_valid: %d",
-//                        out_ip_orderbook_command_valid);
-//        assert (out_ip_seconds_u64 == 32199);
-//        $display("    - out_ip_seconds_u64: %d (0x%x)",
-//                        out_ip_seconds_u64,
-//                        out_ip_seconds_u64);
-//        assert (out_ip_orderbook_command_type == 0);
-//        $display("    - out_ip_orderbook_command_type: %d",
-//                        out_ip_orderbook_command_type);
 
         pysv_finalize();
         $display("+---------------------------------------------------------------------------------+");
@@ -432,11 +231,6 @@ module poc_tb();
         $display("----------------------------------------------------------------");
         $display("  End of TEST BENCH  ");
         $display("----------------------------------------------------------------");
-
-/*
-        wait (out_ip_orderbook_command_valid == 1);
-        assert (out_ip_seconds_u64 == 64'h000000000006d219);
-*/
 
         $finish;
     end
