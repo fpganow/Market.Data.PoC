@@ -60,10 +60,27 @@ export MY_VAR=TEST
 export PATH=$(VIVADO_BIN):$(OLD_PATH)
 export LD_LIBRARY_PATH :=  /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib:/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:$(LD_LIBRARY_PATH)
 
-# 1 - make list-exports
-# 2 - Select Import to use
-# 3 - make gen-x
-# 4 - Add .v and .vhd files to Vivado
+#
+# make ip-export-list
+#
+# make ip-export-copy-%
+#
+# make local-list
+#
+# make local-gen-%
+#
+# make compile-%
+# make elaborate-%
+# make simulate-%
+
+
+run-%:
+	@echo "RUN-$*"
+	@echo "FILE=${FILE}"
+
+run: export FILE=JJJ
+run: run-john
+	@echo "RUN"
 
 # -t : sort by time, newest first
 list-exports:
@@ -123,6 +140,10 @@ gen-verilog:
 		-nolog -nojournal -notrace -mode batch \
 		-source ${PWD_WIN3}\\gen.tcl" \
 		-tclargs "${PWD_WIN3}\\${dcp_file}"
+
+gen-custom-%:
+	@echo
+	@echo "CUSTOM GEN: $*"
 
 help:
 	@echo
