@@ -1,5 +1,5 @@
 #attrs
-cboe_pitch>=0.0.5
 cffi==1.17.1
 pybind11==2.13.6
 pysv==0.3.1
+scapy

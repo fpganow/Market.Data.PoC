@@ -20,8 +20,10 @@ import math
 import os
 from pathlib import Path
 import scapy
-import scapy.all
+#import scapy.all
 import scapy.utils
+#from scapy.utils import rdpcap
+#import scapy.all as all_scapy
 #from scapy.all import raw, rdpcap, IP, UDP
 import sys
 #import tomllib
@@ -48,24 +50,16 @@ class Pcap:
         try:
             print('PRE-TRY')
             print(f'sys.path: {sys.path}')
-            #import scapy
-            #import cboe_pitch
-            #import scapy.compat
-            import scapy.all
-            import scapy.utils
-            #print(f'scapy.__file__: {scapy.__file__}')
+            print(f'sys.executable: {sys.executable}')
+            #import scapy.utils
+            print(f'scapy.__file__: {scapy.__file__}')
             #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
-            #from scapy.compat import raw
-            #from scapy.all import raw, rdpcap, IP, UDP
-            packets = scapy.utils.rdpcap(pcap_file)
-            for packet in packets:
-                print('Dumping packet')
-                print(f'Dest MAC: {dir(packet)}')
-                print(f'raw(packet): {scapy.all.raw(packet)}')
-            #packets = scapy.utils.rdpcap2()
+            #print(f'rdpcap: {all_scapy}')
+            #packets = rdpcap(pcap_file)
+
             print(f'TRY: {packets}')
         except Exception as ex:
-            print(f'EXCEPTION: {ex}')
+            print(f'Exception Caught in ctor: {ex}')
 
 
     @sv(return_type=DataType.String)
@@ -75,7 +69,7 @@ class Pcap:
 
     @sv(return_type=DataType.Int)
     def get_packet_count(self) -> int:
-        return 0
+        return len(self._packets)
 
     @sv(index=DataType.Int,
         return_type=DataType.Object)
@@ -707,6 +701,7 @@ def compile(compile: bool = True, binding: bool = True):
         generate_sv_binding([MyList,
                              Pcap],
                              filename="pysv_pkg.sv")
+    print(f'sys.executable: {sys.executable}')
 
 if __name__ == "__main__":
     compile()
