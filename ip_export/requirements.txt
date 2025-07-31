@@ -1,3 +1,4 @@
 #attrs
 cboe_pitch>=0.0.5
-pysv==0.2.0
+pybind11==2.13.6
+pysv==0.3.1

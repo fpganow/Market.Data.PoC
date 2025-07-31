@@ -1,5 +1,5 @@
 SHELL       :=  /bin/bash
-VIVADO_VER  :=  2023.2
+VIVADO_VER  :=  2024.1
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
 SIM_DIR     ?=  sim/synth/func
 PYTHON      ?=  python3.11
