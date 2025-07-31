@@ -61,7 +61,7 @@ proc checkRequiredFiles { origin_dir} {
   }
 
   set files [list \
- "[file normalize "$origin_dir/../../../kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp"]"\
+ "[file normalize "$origin_dir/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp"]"\
   ]
   foreach ifile $files {
     if { ![file isfile $ifile] } {
@@ -256,7 +256,7 @@ set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
 # Set 'utils_1' fileset object
 set obj [get_filesets utils_1]
 set files [list \
- [file normalize "${origin_dir}/../../../kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp"] \
+ [file normalize "${origin_dir}/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp"] \
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -268,7 +268,7 @@ set files [list \
 set imported_files [import_files -fileset utils_1 $files]
 
 # Set 'utils_1' fileset file properties for remote files
-set file "$origin_dir/../../../kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp"
+set file "$origin_dir/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp"
 set file [file normalize $file]
 set file_obj [get_files -of_objects [get_filesets utils_1] [list "*$file"]]
 set_property -name "netlist_only" -value "0" -objects $file_obj
@@ -290,16 +290,16 @@ set obj [get_filesets utils_1]
 
 # Adding sources referenced in BDs, if not already added
 if { [get_files xgmii_includes.vh] == "" } {
-  import_files -quiet -fileset sources_1 F:/work/fpganow/Market.Data.PoC/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/sources_1/new/xgmii_includes.vh
+  import_files -quiet -fileset sources_1 C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/sources_1/new/xgmii_includes.vh
 }
 if { [get_files axis2xgmii.v] == "" } {
-  import_files -quiet -fileset sources_1 F:/work/fpganow/Market.Data.PoC/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/sources_1/new/axis2xgmii.v
+  import_files -quiet -fileset sources_1 C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/sources_1/new/axis2xgmii.v
 }
 if { [get_files xgmii_includes.vh] == "" } {
-  import_files -quiet -fileset sources_1 F:/work/fpganow/Market.Data.PoC/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/sources_1/new/xgmii_includes.vh
+  import_files -quiet -fileset sources_1 C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/sources_1/new/xgmii_includes.vh
 }
 if { [get_files xgmii2axis.v] == "" } {
-  import_files -quiet -fileset sources_1 F:/work/fpganow/Market.Data.PoC/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/sources_1/new/xgmii2axis.v
+  import_files -quiet -fileset sources_1 C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/sources_1/new/xgmii2axis.v
 }
 
 
@@ -2393,9 +2393,9 @@ if { $obj != "" } {
 }
 set obj [get_runs synth_1]
 set_property -name "part" -value "xck26-sfvc784-2LV-c" -objects $obj
-set_property -name "incremental_checkpoint" -value "F:/work/kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp" -objects $obj
+set_property -name "incremental_checkpoint" -value "C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/utils_1/imports/synth_1/kr260_starter_kit_wrapper.dcp" -objects $obj
 set_property -name "auto_incremental_checkpoint" -value "1" -objects $obj
-set_property -name "auto_incremental_checkpoint.directory" -value "F:/work/kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/synth_1" -objects $obj
+set_property -name "auto_incremental_checkpoint.directory" -value "C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/utils_1/imports/synth_1" -objects $obj
 set_property -name "strategy" -value "Vivado Synthesis Defaults" -objects $obj
 
 # set the current synth run
@@ -2618,8 +2618,8 @@ set_property -name "options.warn_on_violation" -value "1" -objects $obj
 }
 set obj [get_runs impl_1]
 set_property -name "part" -value "xck26-sfvc784-2LV-c" -objects $obj
-set_property -name "auto_rqs.directory" -value "F:/work/kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/impl_1" -objects $obj
-set_property -name "auto_incremental_checkpoint.directory" -value "F:/work/kr260/pcs_pma/eth_pcs_pma_bare_2022.1/kr260_starter_kit.srcs/utils_1/imports/impl_1" -objects $obj
+set_property -name "auto_rqs.directory" -value "C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/utils_1/imports/impl_1" -objects $obj
+set_property -name "auto_incremental_checkpoint.directory" -value "C:/work/git/fpganow/Market.Data.PoC/vivado/kr260_starter_kit.srcs/utils_1/imports/impl_1" -objects $obj
 set_property -name "strategy" -value "Vivado Implementation Defaults" -objects $obj
 set_property -name "steps.write_bitstream.args.readback_file" -value "0" -objects $obj
 set_property -name "steps.write_bitstream.args.verbose" -value "0" -objects $obj

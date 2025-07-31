@@ -34,3 +34,8 @@ Will store all vi's in:
 ```
 submodules/builds/fpganow.common
 ```
+
+### Vivado
+Open Vivado 2021.1
+Open TCL Console
+cd C:/work/git/fpganow/Market.Data.PoC/vivado
