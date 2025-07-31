@@ -21,10 +21,10 @@ import os
 from pathlib import Path
 import scapy
 #import scapy.all
-#import scapy.utils
+import scapy.utils
 #from scapy.utils import rdpcap
 #import scapy.all as all_scapy
-from scapy.all import raw, rdpcap, IP, UDP
+#from scapy.all import raw, rdpcap, IP, UDP
 import sys
 #import tomllib
 from typing import Dict, List
@@ -49,14 +49,23 @@ class Pcap:
         self._packets = []
         try:
             print('PRE-TRY')
-            print(f'sys.path: {sys.path}')
+            paths = '\n  - '.join(sys.path)
+            print(f'sys.path: {paths}')
             print(f'sys.executable: {sys.executable}')
-            #import scapy.utils
+            print(f'sys.version: {sys.version}')
+            import scapy.utils
+            #import scapy.all
+            #from scapy.all import raw, rdpcap, IP, UDP
             print(f'scapy.__file__: {scapy.__file__}')
-            #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
-            #print(f'rdpcap: {all_scapy}')
-            packets = rdpcap(pcap_file)
+            print(f'scapy.utils.__file__: {scapy.utils.__file__}')
+            print(f'scapy.utils.john: {scapy.utils.john}')
+            print(f'scapy.utils.rdpcap: {scapy.utils.rdpcap}')
 
+            print(f'scapy.utils.john(): {scapy.utils.john()}')
+            print(f'scapy.utils.rdpcap(): {scapy.utils.rdpcap(pcap_file)}')
+            #packets = rdpcap(pcap_file)
+
+            packets = "<none>"
             print(f'TRY: {packets}')
         except Exception as ex:
             print(f'Exception Caught in ctor: {ex}')
@@ -688,20 +697,22 @@ def compile(compile: bool = True, binding: bool = True):
     # release_build=False
     # clean_up_build=True
     # add_sys_path=False # Whether to add system path
+    print(f'Generating and Compiling Pythong Bindings')
     if compile is True:
         lib_path = compile_lib([MyList,
                                 Pcap],
-                                cwd="build")
+                                cwd="build",
+                               clean_up_build=False)
 
     # generate SV binding
     # pkg_name='pysv'
     # pretty_print=True
     #filename='out_sv_file.sv'
+    print(f'Generating SystemVerilog Bindings')
     if binding is True:
         generate_sv_binding([MyList,
                              Pcap],
                              filename="pysv_pkg.sv")
-    print(f'sys.executable: {sys.executable}')
 
 if __name__ == "__main__":
     compile()

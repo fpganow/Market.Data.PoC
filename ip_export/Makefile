@@ -40,7 +40,7 @@ SHELL       :=  /bin/bash
 VIVADO_VER  :=  2024.1
 SRC_XIL      =  source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
 SIM_DIR     ?=  sim/synth/func
-PYTHON      ?=  python3
+PYTHON      ?=  /usr/bin/python3
 #DCP_FILE    ?=  NiFpgaAG_top_level.dcp
 DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
 PWD         ?=  ${pwd}
@@ -88,9 +88,11 @@ clean: clean_synth_func clean_synth_timing clean_impl_func clean_impl_timing
 use_arg:
 	@echo "Arg: ${arg}"
 
+use_vivado_cmake:
+	PATH=/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/:$$PATH LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/cmake ${arg}
+
 use_vivado_py:
-	export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ${arg}
-	#export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 -m pip install -e ../submodules/cboe_pitch
+	export PATH=/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/:$$PATH export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ${arg}
 
 install_deps:
 	${PYTHON} -m pip install -r ./requirements-test.txt
@@ -102,8 +104,8 @@ pytest:
 	${PYTHON} -m pytest --disable-warnings tests_poc_gen.py
 
 py_codegen:
-	#export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ./poc_gen.py
-	export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ./poc_gen.py
+	LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3.8 ./poc_gen.py
+	@#export PATH=/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/:$$PATH export LD_LIBRARY_PATH=/tools/Xilinx/Vivado/2024.1/lib/lnx64.o/Ubuntu/22/:/tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/lib/ && /tools/Xilinx/Vivado/2024.1/tps/lnx64/python-3.8.3/bin/python3 ./poc_gen.py
 	#${PYTHON} ./poc_gen.py
 	mv pysv_pkg.sv ./sim
 	mv ./build/libpysv.so ./sim
