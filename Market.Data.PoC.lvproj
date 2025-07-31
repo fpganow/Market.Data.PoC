@@ -33,13 +33,6 @@
 			<Property Name="Target Class" Type="Str">USRP-X410</Property>
 			<Property Name="Top-Level Timing Source" Type="Str">100MHz</Property>
 			<Property Name="Top-Level Timing Source Is Default" Type="Bool">false</Property>
-			<Item Name="Daughterboard 0" Type="FPGA Component Level IP">
-				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
-				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
-				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">Daughterboard 0</Property>
-				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
-				<Property Name="NI.SortType" Type="Int">3</Property>
-			</Item>
 			<Item Name="Daughterboard 1" Type="FPGA Component Level IP">
 				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
 				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
@@ -61,20 +54,6 @@
 				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
 				<Property Name="NI.SortType" Type="Int">3</Property>
 			</Item>
-			<Item Name="DRAM-Bank0" Type="FPGA Component Level IP">
-				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
-				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
-				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">DRAM-Bank0</Property>
-				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
-				<Property Name="NI.SortType" Type="Int">3</Property>
-			</Item>
-			<Item Name="DRAM-Bank1" Type="FPGA Component Level IP">
-				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
-				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
-				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">DRAM-Bank1</Property>
-				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
-				<Property Name="NI.SortType" Type="Int">3</Property>
-			</Item>
 			<Item Name="PS to LV Register Access" Type="FPGA Component Level IP">
 				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
 				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
@@ -93,6 +72,27 @@
 				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
 				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
 				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">PS Interrupts</Property>
+				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
+				<Property Name="NI.SortType" Type="Int">3</Property>
+			</Item>
+			<Item Name="Daughterboard 0" Type="FPGA Component Level IP">
+				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
+				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
+				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">Daughterboard 0</Property>
+				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
+				<Property Name="NI.SortType" Type="Int">3</Property>
+			</Item>
+			<Item Name="DRAM-Bank0" Type="FPGA Component Level IP">
+				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
+				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
+				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">DRAM-Bank0</Property>
+				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
+				<Property Name="NI.SortType" Type="Int">3</Property>
+			</Item>
+			<Item Name="DRAM-Bank1" Type="FPGA Component Level IP">
+				<Property Name="NI.LV.CLIP.DeclarationCategory" Type="Str"></Property>
+				<Property Name="NI.LV.CLIP.SocketedCLIP" Type="Bool">true</Property>
+				<Property Name="NI.LV.CLIP.SocketSelection" Type="Str">DRAM-Bank1</Property>
 				<Property Name="NI.LV.FPGA.Valid" Type="Bool">true</Property>
 				<Property Name="NI.SortType" Type="Int">3</Property>
 			</Item>
