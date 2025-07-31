@@ -132,7 +132,7 @@ module poc_tb();
     begin
         MyList my_list;
         Pcap pcap;
-//        EthernetFrame eth_frame;
+        EthernetFrame eth_frame = new();
 //        int ret;
 //        longint i_word;
 //        int i;
@@ -154,13 +154,24 @@ module poc_tb();
         #(period*20);
 
         // Configure IP
-        // Set 
+
+        $display("+---------------------------------------------------------------------------------+");
+        $display("|  Pcap Section                                                                   |");
+        $display("+---------------------------------------------------------------------------------+");
         pcap = new("../../../../tests/data/generated_2025_05_02.pcap",
                 "MAC", "IP", 8000);
-        $display("# of Packets: %d", pcap.get_packet_count());
-        // Send 1st Ethernet Frame
-        //eth_frame = new();
-        //$display("  -  hasMoreFrames = %0d", eth_frame.hasMoreFrames());
+        $display("|  # of Ethernet Frames: %2d", pcap.get_frame_count());
+
+        for (int i=0; i < pcap.get_frame_count(); i++)
+        begin
+            $display("| - Sending Ethernet Frame #%2d", (i+1));
+
+            pcap.get_frame(eth_frame, i);
+            $display("|    Length (bytes) %4d", eth_frame.get_length_bytes());
+            $display("|    Details: %s", eth_frame.get_short());
+
+        end
+
 
 
 //        // Set default values

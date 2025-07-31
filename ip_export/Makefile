@@ -43,20 +43,27 @@ help:
 	@echo
 	@echo "Help"
 	@echo "  clean"
+	@echo
+	@echo "Python Related"
 	@echo "  install_deps"
 	@echo "  pytest"
 	@echo "  py_codegen"
 	@echo "  v_codegen"
+	@echo "  py_shell"
+	@echo "  use_vivado_cmake arg=--version"
+	@echo "  use_vivado_py arg=--version"
+	@echo
+	@echo "Vivado Related"
 	@echo "  compile"
 	@echo "  elaborate"
 	@echo "  simulate"
 	@echo "  waveform"
 	@echo
-	@echo "Other"
-	@echo "  py_shell"
-	@echo "  use_vivado_cmake arg=--version"
-	@echo "  use_vivado_py arg=--version"
-	@echo ""
+	@echo "Message Generator Related"
+	@echo "  display_short"
+	@echo "  display_long"
+	@echo "  regenerate"
+	@echo
 	@echo "To Run a simulation for a specific configuration use:"
 	@echo "  SIM_DIR=sim/synth/func make simulate (default)"
 	@echo "  SIM_DIR=sim/synth/timing make simulate"
@@ -115,6 +122,17 @@ v_codegen:
 		-nolog -nojournal -notrace -mode batch \
 		-source ${PWD_WIN}\\sim\\synth\\func\\gen.tcl" \
 		-tclargs "${PWD_WIN}\\${DCP_FILE}"
+
+# Message Generator Section
+display_short:
+	@echo "Displaying short"
+
+display_long:
+	@echo "Displaying long"
+
+regenerate:
+	@echo "Regenerate"
+
 
 compile: py_codegen v_codegen
 	@echo "  - Compiling"

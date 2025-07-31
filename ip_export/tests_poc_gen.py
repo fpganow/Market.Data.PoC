@@ -7,28 +7,17 @@ from hamcrest import (
 )
 from unittest import TestCase
 
-from poc_gen import Pcap
+from poc_gen import EthernetFrame, Pcap
 
 from pathlib import Path
 from scapy.all import raw, rdpcap, IP, UDP
 
-class EthernetFrame(object):
-    """
-    """
-#    @sv()
-    def __init__(self):
-        """
-        """
-        pass
-
-#    @sv(return_type=DataType.Bit)
-    def hasMoreFrames(self):
-        """
-        """
-        return True
-
-                #raw_bytes = raw(packet)
 class TestPcapFile(TestCase):
+    def setUp(self):
+        self._mac = "00:0a:35:18:3c:1f"
+        self._ip = "10.0.1.14"
+        self._dport = 8000
+
     """
     Open a pcap file and write all bytes one at a time to the FPGA
     As of now, any MAC and any IP address are read, only data on port
@@ -36,31 +25,41 @@ class TestPcapFile(TestCase):
     """
     def test_smoke(self):
         # GIVEN
-        mac = "00:0a:35:18:3c:1f"
-        ip = "10.0.1.14"
-        dport = 8000
         pcap_file = "../tests/data/generated_2025_05_02.pcap"
 
         # WHEN
         pcap = Pcap(pcap_file=pcap_file,
-                    mac=mac,
-                    ip=ip,
-                    dport=dport)
+                    mac=self._mac,
+                    ip=self._ip,
+                    dport=self._dport)
 
         # THEN
-        assert_that(pcap.get_packet_count(), equal_to(1))
+        assert_that(pcap.get_frame_count(), equal_to(1))
 
+    def test_packet_data(self):
+        # GIVEN
+        pcap_file = "../tests/data/generated_2025_05_02.pcap"
 
+        # WHEN
+        pcap = Pcap(pcap_file=pcap_file,
+                    mac=self._mac,
+                    ip=self._ip,
+                    dport=self._dport)
+        eth_frame = EthernetFrame()
+        pcap.get_frame(eth_frame, 0)
+
+        # THEN
+        assert_that(pcap.get_frame_count(), equal_to(1))
+        assert_that(eth_frame.get_length_bytes(), equal_to(307))
+        assert_that(eth_frame.get_short(), equal_to(
+            "DST: MAC=00:0a:35:18:3c:1f, IP=10.0.1.14, DPort=8000"))
+
+                #raw_bytes = raw(packet)
 #        if Path(pcap_file).exists() is False:
 #            print('ERROR')
 #            error_msg = f"File {pcap_file} does not exist"
 #            print(f'Pcap.__init__() -> {error_msg}\n')
 #           raise Exception(error_msg)
-
-        #self._pcap_file = pcap_file
-        #self._mac = mac
-        #self._ip = ip
-        #self._dport = dport
 
 #        self._packets = []
 #        packets = rdpcap(pcap_file)

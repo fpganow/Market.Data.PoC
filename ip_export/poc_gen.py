@@ -30,7 +30,96 @@ import sys
 from typing import Dict, List
 
 
+class EthernetFrame:
+    @sv()
+    def __init__(self):
+        self._raw_bytes = None
+        self._is_bats = False
+        self._udp_bytes = None
+
+    @sv()
+    def init(self, packet) -> None:
+        try:
+            self._packet = packet
+            self._raw_bytes = bytes(packet)
+            from scapy.all import IP, UDP
+            if UDP in packet:
+                self._is_bats = True
+                self._udp_bytes = bytes(packet[UDP].payload)
+            print(f'MAC: {packet.dst}, IP: {packet[IP].dst}, UDP: {packet[UDP].dport}')
+            #breakpoint()
+            #from scapy.layers.l2 import Ether
+            #self._packet = Ether(bytes(packet))
+            #print(f'ETHERNET_FRAME_INIT: Ether: {type(self._packet)}')
+            #print(f'ETHERNET_FRAME_INIT:: Ether: {self._packet}')
+            #self._packet = IP(bytes(packet))
+            #print(f'ETHERNET_FRAME_INIT:: IP: {type(self._packet)}')
+            #print(f'ETHERNET_FRAME_INIT:: IP: {self._packet}')
+            #print(f'ETHERNET_FRAME_INIT:: IP: {self._packet.show()}')
+            #print(f'ETHERNET_FRAME_INIT:: IP: {bytes(self._packet)}')
+            #print(f'ETHERNET_FRAME_INIT:: IP: {len(bytes(self._packet))}')
+            #print(f'ETHERNET_FRAME_INIT:: IP?: {packet[IP]}')
+            #print(f'ETHERNET_FRAME_INIT:: UDP?: {packet[UDP]}')
+            #print(f'ETHERNET_FRAME_INIT:: UDP: {packet[UDP].show()}')
+            #self._packet = UDP(bytes(self._packet))
+            #print(f'TESTING: UDP: {type(self._packet)}')
+            #print(f'TESTING: UDP: {self._packet}')
+        except Exception as ex:
+            print(f'ETHERNET_FRAME_INIT:: {ex}')
+        #self._packet = packet[Ether]
+        #print(f'TESTING: init: {type(packet)}')
+        #from copy import deepcopy
+        #from scapy.layers.l2 import Ether
+        #self._packet = Ether(packet)
+        #print(f'TESTING: init: {type(self._packet)}')
+
+        #from scapy.layers.l2 import Ether
+        #print(f'TESTING: len {len(self._packet)}')
+
+
+        #self._packet = packet
+
+    @sv(return_type=DataType.Int)
+    def get_length_bytes(self) -> int:
+        return len(self._raw_bytes)
+
+    @sv(return_type=DataType.String)
+    def get_short(self) -> str:
+        print(f'ETHERNET_FRAME_GET_SHORT: {self._is_bats}')
+        try:
+            print('TRY-1'* 5)
+            from scapy.all import IP, UDP
+            print(f'len(self._raw_bytes): {len(self._raw_bytes)}')
+            if self._is_bats is True:
+                print(f'len(self._udp_bytes): {len(self._udp_bytes)}')
+            from scapy.layers.l2 import Ether
+            ether = Ether(bytes(self._packet))
+            print(f'MAC={ether.dst}')
+            ip = IP(bytes(self._packet))
+            print(f'IP in self._packet: {IP in self._packet}')
+            if self._is_bats is True:
+                print(f'UDP in self._packet: {UDP in self._packet}')
+            udp = UDP(bytes(self._packet))
+            print('TRY-2'* 5)
+            return "A"
+            #return f"DST: MAC={self._packet.dst}, IP={self._packet[IP].dst}, DPort={self._packet[UDP].dport}"
+        except Exception as ex:
+            return f"EXCEPTION-get_short: {ex}"
+
+
 class Pcap:
+    """
+    Loads the specified Pcap file using the scapy library and returns metadata
+    and the bytes of each frame in a method suitable for Simulation.
+
+    constructor
+      - Reads Pcap file and sets 
+    get_frame_count
+      - Returns the total number of Ethernet Frames in the Pcap file
+    get_frame(ref eth_frame, index)
+      - Stores ethernet frame in to existing instance of EthernetFrame
+    """
+
     @sv(pcap_file=DataType.String,
         mac=DataType.String,
         ip=DataType.String,
@@ -40,65 +129,39 @@ class Pcap:
                  mac: str,
                  ip: str,
                  dport: int):
-        print('CTOR')
         if Path(pcap_file).exists() is False:
             print('FILE DNE')
             raise Exception(f'Pcap file {pcap_file} does not exist, pwd: {os.getcwd}')
-        else:
-            print(f'Pcap file {pcap_file} exists')
+        #print(f'Pcap file {pcap_file} exists')
         self._packets = []
         try:
-            print('PRE-TRY')
-            paths = '\n  - '.join(sys.path)
-            print(f'sys.path: {paths}')
-            print(f'sys.executable: {sys.executable}')
-            print(f'sys.version: {sys.version}')
-            import scapy.utils
-            #import scapy.all
-            #from scapy.all import raw, rdpcap, IP, UDP
-            print(f'scapy.__file__: {scapy.__file__}')
-            print(f'scapy.utils.__file__: {scapy.utils.__file__}')
-            #print(f'scapy.utils.john: {scapy.utils.john}')
-            print(f'scapy.utils.rdpcap: {scapy.utils.rdpcap}')
-
-            #print(f'scapy.utils.john(): {scapy.utils.john()}')
-            print(f'scapy.utils.rdpcap(): {scapy.utils.rdpcap(pcap_file)}')
-            #packets = rdpcap(pcap_file)
-
-            packets = "<none>"
-            #import scapy
-            #import cboe_pitch
-            #import scapy.compat
-            #import scapy.all
             #import scapy.utils
-            #print(f'scapy.__file__: {scapy.__file__}')
-            #print(f'scapy.utils.__file__: {scapy.utils.__file__}')
-            #from scapy.compat import raw
-            #from scapy.all import raw, rdpcap, IP, UDP
-            #packets = scapy.utils.rdpcap(pcap_file)
-            #for packet in packets:
-            #    print('Dumping packet')
-            #    print(f'Dest MAC: {dir(packet)}')
-            #    print(f'raw(packet): {scapy.all.raw(packet)}')
-            self._packets = scapy.utils.rdpcap(pcap_file)
-            #print(f'TRY: {packets}')
+            #self._packets = scapy.utils.rdpcap(pcap_file)
+            from scapy.all import rdpcap
+            self._packets = rdpcap(pcap_file)
+            for pkt in self._packets:
+                print(f'type_of_packet: {type(pkt)}')
+            # scapy.laters.l2.Ether
         except Exception as ex:
             print(f'Exception Caught in ctor: {ex}')
 
 
-    @sv(return_type=DataType.String)
-    def to_str(self) -> str:
-        dump = f"{os.getcwd()}"
-        return f"TEST: {dump}"
+#    @sv(return_type=DataType.String)
+#    def to_str(self) -> str:
+#        dump = f"{os.getcwd()}"
+#        return f"TEST: {dump}"
 
     @sv(return_type=DataType.Int)
-    def get_packet_count(self) -> int:
+    def get_frame_count(self) -> int:
         return len(self._packets)
 
-    @sv(index=DataType.Int,
+    @sv(eth_frame=DataType.Object,
+        index=DataType.Int,
         return_type=DataType.Object)
-    def get_frame(self, index: int) :
-        return None
+    def get_frame(self, eth_frame: 'EthernetFrame', index: int):
+        eth_frame.init(self._packets[index])
+        return True
+
 
 class OBCommand(object):
     @sv()
@@ -704,9 +767,9 @@ class MyList(object):
 ##############################################################################
 # PYSV Related functions
 ##############################################################################
-def compile(compile: bool = True, binding: bool = True):
-    compile=True
-    binding=True
+def compile(generate_code: bool = True,
+            compile: bool = True,
+            binding: bool = True):
     # compile the a shared_lib into build folder
     # lib_name='pysv'
     # release_build=False
@@ -714,9 +777,11 @@ def compile(compile: bool = True, binding: bool = True):
     # add_sys_path=False # Whether to add system path
     print(f'Generating and Compiling Pythong Bindings')
     if compile is True:
-        lib_path = compile_lib([MyList,
+        lib_path = compile_lib([EthernetFrame,
+                                MyList,
                                 Pcap],
                                 cwd="build",
+                               generate_code=generate_code,
                                clean_up_build=False)
 
     # generate SV binding
@@ -725,9 +790,10 @@ def compile(compile: bool = True, binding: bool = True):
     #filename='out_sv_file.sv'
     print(f'Generating SystemVerilog Bindings')
     if binding is True:
-        generate_sv_binding([MyList,
+        generate_sv_binding([EthernetFrame,
+                             MyList,
                              Pcap],
                              filename="pysv_pkg.sv")
 
 if __name__ == "__main__":
-    compile()
+    compile(generate_code=True, compile=True, binding=True)
