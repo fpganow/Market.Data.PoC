@@ -15,10 +15,11 @@ https://www.amd.com/en/products/system-on-modules/kria/k26/kr260-robotics-starte
 
 ## Summary
 
-
-                                                         Config
+```
+                                             +--- Config --+
                                              |             |
 10Gigabit <---- [Market Data / BATS] ----> Parser ----> Filter ---->
+```
 
 ## Dependencies
 
