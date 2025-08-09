@@ -361,15 +361,6 @@
 					<Item Name="niInstr IPv4 UDP FPGA v1.lvlib" Type="Library" URL="/&lt;instrlib&gt;/_niInstr/Network/IPv4/UDP/FPGA/v1/niInstr IPv4 UDP FPGA v1.lvlib"/>
 					<Item Name="niInstr IPv4 UDP Data Stream v1.lvclass" Type="LVClass" URL="/&lt;instrlib&gt;/_niInstr/Network/IPv4/UDP/Data Stream/v1/niInstr IPv4 UDP Data Stream v1.lvclass"/>
 				</Item>
-				<Item Name="bats.parser.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/bats.parser.vi"/>
-				<Item Name="bats.parser.state.data.ctl" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/bats.parser.state.data.ctl"/>
-				<Item Name="bats.parser.state.command.ctl" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/bats.parser.state.command.ctl"/>
-				<Item Name="add.data.to.buffer.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/add.data.to.buffer.vi"/>
-				<Item Name="compress.buffer.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/compress.buffer.vi"/>
-				<Item Name="new.uxx.be.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/new.uxx.be.vi"/>
-				<Item Name="Time.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/message.types/Time.vi"/>
-				<Item Name="AddOrder.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/message.types/AddOrder.vi"/>
-				<Item Name="OrderExecuted.vi" Type="VI" URL="../submodules/Market.Data.Bats.Parser/fpga/message.types/OrderExecuted.vi"/>
 			</Item>
 			<Item Name="Build Specifications" Type="Build">
 				<Item Name="poc.ip" Type="{F4C5E96F-7410-48A5-BB87-3559BC9B167F}">
