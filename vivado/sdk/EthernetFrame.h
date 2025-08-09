@@ -12,8 +12,11 @@
 
 class EthernetFrame {
 public:
-	EthernetFrame(u64* packet_data, u32 packet_length);
+	EthernetFrame(u64* packetData, u32 packetLengthBytes);
 	~EthernetFrame();
+
+	u64* d_packetData;
+	u32 d_packetLengthBytes;
 
 	EthernetFrame* next;
 };
