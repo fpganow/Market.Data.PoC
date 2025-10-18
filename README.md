@@ -9,6 +9,11 @@ If you cloned without ```--recurse-submodules```, you need to run:
 git submodule update --init --recursive --remote
 ```
 
+To update all submodules, run:
+```
+git submodule update --recursive
+```
+
 ## Hardware
 Kria KR260 Robotics Starter Kit
 https://www.amd.com/en/products/system-on-modules/kria/k26/kr260-robotics-starter-kit.html
@@ -21,9 +26,10 @@ https://www.amd.com/en/products/system-on-modules/kria/k26/kr260-robotics-starte
 10Gigabit <---- [Market Data / BATS] ----> Parser ----> Filter ---->
 ```
 
-## Dependencies
+## LabVIEW Dependencies
 
-Cluster Toolkit by Autotestware
+* Cluster Toolkit by Autotestware
+  * https://www.vipm.io/package/autotestware_lib_cluster_toolkit/
 
 ## Usage:
 
