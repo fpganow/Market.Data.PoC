@@ -12,6 +12,8 @@
 #   - https://fpganow.com/index.php/2024/01/03/error-while-running-vivado-simulation-on-ubuntu-22-04/
 #
 
+#import-%: IMP_BASE=$(shell ls -l /mnt/c/NIFPGA/compilation | tail -n +$* | head -n 2 | tail -n 1 \
+
 # +---------------------------------------------------------------------------+
 # |  New Idea                                                                 |
 # +---------------------------------------------------------------------------+
