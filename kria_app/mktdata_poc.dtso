@@ -1,0 +1,126 @@
+/dts-v1/;
+/plugin/;
+
+&fpga_full {
+	#address-cells = <2>;
+	#size-cells = <2>;
+	firmware-name = "mktdata_poc/mktdata_poc.bit.bin";
+
+	afi0 {
+		compatible = "xlnx,afi-fpga";
+		config-afi = <0 0>, <1 0>, <2 0>, <3 0>,
+		             <4 0>, <5 0>, <6 0>, <7 0>,
+		             <8 0>, <9 0>, <10 0>, <11 0>,
+		             <12 0>, <13 0>, <14 0>, <15 0>;
+	};
+
+	clocking0 {
+		#clock-cells = <0>;
+		assigned-clock-rates = <99999000>;
+		assigned-clocks = <&zynqmp_clk 0x47>;
+		clock-output-names = "fabric_clk";
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "xlnx,fclk";
+	};
+
+	/* axi_gpio_control -- dual channel: ch1 = 2-bit opcode driving
+	 * my_state.control, ch2 = 32-bit addend driving my_state.value. */
+	axi_gpio_control@80040000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80040000 0x0 0x10000>;
+	};
+
+	/* axi_gpio_value -- dual channel: ch1 = my_state.sum (accum[31:0]),
+	 * ch2 = my_state.carry (accum[63:32]). */
+	axi_gpio_value@800c0000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x800c0000 0x0 0x10000>;
+	};
+
+	/* simple_fifo (replaces axi_fifo_echo/axi_fifo_mm_s, which fired TSE on the
+	 * TXD->RXD loopback). AXI4-Lite: push@+0 W / pop@+0 R, count@+4, status@+8,
+	 * reset@+0xC. Single port -- the old +0x80110000 data port is gone. */
+	axi_fifo_echo@80100000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80100000 0x0 0x10000>;
+	};
+
+	/* axi_dma_echo -- AXI DMA, no SG, 64-bit MM2S+S2MM. Streams flow
+	 * MM2S -> axi_dma_fifo_echo/RXD and axi_dma_fifo_echo/TXD -> S2MM. */
+	axi_dma_echo@800d0000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x800d0000 0x0 0x10000>;
+		dma-coherent;
+	};
+
+	/* axi_dma_fifo_echo control port. */
+	axi_dma_fifo_echo_ctrl@800e0000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x800e0000 0x0 0x10000>;
+	};
+
+	/* axi_dma_fifo_echo data port (S_AXI_FULL). */
+	axi_dma_fifo_echo_data@800f0000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x800f0000 0x0 0x10000>;
+	};
+
+	/* axi_fifo_mdebug -- RX-only AXI4-Stream FIFO fed by the NI IP's
+	 * MDEBUG stream. S_AXI control port. */
+	axi_fifo_mdebug_ctrl@80050000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80050000 0x0 0x10000>;
+	};
+
+	/* axi_fifo_mdebug -- S_AXI_FULL data port. RDFD at +0x1000. */
+	axi_fifo_mdebug_data@80060000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80060000 0x0 0x10000>;
+	};
+
+	/* axi_fifo_debug -- RX-only AXI4-Stream FIFO fed by the NI IP's
+	 * DEBUG stream. S_AXI control port. */
+	axi_fifo_debug_ctrl@80070000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80070000 0x0 0x10000>;
+	};
+
+	/* axi_fifo_debug -- S_AXI_FULL data port. RDFD at +0x1000. */
+	axi_fifo_debug_data@80080000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80080000 0x0 0x10000>;
+	};
+
+	/* axi_fifo_cmd -- RX-only AXI4-Stream FIFO fed by the NI IP's
+	 * CMD stream. S_AXI control port. */
+	axi_fifo_cmd_ctrl@800a0000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x800a0000 0x0 0x10000>;
+	};
+
+	/* axi_fifo_cmd -- S_AXI_FULL data port. RDFD at +0x1000. */
+	axi_fifo_cmd_data@800b0000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x800b0000 0x0 0x10000>;
+	};
+
+	/* axi_gpio_1 -- 1-bit all-outputs GPIO driving the NI IP's
+	 * ctrlind_17_ip_reset input. */
+	axi_gpio_1@80090000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80090000 0x0 0x10000>;
+	};
+};

@@ -86,6 +86,14 @@ recreates the project via `vivado/mktdata_poc.tcl` and builds/exports the XSA vi
 (see `vivado/Makefile`); tracked sources are the TCL, `constraints.xdc`, and the RTL + LabVIEW netlist
 in `vivado/ip/`. The generated project dir `vivado/mktdata_poc/` and the XSA are gitignored.
 
+The rest of that repo's KR260 flow lives here too: the root `Makefile` (`make help` — `make xsa`,
+bare-metal/FreeRTOS/Linux app builds, Kria app packaging/deploy, board utilities), `apps/`
+(`mktdata_poc_bm`/`_rtos`/`_test` exercisers), `kria_app/` (xmutil-loadable package), `scripts/`
+(board-side helpers), and `todo.txt` (the KR260 design-decision log — read it before changing the
+BD). `docs/kr260/` holds the ported knowledge base: `mktdata_poc.CLAUDE.md` (hardware architecture,
+PS address map, 32-bit PIO constraints, JTAG quirks — paths in it refer to the old repo layout) and
+the timing-closure playbook (`advice*.txt`, `recommendations.txt`, Verilog extracts, PDFs).
+
 `vivado.old/` is the superseded predecessor (the old `poc_kr260` block-design project, `sdk/`
 bare-metal sources, `pcs_pma`/`arty_z7` experiments) — reference only, slated for retirement.
 `boot_jtag.tcl` holds the XSCT sequence for putting the KR260 into JTAG boot mode.
