@@ -2,3 +2,13 @@ submodules/builds
 venv
 *.aliases
 Session.vim
+
+# --- Vivado (vivado/): generated project dir, exported hardware, logs ---
+# The BD/project is regenerated from vivado/mktdata_poc.tcl (+ build.tcl), the
+# XSA from `make xsa`. Tracked sources (vivado/*.tcl, vivado/ip/*,
+# vivado/constraints.xdc, vivado/Makefile) are NOT matched here.
+vivado/mktdata_poc/
+vivado/*.xsa
+vivado/*.log
+vivado/*.jou
+.Xil/

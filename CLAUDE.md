@@ -22,7 +22,7 @@ but editing them by hand risks corrupting the project.
 
 Text-editable parts: Python (`ip_export/`, `s_parse.py`, `udp_send.py`, `cboe_pitch/`),
 Makefiles, TCL (`vivado/`, `ip_export/gen.tcl`), SystemVerilog/Verilog testbenches and HDL, and the
-Vitis C++ sources under `vivado/sdk/` and `vivado/kr260/poc_kr260/my_cpp_src/`.
+Vitis C++ sources under `vivado.old/sdk/` and `vivado.old/kr260/poc_kr260/my_cpp_src/`.
 
 **One submodule remains** — `cboe_pitch/` at the repo root (tracks branch `dev`). Fresh clones need:
 
@@ -78,12 +78,17 @@ parser→filter→host boundary).
 1. **Pure LabVIEW bitfile** — compile the `poc.ip.kria` build spec, run `Test.Runner.kria.vi`.
 2. **Netlist export into Vivado** (what the KR260 design actually does) — export the LabVIEW IP to a
    netlist, convert the `.dcp` to Verilog, and instantiate it in the Vivado block design alongside the
-   XXV Ethernet core, the FIFOs, and `my_hdl/{axis2xgmii.v,xgmii2axis.v}`. A Vitis app reads the parsed
-   messages off AXI DMA. See `ip_export/README.md` and `vivado/kr260/poc_kr260/README.md`.
+   XXV Ethernet core, the FIFOs, and `vivado/ip/{axis2xgmii.v,xgmii2axis.v}`. A Vitis app reads the
+   parsed messages off AXI DMA. See `ip_export/README.md`.
 
-To restore the Vivado project (Vivado 2024.1), from the Vivado TCL console:
-`cd .../vivado/kr260/poc_kr260/ && source ./poc_kr260.tcl` (the `design_1_wrapper.dcp` import error is
-expected and harmless). `boot_jtag.tcl` holds the XSCT sequence for putting the KR260 into JTAG boot mode.
+The current Vivado flow lives in `vivado/` (brought over from the `mktdata_poc` repo): Vivado 2024.1
+recreates the project via `vivado/mktdata_poc.tcl` and builds/exports the XSA via `vivado/build.tcl`
+(see `vivado/Makefile`); tracked sources are the TCL, `constraints.xdc`, and the RTL + LabVIEW netlist
+in `vivado/ip/`. The generated project dir `vivado/mktdata_poc/` and the XSA are gitignored.
+
+`vivado.old/` is the superseded predecessor (the old `poc_kr260` block-design project, `sdk/`
+bare-metal sources, `pcs_pma`/`arty_z7` experiments) — reference only, slated for retirement.
+`boot_jtag.tcl` holds the XSCT sequence for putting the KR260 into JTAG boot mode.
 
 ## Commands
 
