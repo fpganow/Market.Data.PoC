@@ -1,0 +1,48 @@
+@startuml 01_order_management.insert_order
+hide empty description
+
+title Order Management\nInsert.Order
+
+label InsertOrder[
+{{
+    hide empty description
+        <style> 
+    stateDiagram {
+        LineColor Black
+        LineThickness 3.0
+    }
+    </style>
+    'skinparam sequenceArrowThickness 3.0
+
+    [*] --> first_call
+      first_call -> first_call_true: Yes
+      first_call --> mode: No
+      mode -> mode_0: mode==0
+        mode_0 -> hash_not_ready: Hash not Ready
+        mode_0 --> hash_ready: Hash Ready
+      mode --> memory_mode_1: mode==1
+      memory_mode_1 -> memory_not_ready: Memory not Ready
+      memory_mode_1 --> memory_ready: Memory Ready
+      memory_ready --> write_to_free_slot
+      memory_ready --> update_slot
+      memory_ready --> evict
+
+    state "First Call?" as first_call
+      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0F12</B></color>
+      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>first_call <= false</color>
+      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>mode <= 0</color>
+      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>request_hash(1, ob.cmd.oid)</color>
+      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>request_hash(2, ob.cmd.oid | 0x7F)</color>
+      state "Mode?" as mode
+    state "Mode 0 Hash Mode" as mode_0
+     state "Hash not Ready" as hash_not_ready : scratch.i++
+     state "Hash Ready" as hash_ready : Request Memory from Hashes
+     state "Hash Ready" as hash_ready : mode <= 1
+    state "Mode 1 Memory Mode" as memory_mode_1
+     state "Memory not Ready" as memory_not_ready: Noop
+     state "Memory Ready" as memory_ready: Determine action
+'        state "<B>Noop</B>" as noop #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA2</B></color>
+}}
+]
+
+@enduml

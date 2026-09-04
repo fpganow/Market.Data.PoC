@@ -1,0 +1,76 @@
+@startuml avl_tree
+hide empty description
+
+title AVL Tree
+
+label InsertOrder[
+{{
+    hide empty description
+        <style> 
+    stateDiagram {
+        LineColor Black
+        LineThickness 3.0
+    }
+    </style>
+    'skinparam sequenceArrowThickness 3.0
+
+    [*] --> 12
+      12 --> 8
+      12 --> 18
+      8 --> 5
+      8 --> 11
+      18 --> 17
+      5 --> 4
+
+    A -right-> B
+    B -right-> C
+
+'    first_call --> memory_ready: mode = Get.Symbol
+'        memory_ready -[#green]> noop: No
+'        memory_ready --> symbol_match: Yes
+
+''    ' Symbol Matches = Yes
+'    symbol_match --> 0_orders: Yes
+'        ' 0 Orders = No
+'        0_orders --> side_1: No
+'            side_1 -[#green]-> buy_1: Buy
+'            side_1 -[#green]-> sell_1: Sell
+'    0_orders --> is_add: Yes
+'        is_add --> side_2: Yes
+'            side_2 -[#green]-> buy_2: Buy
+'            side_2 -[#green]-> sell_2: Sell
+'        is_add -[#green]-> exit_1: No
+'
+'    ' Symbol Matches = No
+'    symbol_match --> more_symbols: No
+'        more_symbols -[#green]-> read_next : Yes
+'        more_symbols -[#green]-> exit_2 : No
+
+'    state "First Call?" as first_call
+'      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA2</B></color>
+'      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>first_call <= false</color>
+'      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>mode <= 0</color>
+'      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>request_hash(1, ob.cmd.oid)</color>
+'      state "Request Hashes" as first_call_true #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>request_hash(2, ob.cmd.oid | 0x7F)</color>
+'      state "Mode?" as first_call_false
+'    state "Memory Ready?" as memory_ready
+'        state "<B>Noop</B>" as noop #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA2</B></color>
+'    state "Symbol Matches?" as symbol_match
+'    ' Symbol Matches = Yes
+'    state "0 Orders?" as 0_orders
+'        state "Side?" as side_2
+'            state "<B>Add Buy</B>" as buy_2 #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA5</B></color>
+'            state "<B>Add Sell</B>" as sell_2 #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA6</B></color>
+'        state "IsAdd?" as is_add
+'            state "Side?" as side_1
+'                state "<B>Read 1st Buy</B>" as buy_1 #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA3</B></color>
+'                state "<B>Read 1st Sell</B>" as sell_1 #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA4</B></color>
+'            state "<B>Exit</B>" as exit_1 #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA7</B></color>
+'    ' Symbol Matches = No
+'    state "More Symbols?" as more_symbols
+'        state "<B>Request Next Symbol</B>" as read_next #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA9</B></color>
+'        state "<B>Exit</B>" as exit_2 #TECHNOLOGY;line:green;text:DarkGreen : <color:DarkGreen>debug: <B>0xA8</B></color>
+}}
+]
+
+@enduml

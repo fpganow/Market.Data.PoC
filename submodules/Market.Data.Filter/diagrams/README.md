@@ -1,0 +1,11 @@
+[01_tickers_in_memory]: ./out/01_tickers_in_memory.png
+[02_orders_in_memory]: ./out/02_orders_in_memory.png
+[03_all_state_variables]: ./out/03_all_state_variables.png
+[04_conf_load]: ./out/04_conf_load.png
+[05_conf_get_everything]: ./out/05_conf_get_everything.png
+[06_conf_get_everything.buy]: ./out/06_conf_get_everything.buy.png
+[07_conf_get_everything.sell]: ./out/07_conf_get_everything.sell.png
+[08_process_command]: ./out/08_process_command.png
+[09_process_command]: ./out/09_process_command.png
+[10_process_command]: ./out/10_process_command.png
+[LinkedList]: ./out/LinkedList.png

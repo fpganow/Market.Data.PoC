@@ -20,18 +20,19 @@ or edited with text tools — only with the LabVIEW IDE. Do not attempt to "fix"
 `.lvproj`/`.lvclass` are XML wrappers and can be *inspected* (targets, build specs, FIFOs, VI lists),
 but editing them by hand risks corrupting the project.
 
-Text-editable parts: Python (`ip_export/`, `s_parse.py`, `udp_send.py`, `submodules/cboe_pitch/`),
+Text-editable parts: Python (`ip_export/`, `s_parse.py`, `udp_send.py`, `cboe_pitch/`),
 Makefiles, TCL (`vivado/`, `ip_export/gen.tcl`), SystemVerilog/Verilog testbenches and HDL, and the
 Vitis C++ sources under `vivado/sdk/` and `vivado/kr260/poc_kr260/my_cpp_src/`.
 
-**Submodules are required.** Fresh clones need:
+**One submodule remains** — `cboe_pitch/` at the repo root (tracks branch `dev`). Fresh clones need:
 
 ```bash
-git submodule update --init --recursive --remote
+git submodule update --init --recursive
 ```
 
-They track branches, not just SHAs: `Market.Data.Bats.Parser` → `dev`, `Market.Data.Common` → `dev`,
-`Market.Data.Filter` → `hashmap`, `cboe_pitch` → `dev`.
+The former `submodules/Market.Data.Bats.Parser`, `submodules/Market.Data.Common`, and
+`submodules/Market.Data.Filter` submodules were folded into this repo as regular directories
+(same paths); their standalone GitHub repos hold the pre-fold history.
 
 **LabVIEW version.** The whole tree is currently LabVIEW 2020 (`LVVersion="20008000"` in every
 `.lvproj`/`.lvclass`), the result of an in-progress downgrade from LV2025 (see commits
@@ -108,11 +109,11 @@ SIM_DIR=sim/impl/timing make simulate    # variants: sim/{synth,impl}/{func,timi
 make clean
 ```
 
-Python message generation / capture tooling (`submodules/cboe_pitch`, installed with
+Python message generation / capture tooling (`cboe_pitch/`, installed with
 `pip install -e .`, needs Python ≥3.8; console scripts `generator`, `parser`, `player`, `receiver`):
 
 ```bash
-cd submodules/cboe_pitch && make test                      # full suite via venv_wsl
+cd cboe_pitch && make test                                 # full suite via venv_wsl
 python3.11 -m pytest tests/test_add_order.py               # single file
 python3.11 -m pytest tests/test_add_order.py::TestAddOrder # single test
 ```

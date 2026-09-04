@@ -4,14 +4,11 @@ Putting it all together into a Proof-of-Concept
 
 ## WARNING: Git Submodules
 
-If you cloned without ```--recurse-submodules```, you need to run:
+The parser, filter, and common LabVIEW code now live directly in this repo under
+`submodules/`. The only remaining git submodule is `cboe_pitch/` (Python PITCH tooling,
+tracks branch `dev`). If you cloned without ```--recurse-submodules```, you need to run:
 ```
-git submodule update --init --recursive --remote
-```
-
-To update all submodules, run:
-```
-git submodule update --recursive
+git submodule update --init --recursive
 ```
 
 ## Hardware
