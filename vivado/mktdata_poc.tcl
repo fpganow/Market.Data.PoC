@@ -46,7 +46,6 @@ proc checkRequiredFiles { origin_dir} {
  "[file normalize "$origin_dir/ip/kr260_starter_kit_wrapper.v"]"\
  "[file normalize "$origin_dir/ip/NiFpgaAG_poc_ip_kria.v"]"\
  "[file normalize "$origin_dir/ip/NiFpgaIPWrapper_poc_ip_kria.vhd"]"\
- "[file normalize "$origin_dir/../archive_project_summary.txt"]"\
  "[file normalize "$origin_dir/constraints.xdc"]"\
   ]
   foreach ifile $files {
@@ -187,7 +186,6 @@ set files [list \
  [file normalize "${origin_dir}/ip/my_state.v" ]\
  [file normalize "${origin_dir}/ip/simple_fifo.v" ]\
  [file normalize "${origin_dir}/ip/kr260_starter_kit_wrapper.v"]\
- [file normalize "${origin_dir}/../archive_project_summary.txt" ]\
  [file normalize "${origin_dir}/ip/NiFpgaAG_poc_ip_kria.v" ]\
  [file normalize "${origin_dir}/ip/NiFpgaIPWrapper_poc_ip_kria.vhd" ]\
 ]
