@@ -22,7 +22,7 @@ but editing them by hand risks corrupting the project.
 
 Text-editable parts: Python (`ip_export/`, `s_parse.py`, `udp_send.py`, `cboe_pitch/`),
 Makefiles, TCL (`vivado/`, `ip_export/gen.tcl`), SystemVerilog/Verilog testbenches and HDL, and the
-Vitis C++ sources under `vivado.old/sdk/` and `vivado.old/kr260/poc_kr260/my_cpp_src/`.
+C sources under `apps/*/main.c`.
 
 **One submodule remains** — `cboe_pitch/` at the repo root (tracks branch `dev`). Fresh clones need:
 
@@ -94,9 +94,9 @@ BD). `docs/kr260/` holds the ported knowledge base: `mktdata_poc.CLAUDE.md` (har
 PS address map, 32-bit PIO constraints, JTAG quirks — paths in it refer to the old repo layout) and
 the timing-closure playbook (`advice*.txt`, `recommendations.txt`, Verilog extracts, PDFs).
 
-`vivado.old/` is the superseded predecessor (the old `poc_kr260` block-design project, `sdk/`
-bare-metal sources, `pcs_pma`/`arty_z7` experiments) — reference only, slated for retirement.
-`boot_jtag.tcl` holds the XSCT sequence for putting the KR260 into JTAG boot mode.
+The superseded predecessor tree (the old `poc_kr260` block-design project, `sdk/` bare-metal
+sources, `pcs_pma`/`arty_z7` experiments) was removed; it lives at the `pre_clean` git tag as
+`vivado.old/`. `boot_jtag.tcl` holds the XSCT sequence for putting the KR260 into JTAG boot mode.
 
 ## Commands
 
