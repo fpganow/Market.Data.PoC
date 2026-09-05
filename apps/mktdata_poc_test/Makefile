@@ -23,7 +23,7 @@ REMOTE_PATH ?= /home/ubuntu/
 all: $(TARGET)
 
 $(TARGET): main.c
-	$(CC) $(CFLAGS) -pthread -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 	@file $@
 
 clean:

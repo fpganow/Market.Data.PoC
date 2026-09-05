@@ -20,3 +20,4 @@ vitis_ws/
 apps/mktdata_poc_test/mktdata_poc_test
 apps/mktdata_poc_test/fifoexp
 apps/mktdata_poc_test/fifo16
+apps/poc_server/poc_server

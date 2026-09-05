@@ -88,7 +88,10 @@ in `vivado/ip/`. The generated project dir `vivado/mktdata_poc/` and the XSA are
 
 The rest of that repo's KR260 flow lives here too: the root `Makefile` (`make help` — `make xsa`,
 bare-metal/FreeRTOS/Linux app builds, Kria app packaging/deploy, board utilities), `apps/`
-(`mktdata_poc_bm`/`_rtos`/`_test` exercisers), `kria_app/` (xmutil-loadable package), `scripts/`
+(`mktdata_poc_bm`/`_rtos`/`_test` run the same three self-tests — GPIO accumulator, FIFO echo,
+DMA echo — bare-metal, FreeRTOS, and Linux-userspace respectively; `poc_server` is the C++ Linux
+app with the continuous market-data FIFO dumpers (`debug`/`mdebug`/`cmd`/`poll`) and the NI IP
+`reset`), `kria_app/` (xmutil-loadable package), `scripts/`
 (board-side helpers), and `todo.txt` (the KR260 design-decision log — read it before changing the
 BD). `docs/kr260/` holds the ported knowledge base: `mktdata_poc.CLAUDE.md` (hardware architecture,
 PS address map, 32-bit PIO constraints, JTAG quirks — paths in it refer to the old repo layout) and

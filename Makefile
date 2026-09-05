@@ -18,6 +18,7 @@ MAKEFLAGS += --no-print-directory
         bare-metal-build bare-metal-run bare-metal-clean \
         rtos-build rtos-run rtos-clean \
         poc-build poc-deploy poc-run poc-clean \
+        server-build server-deploy server-run server-clean \
         kria-build kria-stage kria-clean kria-list-staged kria-list-apps \
         kria-unload-app kria-deploy-staged kria-load-app kria-reload-app \
         board-setup board-info \
@@ -76,6 +77,12 @@ help-poc:
 	@echo "  make poc-deploy        scp the test binary to $(KR260_HOST):/home/ubuntu/"
 	@echo "  make poc-run           Deploy and ssh-run the test binary as root"
 	@echo "  make poc-clean         Remove apps/mktdata_poc_test binary"
+	@echo ""
+	@echo "poc_server (market-data FIFO dumpers / NI IP reset, aarch64 Linux):"
+	@echo "  make server-build      Cross-compile apps/poc_server"
+	@echo "  make server-deploy     scp poc_server to $(KR260_HOST):/home/ubuntu/"
+	@echo "  make server-run        Deploy and ssh-run 'poc_server poll' as root"
+	@echo "  make server-clean      Remove apps/poc_server binary"
 
 help-kria:
 	@echo "Kria runtime app (dfx-mgr / xmutil):"
@@ -159,6 +166,20 @@ poc-run:
 
 poc-clean:
 	$(MAKE) -C apps/mktdata_poc_test clean
+
+# -- poc_server: market-data FIFO dumpers / NI IP reset (aarch64 Linux) --------
+
+server-build:
+	$(MAKE) -C apps/poc_server all
+
+server-deploy:
+	$(MAKE) -C apps/poc_server deploy
+
+server-run:
+	$(MAKE) -C apps/poc_server run
+
+server-clean:
+	$(MAKE) -C apps/poc_server clean
 
 # -- Kria runtime app (dfx-mgr / xmutil package) -------------------------------
 
