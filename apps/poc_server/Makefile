@@ -18,7 +18,7 @@ CXXFLAGS ?= -O2 -Wall -Wextra -std=gnu++17
 REMOTE_HOST ?= kr260u
 REMOTE_PATH ?= /home/ubuntu/
 
-.PHONY: all clean deploy run
+.PHONY: all clean deploy run serve
 
 all: $(TARGET)
 
@@ -35,3 +35,8 @@ deploy: $(TARGET)
 # Poll all three market-data FIFOs until Ctrl-C.
 run: deploy
 	ssh -t $(REMOTE_HOST) "sudo $(REMOTE_PATH)$(TARGET) poll"
+
+# Serve frames as NDJSON over TCP (port 5555) until Ctrl-C; subscribe with
+# scripts/fifo_subscribe.py from the dev machine.
+serve: deploy
+	ssh -t $(REMOTE_HOST) "sudo $(REMOTE_PATH)$(TARGET) serve"

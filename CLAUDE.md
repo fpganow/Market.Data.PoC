@@ -90,11 +90,12 @@ The rest of that repo's KR260 flow lives here too: the root `Makefile` (`make he
 bare-metal/FreeRTOS/Linux app builds, Kria app packaging/deploy, board utilities), `apps/`
 (`mktdata_poc_bm`/`_rtos`/`_test` run the same three self-tests — GPIO accumulator, FIFO echo,
 DMA echo — bare-metal, FreeRTOS, and Linux-userspace respectively; `poc_server` is the C++ Linux
-app with the continuous market-data FIFO dumpers (`debug`/`mdebug`/`cmd`/`poll`) and the NI IP
-`reset`), `kria_app/` (xmutil-loadable package), `scripts/`
-(board-side helpers, plus `fifo_server.py`/`fifo_subscribe.py` — a Python NDJSON-over-TCP
-broadcaster of the capture-FIFO frames and its client; don't run the server and `poc_server poll`
-at once, both pop the same FIFOs), and `todo.txt` (the KR260 design-decision log — read it before changing the
+app with the continuous market-data FIFO dumpers (`debug`/`mdebug`/`cmd`/`poll`), a `serve` mode
+that broadcasts frames as NDJSON over TCP — wire-compatible with `scripts/fifo_server.py`, the
+Python implementation of the same server — and the NI IP `reset`), `kria_app/` (xmutil-loadable
+package), `scripts/` (board-side helpers, plus `fifo_server.py`/`fifo_subscribe.py` — the Python
+server and its client, which also works against `poc_server serve`). Only ONE FIFO consumer may
+run at a time (`poc_server` poll/serve or `fifo_server.py`) — they pop the same FIFOs, and `todo.txt` (the KR260 design-decision log — read it before changing the
 BD). `docs/kr260/` holds the ported knowledge base: `mktdata_poc.CLAUDE.md` (hardware architecture,
 PS address map, 32-bit PIO constraints, JTAG quirks — paths in it refer to the old repo layout) and
 the timing-closure playbook (`advice*.txt`, `recommendations.txt`, Verilog extracts, PDFs).

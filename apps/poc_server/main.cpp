@@ -12,25 +12,52 @@
  *   poll    - poll FIFOs concurrently, one thread per FIFO. With no extra
  *             args, all three; otherwise the named subset, e.g.
  *             "poll debug mdebug".
+ *   serve   - poll like `poll`, but broadcast every frame to TCP subscribers
+ *             as NDJSON instead of hex-dumping. Wire-compatible with
+ *             scripts/fifo_server.py (same protocol, same JSON shape), so
+ *             scripts/fifo_subscribe.py works against either.
+ *             serve [--port 5555] [--bind 0.0.0.0] [--fifos cmd debug mdebug]
  *   reset   - pulse the NI IP reset (axi_gpio_1: 0 -> 1 -> 0) and exit.
+ *
+ * serve protocol: client connects, sends one line -- e.g. "SUBSCRIBE cmd
+ * debug" ("SUBSCRIBE *" or an empty line means all) -- gets a hello line
+ * {"hello":...,"subscribed":[...]}, then NDJSON frames forever:
+ *
+ *   {"fifo":"CMD","frame":3,"ts":1699.123,"len":16,"partial":false,
+ *    "data":"beefbeef00000000..."}
+ *
+ * The pollers drain the FIFOs continuously whether or not anyone is
+ * subscribed; slow subscribers are dropped-from, not waited-for (per-client
+ * queue, frames are discarded for that client when it falls behind).
  *
  * Runs as root (needs /dev/uioN).
  */
 
 #include <atomic>
+#include <cctype>
+#include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
+#include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
 
+#include <arpa/inet.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <poll.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 /* ---- Address map (matches vivado/mktdata_poc.tcl) ---- */
@@ -48,6 +75,9 @@
 
 /* Idle backoff for the FIFO pollers (us). */
 #define POLL_IDLE_US 200
+
+/* Per-subscriber frame queue before dropping (matches fifo_server.py). */
+#define QUEUE_MAX 4096
 
 /* ---- AXI4-Stream FIFO (PG080) ---- */
 #define FIFO_ISR    0x00
@@ -117,30 +147,70 @@ static inline uint32_t r32(volatile uint32_t *base, uint32_t off) {
     return base[off / 4];
 }
 
-/* ---- FIFO pollers ---- */
+/* ---- Broker: fan frames out to per-subscriber queues (serve mode) ---- */
 
 static volatile sig_atomic_t g_stop = 0;
 
-static void on_sigint(int sig)
+struct Client {
+    int                      fd;
+    std::set<std::string>    names;   /* subscribed lower-case fifo names */
+    std::mutex               m;
+    std::condition_variable  cv;
+    std::deque<std::string>  q;       /* pending NDJSON lines */
+};
+
+struct Broker {
+    std::mutex                            m;
+    std::vector<std::shared_ptr<Client>>  subs;
+
+    void add(std::shared_ptr<Client> c) {
+        std::lock_guard<std::mutex> lock(m);
+        subs.push_back(std::move(c));
+    }
+    void remove(const std::shared_ptr<Client> &c) {
+        std::lock_guard<std::mutex> lock(m);
+        for (auto it = subs.begin(); it != subs.end(); ++it)
+            if (*it == c) { subs.erase(it); break; }
+    }
+    /* Queue one line for every subscriber of `name`; drop it for clients
+     * that are QUEUE_MAX behind (slow client, never wait for it). */
+    void publish(const std::string &name, const std::string &line) {
+        std::lock_guard<std::mutex> lock(m);
+        for (auto &c : subs) {
+            if (!c->names.count(name)) continue;
+            std::lock_guard<std::mutex> cl(c->m);
+            if (c->q.size() >= QUEUE_MAX) continue;
+            c->q.push_back(line);
+            c->cv.notify_one();
+        }
+    }
+};
+
+/* ---- FIFO pollers ---- */
+
+static void on_sigstop(int sig)
 {
     (void)sig;
     g_stop = 1;
 }
 
-static void install_sigint(void)
+static void install_sigstop(void)
 {
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = on_sigint;
+    sa.sa_handler = on_sigstop;
     sigaction(SIGINT, &sa, nullptr);
+    sigaction(SIGTERM, &sa, nullptr);
 }
 
 static std::mutex g_print_lock;
 
 struct poller {
-    const char         *tag;    /* "DEBUG" / "MDEBUG" / "CMD" */
+    const char         *name;   /* "debug" / "mdebug" / "cmd" (subscriptions) */
+    const char         *tag;    /* "DEBUG" / "MDEBUG" / "CMD" (output) */
     volatile uint32_t  *ctrl;   /* PG080 control (S_AXI) base */
     volatile uint32_t  *data;   /* PG080 data (S_AXI_FULL) base */
+    Broker             *broker; /* nullptr = hex-dump to stdout instead */
 };
 
 /* Format one frame as a hex dump and emit it atomically. Bytes are printed
@@ -174,7 +244,36 @@ static void print_frame(const char *tag, unsigned frame,
     fflush(stdout);
 }
 
-/* Poll one RX-only PG080 FIFO until g_stop. Also usable as a thread entry. */
+/* Build the NDJSON line fifo_server.py emits for one frame. All values are
+ * machine-generated (no JSON escaping needed). */
+static std::string json_frame(const char *tag, unsigned frame,
+                              const std::vector<uint64_t> &words,
+                              uint32_t len, int partial)
+{
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    double ts = (double)tv.tv_sec + (double)tv.tv_usec / 1e6;
+
+    std::string out;
+    out.reserve(96 + (size_t)len * 2);
+    char head[128];
+    snprintf(head, sizeof(head),
+             "{\"fifo\":\"%s\",\"frame\":%u,\"ts\":%.6f,\"len\":%u,"
+             "\"partial\":%s,\"data\":\"",
+             tag, frame, ts, len, partial ? "true" : "false");
+    out += head;
+    static const char hexd[] = "0123456789abcdef";
+    for (uint32_t i = 0; i < len; i++) {
+        uint8_t b = (uint8_t)((words[i / 8] >> (8 * (i % 8))) & 0xff);
+        out += hexd[b >> 4];
+        out += hexd[b & 0xf];
+    }
+    out += "\"}\n";
+    return out;
+}
+
+/* Poll one RX-only PG080 FIFO until g_stop. Emits to the broker in serve
+ * mode, to stdout otherwise. Also usable as a thread entry. */
 static void fifo_poller(poller *p)
 {
     volatile uint32_t *ctrl = p->ctrl;
@@ -238,40 +337,31 @@ static void fifo_poller(poller *p)
         }
 
         frame++;
-        print_frame(p->tag, frame, words, len, partial);
+        if (p->broker)
+            p->broker->publish(p->name, json_frame(p->tag, frame, words, len, partial));
+        else
+            print_frame(p->tag, frame, words, len, partial);
     }
 }
 
 /* Map a poller's ctrl+data UIOs; returns 0 on success. */
-static int map_poller(poller *p, const char *tag,
+static int map_poller(poller *p, const char *name, const char *tag,
                       unsigned long ctrl_addr, unsigned long data_addr)
 {
     char label[32];
     int fd_c, fd_d;
+    p->name = name;
     p->tag = tag;
-    snprintf(label, sizeof(label), "axi_fifo_%s (ctrl)", tag);
+    p->broker = nullptr;
+    snprintf(label, sizeof(label), "axi_fifo_%s (ctrl)", name);
     p->ctrl = map_uio(ctrl_addr, label, &fd_c);
-    snprintf(label, sizeof(label), "axi_fifo_%s (data)", tag);
+    snprintf(label, sizeof(label), "axi_fifo_%s (data)", name);
     p->data = map_uio(data_addr, label, &fd_d);
     if (!p->ctrl || !p->data) {
         fprintf(stderr, "axi_fifo_%s not found -- was the kria app rebuilt and "
-                        "reloaded with the new device-tree overlay?\n", tag);
+                        "reloaded with the new device-tree overlay?\n", name);
         return -1;
     }
-    return 0;
-}
-
-static int cmd_poll_one(const char *tag, unsigned long ctrl_addr,
-                        unsigned long data_addr)
-{
-    printf("Opening UIOs:\n");
-    poller p;
-    if (map_poller(&p, tag, ctrl_addr, data_addr) < 0) return 1;
-
-    install_sigint();
-    printf("Polling %s. Press Ctrl-C to stop.\n", tag);
-    fifo_poller(&p);
-    printf("\nStopped.\n");
     return 0;
 }
 
@@ -288,6 +378,27 @@ static const struct {
 };
 #define N_FIFOS ((int)(sizeof(g_fifos) / sizeof(g_fifos[0])))
 
+static int fifo_index(const char *name)
+{
+    for (int i = 0; i < N_FIFOS; i++)
+        if (strcmp(name, g_fifos[i].name) == 0) return i;
+    return -1;
+}
+
+static int cmd_poll_one(int fi)
+{
+    printf("Opening UIOs:\n");
+    poller p;
+    if (map_poller(&p, g_fifos[fi].name, g_fifos[fi].tag,
+                   g_fifos[fi].ctrl, g_fifos[fi].data) < 0) return 1;
+
+    install_sigstop();
+    printf("Polling %s. Press Ctrl-C to stop.\n", p.tag);
+    fifo_poller(&p);
+    printf("\nStopped.\n");
+    return 0;
+}
+
 /* poll [debug] [mdebug] [cmd] -- no names means all of them. */
 static int cmd_poll(int nsel, char **sel)
 {
@@ -297,14 +408,13 @@ static int cmd_poll(int nsel, char **sel)
         for (int i = 0; i < N_FIFOS; i++) pick[i] = 1;
     } else {
         for (int s = 0; s < nsel; s++) {
-            int i;
-            for (i = 0; i < N_FIFOS; i++)
-                if (strcmp(sel[s], g_fifos[i].name) == 0) { pick[i] = 1; break; }
-            if (i == N_FIFOS) {
+            int i = fifo_index(sel[s]);
+            if (i < 0) {
                 fprintf(stderr, "unknown FIFO '%s' (expected debug, mdebug or cmd)\n",
                         sel[s]);
                 return 2;
             }
+            pick[i] = 1;
         }
     }
 
@@ -313,12 +423,13 @@ static int cmd_poll(int nsel, char **sel)
     int n = 0;
     for (int i = 0; i < N_FIFOS; i++) {
         if (!pick[i]) continue;
-        if (map_poller(&p[n], g_fifos[i].tag, g_fifos[i].ctrl, g_fifos[i].data) < 0)
+        if (map_poller(&p[n], g_fifos[i].name, g_fifos[i].tag,
+                       g_fifos[i].ctrl, g_fifos[i].data) < 0)
             return 1;
         n++;
     }
 
-    install_sigint();
+    install_sigstop();
     printf("Polling");
     for (int i = 0; i < n; i++) printf("%s%s", i ? "+" : " ", p[i].tag);
     printf(". Press Ctrl-C to stop.\n");
@@ -334,6 +445,205 @@ static int cmd_poll(int nsel, char **sel)
     for (int i = 0; i < n; i++)
         threads.emplace_back(fifo_poller, &p[i]);
     for (auto &t : threads) t.join();
+    printf("\nStopped.\n");
+    return 0;
+}
+
+/* ---- serve: NDJSON/TCP broadcast, wire-compatible with fifo_server.py ---- */
+
+/* Read one \n-terminated line (the SUBSCRIBE request) from fd. */
+static int read_line(int fd, std::string &out)
+{
+    out.clear();
+    char c;
+    while (out.size() < 1024) {
+        ssize_t r = recv(fd, &c, 1, 0);
+        if (r <= 0) return -1;
+        if (c == '\n') return 0;
+        if (c != '\r') out += c;
+    }
+    return 0;
+}
+
+static int send_all(int fd, const std::string &s)
+{
+    size_t off = 0;
+    while (off < s.size()) {
+        ssize_t w = send(fd, s.data() + off, s.size() - off, MSG_NOSIGNAL);
+        if (w <= 0) return -1;
+        off += (size_t)w;
+    }
+    return 0;
+}
+
+/* Serve one subscriber: parse its request, register with the broker, then
+ * forward queued lines until it disconnects (send fails) or g_stop. */
+static void client_thread(Broker *broker, std::shared_ptr<Client> c,
+                          std::string peer, const std::set<std::string> &available)
+{
+    /* Request: "SUBSCRIBE cmd debug" / "SUBSCRIBE *" / "" (30 s to send it). */
+    struct timeval tmo = { 30, 0 };
+    setsockopt(c->fd, SOL_SOCKET, SO_RCVTIMEO, &tmo, sizeof(tmo));
+    std::string req;
+    if (read_line(c->fd, req) < 0) { close(c->fd); return; }
+
+    bool star = false;
+    std::set<std::string> names;
+    char *tokens = strdup(req.c_str());
+    int first = 1;
+    for (char *t = strtok(tokens, " \t"); t; t = strtok(nullptr, " \t")) {
+        std::string w(t);
+        for (auto &ch : w) ch = (char)tolower((unsigned char)ch);
+        if (first && w == "subscribe") { first = 0; continue; }
+        first = 0;
+        if (w == "*") star = true;
+        else if (available.count(w)) names.insert(w);
+    }
+    free(tokens);
+    if (names.empty() || star) names = available;
+    c->names = names;
+
+    /* Stuck-client guard: a peer that stops reading fails the send after 10 s
+     * instead of wedging this thread (fifo_server.py just blocks there). */
+    tmo = { 10, 0 };
+    setsockopt(c->fd, SOL_SOCKET, SO_SNDTIMEO, &tmo, sizeof(tmo));
+
+    std::string hello = "{\"hello\": \"mktdata_poc fifo_server\", \"subscribed\": [";
+    int i = 0;
+    for (auto &n : names) {          /* std::set iterates sorted */
+        if (i++) hello += ", ";
+        hello += "\"" + n + "\"";
+    }
+    hello += "]}\n";
+    if (send_all(c->fd, hello) < 0) { close(c->fd); return; }
+
+    {
+        std::lock_guard<std::mutex> lock(g_print_lock);
+        printf("[server] %s subscribed to [", peer.c_str());
+        i = 0;
+        for (auto &n : names) printf("%s'%s'", i++ ? ", " : "", n.c_str());
+        printf("]\n");
+        fflush(stdout);
+    }
+    broker->add(c);
+
+    bool alive = true;
+    while (alive && !g_stop) {
+        std::deque<std::string> batch;
+        {
+            std::unique_lock<std::mutex> lock(c->m);
+            c->cv.wait_for(lock, std::chrono::seconds(1),
+                           [&] { return !c->q.empty() || g_stop; });
+            batch.swap(c->q);
+        }
+        for (auto &line : batch)
+            if (send_all(c->fd, line) < 0) { alive = false; break; }
+    }
+
+    broker->remove(c);
+    close(c->fd);
+    std::lock_guard<std::mutex> lock(g_print_lock);
+    printf("[server] %s disconnected\n", peer.c_str());
+    fflush(stdout);
+}
+
+/* serve [--port N] [--bind ADDR] [--fifos name...] */
+static int cmd_serve(int argc, char **argv)
+{
+    int port = 5555;
+    const char *bind_addr = "0.0.0.0";
+    int pick[N_FIFOS] = { 0 };
+    int any_picked = 0;
+
+    for (int a = 0; a < argc; a++) {
+        if (strcmp(argv[a], "--port") == 0 && a + 1 < argc) {
+            port = atoi(argv[++a]);
+        } else if (strcmp(argv[a], "--bind") == 0 && a + 1 < argc) {
+            bind_addr = argv[++a];
+        } else if (strcmp(argv[a], "--fifos") == 0) {
+            while (a + 1 < argc && argv[a + 1][0] != '-') {
+                int i = fifo_index(argv[++a]);
+                if (i < 0) {
+                    fprintf(stderr, "unknown FIFO '%s' (expected debug, mdebug or cmd)\n",
+                            argv[a]);
+                    return 2;
+                }
+                pick[i] = any_picked = 1;
+            }
+        } else {
+            fprintf(stderr, "serve: unknown argument '%s'\n", argv[a]);
+            return 2;
+        }
+    }
+    if (!any_picked)
+        for (int i = 0; i < N_FIFOS; i++) pick[i] = 1;
+
+    /* Never freed: detached client threads may outlive cmd_serve's return. */
+    Broker *broker = new Broker();
+
+    printf("Opening UIOs:\n");
+    static poller p[N_FIFOS];
+    std::set<std::string> available;
+    int n = 0;
+    for (int i = 0; i < N_FIFOS; i++) {
+        if (!pick[i]) continue;
+        if (map_poller(&p[n], g_fifos[i].name, g_fifos[i].tag,
+                       g_fifos[i].ctrl, g_fifos[i].data) < 0)
+            return 1;
+        p[n].broker = broker;
+        available.insert(g_fifos[i].name);
+        n++;
+    }
+
+    int srv = socket(AF_INET, SOCK_STREAM, 0);
+    if (srv < 0) { perror("socket"); return 1; }
+    int one = 1;
+    setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    struct sockaddr_in sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((uint16_t)port);
+    if (inet_pton(AF_INET, bind_addr, &sa.sin_addr) != 1) {
+        fprintf(stderr, "bad --bind address '%s'\n", bind_addr);
+        return 2;
+    }
+    if (bind(srv, (struct sockaddr *)&sa, sizeof(sa)) < 0) { perror("bind"); return 1; }
+    if (listen(srv, 8) < 0) { perror("listen"); return 1; }
+
+    install_sigstop();
+    std::vector<std::thread> pollers;
+    pollers.reserve(n);
+    for (int i = 0; i < n; i++)
+        pollers.emplace_back(fifo_poller, &p[i]);
+
+    printf("[server] listening on %s:%d (fifos:", bind_addr, port);
+    int i = 0;
+    for (auto &nm : available) printf("%s %s", i++ ? "," : "", nm.c_str());
+    printf("). Ctrl-C to stop.\n");
+    fflush(stdout);
+
+    while (!g_stop) {
+        struct pollfd pfd = { srv, POLLIN, 0 };
+        int pr = poll(&pfd, 1, 1000);
+        if (pr <= 0) continue;
+        struct sockaddr_in ca;
+        socklen_t cl = sizeof(ca);
+        int cfd = accept(srv, (struct sockaddr *)&ca, &cl);
+        if (cfd < 0) continue;
+        char ip[INET_ADDRSTRLEN] = "?";
+        inet_ntop(AF_INET, &ca.sin_addr, ip, sizeof(ip));
+        char peer[64];
+        snprintf(peer, sizeof(peer), "%s:%u", ip, (unsigned)ntohs(ca.sin_port));
+        auto c = std::make_shared<Client>();
+        c->fd = cfd;
+        std::thread(client_thread, broker, c, std::string(peer), available).detach();
+    }
+
+    close(srv);
+    for (auto &t : pollers) t.join();
+    /* Detached client threads notice g_stop within their 1 s cv timeout (or
+     * their 10 s send timeout); give them a moment before process teardown. */
+    usleep(1200 * 1000);
     printf("\nStopped.\n");
     return 0;
 }
@@ -375,6 +685,9 @@ static void usage(const char *argv0)
         "  cmd      continuously poll axi_fifo_cmd and hex-dump frames\n"
         "  poll [debug] [mdebug] [cmd]\n"
         "           poll the named FIFOs (default: all three), one thread per FIFO\n"
+        "  serve [--port 5555] [--bind 0.0.0.0] [--fifos cmd debug mdebug]\n"
+        "           poll and broadcast frames as NDJSON to TCP subscribers\n"
+        "           (wire-compatible with scripts/fifo_server.py)\n"
         "  reset    pulse the NI IP reset (axi_gpio_1: 0 -> 1 -> 0) and exit\n",
         argv0);
 }
@@ -384,15 +697,12 @@ int main(int argc, char **argv)
     if (argc < 2) { usage(argv[0]); return 2; }
 
     if (strcmp(argv[1], "poll") == 0)   return cmd_poll(argc - 2, argv + 2);
+    if (strcmp(argv[1], "serve") == 0)  return cmd_serve(argc - 2, argv + 2);
     if (argc != 2) { usage(argv[0]); return 2; }
 
     if (strcmp(argv[1], "reset") == 0)  return cmd_reset();
-    if (strcmp(argv[1], "debug") == 0)
-        return cmd_poll_one("DEBUG",  ADDR_FIFO_DEBUG_CTRL,  ADDR_FIFO_DEBUG_DATA);
-    if (strcmp(argv[1], "mdebug") == 0)
-        return cmd_poll_one("MDEBUG", ADDR_FIFO_MDEBUG_CTRL, ADDR_FIFO_MDEBUG_DATA);
-    if (strcmp(argv[1], "cmd") == 0)
-        return cmd_poll_one("CMD",    ADDR_FIFO_CMD_CTRL,    ADDR_FIFO_CMD_DATA);
+    int fi = fifo_index(argv[1]);
+    if (fi >= 0) return cmd_poll_one(fi);
 
     usage(argv[0]);
     return 2;

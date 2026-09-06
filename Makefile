@@ -18,7 +18,7 @@ MAKEFLAGS += --no-print-directory
         bare-metal-build bare-metal-run bare-metal-clean \
         rtos-build rtos-run rtos-clean \
         poc-build poc-deploy poc-run poc-clean \
-        server-build server-deploy server-run server-clean \
+        server-build server-deploy server-run server-serve server-clean \
         kria-build kria-stage kria-clean kria-list-staged kria-list-apps \
         kria-unload-app kria-deploy-staged kria-load-app kria-reload-app \
         board-setup board-info \
@@ -82,6 +82,7 @@ help-poc:
 	@echo "  make server-build      Cross-compile apps/poc_server"
 	@echo "  make server-deploy     scp poc_server to $(KR260_HOST):/home/ubuntu/"
 	@echo "  make server-run        Deploy and ssh-run 'poc_server poll' as root"
+	@echo "  make server-serve      Deploy and ssh-run 'poc_server serve' (NDJSON/TCP :5555)"
 	@echo "  make server-clean      Remove apps/poc_server binary"
 
 help-kria:
@@ -177,6 +178,9 @@ server-deploy:
 
 server-run:
 	$(MAKE) -C apps/poc_server run
+
+server-serve:
+	$(MAKE) -C apps/poc_server serve
 
 server-clean:
 	$(MAKE) -C apps/poc_server clean

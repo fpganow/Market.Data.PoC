@@ -16,8 +16,10 @@ Protocol: connect, send one line -- e.g. "SUBSCRIBE cmd debug" (or
 Run as root on the board (needs /dev/uioN):
   sudo ./fifo_server.py [--port 5555] [--fifos cmd debug mdebug]
 
-Do NOT run it at the same time as `poc_server poll` (or the `debug`/
-`mdebug`/`cmd` subcommands) -- both would pop the same FIFOs.
+Do NOT run it at the same time as `poc_server poll`/`serve` (or the
+`debug`/`mdebug`/`cmd` subcommands) -- both would pop the same FIFOs.
+(`poc_server serve` is the C++ implementation of this same server; the
+protocol is identical and fifo_subscribe.py works against either.)
 
 The server drains the FIFOs continuously whether or not anyone is
 subscribed, so late subscribers start clean at the moment they connect;
