@@ -92,7 +92,9 @@ bare-metal/FreeRTOS/Linux app builds, Kria app packaging/deploy, board utilities
 DMA echo — bare-metal, FreeRTOS, and Linux-userspace respectively; `poc_server` is the C++ Linux
 app with the continuous market-data FIFO dumpers (`debug`/`mdebug`/`cmd`/`poll`) and the NI IP
 `reset`), `kria_app/` (xmutil-loadable package), `scripts/`
-(board-side helpers), and `todo.txt` (the KR260 design-decision log — read it before changing the
+(board-side helpers, plus `fifo_server.py`/`fifo_subscribe.py` — a Python NDJSON-over-TCP
+broadcaster of the capture-FIFO frames and its client; don't run the server and `poc_server poll`
+at once, both pop the same FIFOs), and `todo.txt` (the KR260 design-decision log — read it before changing the
 BD). `docs/kr260/` holds the ported knowledge base: `mktdata_poc.CLAUDE.md` (hardware architecture,
 PS address map, 32-bit PIO constraints, JTAG quirks — paths in it refer to the old repo layout) and
 the timing-closure playbook (`advice*.txt`, `recommendations.txt`, Verilog extracts, PDFs).
