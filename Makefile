@@ -12,8 +12,9 @@ VITIS_SETTINGS ?= /tools/Xilinx/Vitis/2024.1/settings64.sh
 MAKEFLAGS += --no-print-directory
 
 .PHONY: help \
-        help-vivado help-bare-metal help-rtos help-poc help-kria \
+        help-ip help-vivado help-bare-metal help-rtos help-poc help-kria \
         help-board help-util help-design help-vars \
+        ip-export-list local-list \
         xsa xsa-clean \
         bare-metal-build bare-metal-run bare-metal-clean \
         rtos-build rtos-run rtos-clean \
@@ -28,7 +29,9 @@ MAKEFLAGS += --no-print-directory
 # Full help: title, every section, then variables. Each section is also a
 # standalone target (help-vivado, help-util, ...) that prints just that block.
 help:
-	@echo "mktdata_poc — KR260 market data proof-of-concept"
+	@echo "Market.Data.PoC — LabVIEW FPGA BATS PITCH parser on the KR260"
+	@echo ""
+	@$(MAKE) help-ip
 	@echo ""
 	@$(MAKE) help-vivado
 	@echo ""
@@ -48,11 +51,21 @@ help:
 	@echo ""
 	@echo "Help:"
 	@echo "  make help              Show this help (all sections)"
-	@echo "  make help-vivado       Vivado section only (also: help-bare-metal,"
-	@echo "                         help-rtos, help-poc, help-kria, help-board,"
-	@echo "                         help-util, help-design, help-vars)"
+	@echo "  make help-ip           IP export section only (also: help-vivado,"
+	@echo "                         help-bare-metal, help-rtos, help-poc, help-kria,"
+	@echo "                         help-board, help-util, help-design, help-vars)"
 	@echo ""
 	@$(MAKE) help-vars
+
+help-ip:
+	@echo "LabVIEW IP export (delegates to ip_export/Makefile):"
+	@echo "  make ip-export-list    List LabVIEW exports under /mnt/c/NIFPGA/compilation (indexed)"
+	@echo "  make ip-export-copy-N  Copy export #N's .dcp and .vhd into ip_export/"
+	@echo "  make local-list        List exports copied into ip_export/ and their .v status"
+	@echo "  make local-gen-NAME    Convert ip_export/NiFpgaAG_NAME.dcp to Verilog (Windows Vivado 2021.1)"
+	@echo "  make ip-install-NAME   Copy NiFpgaAG_NAME.v + NiFpgaIPWrapper_NAME.vhd into vivado/ip/"
+	@echo "  Typical flow: ip-export-list -> ip-export-copy-N -> local-gen-poc_ip_kria"
+	@echo "                -> ip-install-poc_ip_kria -> xsa"
 
 help-vivado:
 	@echo "Vivado:"
@@ -123,6 +136,31 @@ help-vars:
 	@echo "  KR260_HOST=$(KR260_HOST)      Board hostname/IP for SSH deploy"
 	@echo "  KR260_USER=$(KR260_USER)      Board username"
 	@echo "  KR260_UART=$(KR260_UART)  PS-UART device (auto-detected)"
+
+# -- LabVIEW IP export (ip_export/) -------------------------------------------
+
+IP_EXPORT_DIR := ip_export
+VIVADO_IP_DIR := vivado/ip
+
+ip-export-list:
+	$(MAKE) -C $(IP_EXPORT_DIR) ip-export-list
+ip-export-copy-%:
+	$(MAKE) -C $(IP_EXPORT_DIR) ip-export-copy-$*
+local-list:
+	$(MAKE) -C $(IP_EXPORT_DIR) local-list
+local-gen-%:
+	$(MAKE) -C $(IP_EXPORT_DIR) local-gen-$*
+
+# Install a generated export into the block design sources. NAME is the VI name
+# as printed by 'make local-list' (e.g. poc_ip_kria). Both files must already
+# exist in ip_export/ (ip-export-copy-N, then local-gen-NAME).
+ip-install-%:
+	@v="$(IP_EXPORT_DIR)/NiFpgaAG_$*.v"; vhd="$(IP_EXPORT_DIR)/NiFpgaIPWrapper_$*.vhd"; \
+	for f in "$$v" "$$vhd"; do \
+	  [ -f "$$f" ] || { echo "missing $$f (run ip-export-copy-N / local-gen-$* first)"; exit 1; }; \
+	done; \
+	echo "Installing $* into $(VIVADO_IP_DIR)/"; \
+	cp -v "$$v" "$$vhd" $(VIVADO_IP_DIR)/
 
 # -- Vivado --------------------------------------------------------------------
 
