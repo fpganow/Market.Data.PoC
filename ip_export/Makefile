@@ -215,7 +215,7 @@ DCP_FILE    ?=  NiFpgaAG_poc_ip.dcp
 #
 OS=$(shell lsb_release -r | awk '{print $$2}')
 PWD_WIN     ?=  "\\\\wsl.localhost\\Ubuntu-${OS}"${PWD_WIN2}
-PWD_WIN3    ?=  $(shell wslpath -w ${PWD})
+PWD_WIN3    ?=  $(shell wslpath -w $(CURDIR))
 
 .EXPORT_ALL_VARIABLES:
 
