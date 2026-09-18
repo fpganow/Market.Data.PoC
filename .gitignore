@@ -24,3 +24,14 @@ apps/poc_server/poc_server
 
 # Local research notes, never committed
 leads.txt
+
+# apps/poc_inject: cross-compiled binary + python cache
+apps/poc_inject/poc_inject
+apps/poc_inject/__pycache__/
+# ip_export/netlist_sim: xsim build products and run outputs (regenerate with run.sh / gen_frames.py)
+ip_export/netlist_sim/xsim.dir/
+ip_export/netlist_sim/*.log
+ip_export/netlist_sim/*.jou
+ip_export/netlist_sim/*.pb
+ip_export/netlist_sim/sim_*.txt
+ip_export/netlist_sim/frames*.txt

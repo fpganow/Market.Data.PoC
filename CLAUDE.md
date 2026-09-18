@@ -106,9 +106,13 @@ sources, `pcs_pma`/`arty_z7` experiments) was removed; it lives at the `pre_clea
 
 ## Commands
 
-All `make` targets below run from `ip_export/` under WSL. Paths are hardcoded: Vivado 2021.1 at
-`C:\NIFPGA\programs\Vivado2021_1` (invoked via `powershell.exe`) for Verilog generation, and
-`/tools/Xilinx/Vivado/2024.1` for Linux-side simulation. `make help` / `make help2` list targets.
+The IP-export targets live in `ip_export/Makefile` and are also delegated from the repo-root
+`Makefile` (`make help-ip`; the root delegation needed `PWD_WIN3` to use `$(CURDIR)`, fixed
+2026-09-15). Paths are hardcoded: Vivado 2021.1 at `C:\NIFPGA\programs\Vivado2021_1` (invoked via
+`powershell.exe`) for Verilog generation, and `/tools/Xilinx/Vivado/2024.1` for Linux-side
+simulation. `make help` / `make help2` list targets. After `local-gen-poc_ip_kria`, `make
+ip-install-poc_ip_kria` copies the `.v` + wrapper `.vhd` into `vivado/ip/`; then `make xsa-clean &&
+make xsa` (xsa does not track the netlist).
 
 ```bash
 make ip-export-list          # list LabVIEW compilations under /mnt/c/NIFPGA/compilation
@@ -156,3 +160,169 @@ addresses and input paths.
 - `make gen-verilog` reads `.dcp_file`/`.v_file` dotfiles that are not in the repo (the old import flow
   wrote them); `make local-gen-<name>` is the working replacement.
 - `MESSAGE ==` on line 11 of `udp_send.py` is a comparison, not an assignment — intentional-looking dead code.
+
+## Work in progress (state as of 2026-09-16 — read this first when resuming)
+
+**Uncommitted working-tree changes** (all deliberate, none committed yet):
+`ip_export/Makefile` (CURDIR fix), `vivado/ip/NiFpgaAG_poc_ip_kria.v` (the 2026-09-11 LabVIEW
+export installed; the wrapper VHDL is byte-identical to July so the BD needs no change),
+`kria_app/mktdata_poc.dtso` (+ UIO nodes for `axi_dma_0@80020000` and `xxv_ethernet_0@80030000`),
+new `apps/poc_inject/` and new `ip_export/netlist_sim/`.
+
+### Build / deploy facts (hardware-proven 2026-09-15)
+- `make xsa` from Claude Code must run **detached** (`setsid nohup bash -c "make xsa JOBS=2 …" &`)
+  — the harness kills it as a background task "for low memory"; JOBS=8 really does peak ~15 GB.
+  Clean build ~20 min. Results: July netlist WNS +0.863 ns; Sept-11 netlist WNS **+0.127 ns**
+  (0 failing, hold +0.011). A clean build of the July tree reproduced the old `mktdata_poc`
+  `bit.bin` byte-for-byte, which is why `mktdata_poc/` is archivable.
+- `make kria-build` rebuilds only the dtbo when just the dtso changed (bit.bin keyed on the XSA).
+- **`xmutil loadapp` fails after a power cycle / redeploy** with "remove from slot 0 returns: -1"
+  when the factory `k26-starter-kits_image_1` overlay is still in configfs but dfx-mgr thinks
+  nothing is loaded (kernel: "Region already has overlay applied"). Fix on the board:
+  `sudo rmdir /sys/kernel/config/device-tree/overlays/k26-starter-kits_image_1 && sudo systemctl
+  restart dfx-mgr && sudo xmutil loadapp mktdata_poc`. Success = the PL UIO devices appear
+  (13 with the old dtso, 15 with the new one: + axi_dma_0, xxv_ethernet_0).
+- Apps: `make server-build server-deploy poc-build poc-deploy board-setup` (needs
+  `g++-aarch64-linux-gnu`; installed here 2026-09-15; the board has no compiler). Over one ssh
+  script never `pkill -f` a pattern that appears in the script text — use `pkill -INT -x poc_server`;
+  under `sudo bash -c` `~` is root's home.
+- Self-tests (`mktdata_poc_test test`) pass on the Sept bitstream; ip_reset pulse produces one
+  32-byte DEBUG frame.
+
+### Stream formats (from `fpga/poc.ip.kria.vi`, `bats.parser.vi` via lvkit)
+- **CMD** = 16 × U64 per message: 0 type, 1 side, 2 orderId, 3 quantity, 4 symbol, 5 price,
+  6 executed.qty, 7 canceled.qty, 8 remaining.qty, 9 seconds, 10 nanoseconds, 11 Add/Edit/Remove
+  flags, 12 seq no, **13 recv.time, 14 parse.time**, 15 0xDEADBEEF (reserved for filter time).
+  recv.time = parser `time` at the frame's first valid word (OneDrive edit: `frame.start` in
+  `my.network.data.stream` is now a U64 set via a Select); parse.time = `time` when emitted.
+  `time` ticks once per 100 MHz parser-loop cycle (**10 ns**; the parser loop `n_Timed_Loop_4241`
+  is clk_pl_0, the MAC/IP/UDP filter loop `n_Timed_Loop_3470` is the 156.25 MHz rx clock).
+- **DEBUG** = 4 × U64 parser trace: `[0xAAAB,0,1,2]` on ip_reset; `[0xDE<<32|len,len,first8B,0]`
+  on Sequenced Unit Header; `[8 msg bytes,0,0,0x99]` per message; 0xAAAA/0xBBBB = waiting.
+- **MDEBUG** = 4 × U64 per parser cycle `[time, msg len, msg type, …]`.
+- **Measured parse latency** (xsim of the Sept netlist, `tests/data/generated_2025_05_02.pcap`):
+  1st message 30–40 ns after the frame's first word enters the parser, ~+90 ns per following
+  ~34-byte AddOrder (parser ≈ 9 cycles/message ≈ half of 10G line rate for dense frames), 10th
+  message 570–650 ns. Excludes MAC/xgmii2axis/CDC FIFO/CMD serialization (160 ns)/PS readout.
+- Sim anomaly: three frames 64 beats apart → the 3rd produced 34 records for a 10-message frame
+  (frames 2 and 4 fine) — possible frame-boundary bug ("TODO: If End of Frame" in bats.parser.vi).
+
+### Netlist simulation without LabVIEW/pysv — `ip_export/netlist_sim/`
+`gen_frames.py <out> <pcap>…` then `./run.sh` (~4 min, xsim 2024.1). Instantiates the encrypted
+`vivado/ip/NiFpgaAG_poc_ip_kria.v` directly (the VHDL wrapper breaks mixed-language xsim; it only
+ties `tDiagramEnableOut` high). `enable_out` never rises for this free-running VI — don't wait on
+it. Output `sim_out.txt`: `<cyc100> CMD|DEBUG|MDEBUG w<n> 0x<word> [LAST]`. README there has the
+formats.
+
+### Board readout problem (unresolved — affects every hardware CMD/DEBUG capture)
+Hardware `poc_server poll` returned `[0xAAAB,1,2,2]` for the reset record the IP demonstrably
+emits as `[0xAAAB,0,1,2]` (same netlist in sim). Pattern = each 32-bit half of the 64-bit RDFD
+load pops its own beat, contradicting todo.txt #23. Until fixed, CMD timestamps read on hardware
+are not trustworthy; consider a 64→32 `axis_dwidth_converter` + 32-bit capture FIFOs (rebuild).
+**Never `devmem` the axi_fifo data port (+0x1000/+0x1004) by hand** — a 32-bit read at +0x1004
+after RDFO read 0 hung the AXI bus and the whole PS (2026-09-15); JTAG/UART USB is *not* visible
+from this WSL VM (no Xilinx USB device → `make jtag-reboot` finds no targets), so it needs a
+power cycle.
+
+### 2026-09-16 evening results (both injection paths now work)
+- **BD bug fixed in `vivado/mktdata_poc.tcl`:** `axis2xgmii_0/rst` (active-HIGH) was driven by
+  `tx_rst_n/Res` (active-low), so the TX adapter sat in reset forever (idles only, TREADY=0 — the
+  design's 10G TX had never worked). Now driven by `xxv_ethernet_0/user_tx_reset_0`. Rebuilt
+  (WNS **+0.031 ns**, 0 failing) and deployed; `kria_app/build` bit.bin md5 810ab582….
+- **PCS loopback injection works:** `poc_inject` → TX → loopback → S2MM got the 307 B frame back
+  byte-identical, and the NI IP emitted DEBUG/MDEBUG/CMD (5 hw CMD records = 10 messages under the
+  readout defect, matching the sim). `poc_inject --loopback-off --rx-only --rx-wait-ms 10`
+  restores cable RX (the loopback bit persists across runs — always clear it afterwards).
+- **Cable path works from WSL without Windows admin:** mirrored mode accepts a Linux-only address:
+  `sudo ip addr add 10.0.1.10/24 dev eth1; sudo ip neigh replace 10.0.1.14 lladdr
+  00:0a:35:18:3c:1f dev eth1 nud permanent`, then a plain UDP socket bound to 10.0.1.10 →
+  10.0.1.14:8000 reaches the parser (S2MM saw the frame with src MAC 24:5e:be:8b:b1:94). The
+  `Start-Process -Verb RunAs` UAC route does not work from this session. (These Linux-side
+  settings vanish on WSL restart.)
+- **Readout defect confirmed quantitatively:** predicting each hardware 64-bit word as
+  `low32(beat 2k) | high32(beat 2k+1) << 32` from the sim's CMD beat stream reproduces the
+  captured words (see session notes) — every 64-bit CPU load pops two FIFO beats. Proposed fix:
+  `axis_dwidth_converter` 64→32 in front of `axi_fifo_{debug,mdebug,cmd}` with the FIFOs' AXI4
+  data width set to 32, and `poc_server` reading 32-bit pairs (LSW first). Needs a rebuild.
+- Ground truth for `generated_2025_05_02.pcap` (10 messages: Time, AddOrder ORID0001..ORID0008,
+  …) with recv/parse timestamps is in `ip_export/netlist_sim/sim_out.txt` (frame 0).
+
+### 2026-09-17: readout FIXED — hardware now returns complete CMD/DEBUG records
+`axis_dw_{debug,mdebug,cmd}` (axis_dwidth_converter 64→32) sit between the NI IP and the capture
+FIFOs, whose `C_S_AXI4_DATA_WIDTH` is now 32; `poc_server` and `scripts/fifo_server.py` read two
+32-bit RDFD words per stream beat (LSW first). Rebuilt (WNS **+0.364 ns**), deployed (bit.bin md5
+081d8afa…), loopback run: DEBUG trace identical to the sim (`[0xAAAB,0,1,2]`, header 265 B,
+per-message 0x99 records), 10 complete CMD records with recv.time = 0x6d3 for all and parse.time
+0x6d5…0x707 → **20 ns (Time msg) / 120 ns (1st AddOrder) … 520 ns (10th message)**. todo.txt
+items 24 (TX reset) and 25 (readout) record both BD changes. `decode_capture.py` decodes it all.
+Oddity to look at in LabVIEW: the CMD `symbol` field comes out byte-reversed ('    TFSM') for
+most AddOrders but forward ('MSFT    ') for ORID0004 — probably type-dependent packing.
+
+### Multi-frame test pcap — `scripts/gen_pitch_pcap.py` (2026-09-17)
+Builds `tests/data/generated_2026_09_17_multi.pcap` (+ `.txt` audit listing) with the cboe_pitch
+Generator: 20 frames, 659 messages, 14 PITCH types (Add long/short/expanded, Modify, ReduceSize,
+OrderExecuted, Delete, Trade, Time), sequence 1..659 continuing across frames, ~1000 B payloads,
+addressed to the IP's filter. Independently validated (spec lengths, SUH length/count, sequence
+continuity, edits only reference live orders). Needs a venv with `pip install -e cboe_pitch numpy
+pyyaml scapy prettytable ruamel.yaml`. **Generator trap:** order-size ranges must span ≥ 2 steps of
+25 shares (sizes are min + k·25) or `getNextMsg()` loops forever on a Modify.
+
+### LabVIEW parser bugs found with the multi-frame pcap (2026-09-17, hardware + xsim agree)
+1. **Frame-boundary corruption when a frame's last 64-bit word holds 5 or 6 valid bytes**
+   (UDP payload length ≡ 5 or 6 mod 8, i.e. TKEEP 0x1F/0x3F on the final beat): leftover bytes of
+   that word are not discarded, so the next frame's Sequenced Unit Header is read at the wrong
+   offset (DEBUG shows a 0xDE record with length 0 / garbage) and the parser stays desynced for
+   many frames (frames 10–17 of the test file; it resynced by luck at 18). Lengths ≡ 0,1,2,3,4,7
+   are fine. Reproduce: `ip_export/netlist_sim/frames_f14_15.txt` (bad) vs `frames_f5_6.txt` (ok).
+   Fix area: end-of-frame handling in `bats.parser.vi` / `add.data.to.buffer.vi` /
+   `compress.buffer.vi` (the "TODO: If End of Frame / Next -> Read SeqUnitHdr" comment).
+2. **OrderExecuted right after a 6-byte Time message that starts at byte 1 of a word** gets byte 2
+   of its orderId zeroed (`'OR\x00D0204'`, frame 9 msg 24). All other Add/Exec alignments were
+   correct (300+ checked). Fix area: `OrderExecuted.vi` / `new.uxx.be.vi` remainder handling.
+3. Already known: ReduceSize/Modify/Delete/Trade unsupported (type 0, empty); 6-char symbols land
+   byte-reversed vs 8-char ones.
+Measured on clean frames (363 msgs, ~30 msgs/frame): first message 10–140 ns after the frame's
+first word, ~56–74 ns per additional message, last message ~2.0–2.1 µs; median 1.03 µs.
+Capture: `scripts/gen_pitch_pcap.py` file sent from WSL eth1 5 ms apart, `poc_server poll`,
+decoded with `apps/poc_inject/decode_capture.py` (group CMDs by recv.time = frame).
+
+### Frame injection without a 10G source — `apps/poc_inject/`
+`poc_inject <frame.hex>`: sets XXV PCS local loopback (`MODE_REG` 0x0008 bit 31, waits for
+`STAT_RX_BLOCK_LOCK` 0x040C), DMAs the frame out through `axi_dma_0` MM2S (SG, **32-bit
+addressing → buffer page must be < 2 GiB PA**; the K26 hands out high pages first, so the code
+maps a 1 GiB region and scans its pagemap for a low page) → tx_data_fifo →
+axis2xgmii → xxv TX → loopback → RX → xgmii2axis → NI IP, and captures the looped copy with S2MM
+(zy stream) as proof. `generated_2025_05_02.hex` (307 B, dst 00:0a:35:18:3c:1f / 10.0.1.14:8000,
+matches the IP's filter) is the frame; `decode_capture.py` decodes a `poc_server poll` capture
+into DEBUG trace + parsed CMD messages + recv→parse latency. Register offsets come from
+`vivado/mktdata_poc/…/xxv_ethernet_0_0/header_files/*_axi4lite_reg.h`.
+
+**Resume procedure once the board answers ssh (`kr260u` = 192.168.1.197):**
+```bash
+make kria-stage kria-deploy-staged        # new dtbo (+2 UIO nodes)
+make kria-reload-app                      # if it errors: stale-overlay fix above, then loadapp
+make server-deploy poc-deploy && make -C apps/poc_inject deploy
+ssh kr260u 'sudo pkill -x poc_server; sudo bash -c "nohup ./poc_server poll > /home/ubuntu/cap.txt 2>&1 &"; sleep 2; \
+  sudo ./poc_server reset; sleep 1; sudo ./poc_inject /home/ubuntu/generated_2025_05_02.hex; sleep 2; \
+  sudo pkill -INT -x poc_server; sleep 1; cat /home/ubuntu/cap.txt'   > capture.txt
+python3 apps/poc_inject/decode_capture.py capture.txt   # compare with ip_export/netlist_sim/sim_out.txt (frame 0)
+```
+If `poc_inject` reports no block lock, try GT-level loopback instead (not in the PCS header;
+check PG210) or the real cable path below.
+
+### Real 10G path from this PC (undocumented until now)
+Windows has a **QNAP QNA-T310G1S** Thunderbolt 10GbE SFP+ adapter ("Ethernet 3", Marvell AQtion
+driver, MAC 24-5E-BE-8B-B1-94), seen "Disconnected" with only a link-local address on 2026-09-16.
+To use it: static IP e.g. 10.0.1.10/24 on Ethernet 3; static ARP `arp -s 10.0.1.14
+00-0a-35-18-3c-1f` from an elevated prompt (the FPGA never answers ARP); SFP+ cable to the KR260;
+app loaded (link only rises once the XXV PCS transmits). Senders (`udp_send.py`, cboe_pitch
+`player`) open a plain UDP socket to 10.0.1.14:8000 and must run **on Windows** (WSL2 is NAT'd);
+Windows currently has no Python (Store stub only). **WSL already sees the adapter**: `.wslconfig`
+has `networkingMode=mirrored`, so it is `eth1` (MAC 24:5e:be:8b:b1:94), DOWN until the SFP+ link
+rises, then it carries the Windows IP. Bring-up: elevated PowerShell `New-NetIPAddress
+-InterfaceAlias "Ethernet 3" -IPAddress 10.0.1.10 -PrefixLength 24` and `netsh interface ipv4 add
+neighbors "Ethernet 3" 10.0.1.14 00-0a-35-18-3c-1f`; in WSL `sudo ip neigh replace 10.0.1.14 lladdr
+00:0a:35:18:3c:1f dev eth1 nud permanent`; check `ip -br addr` shows `eth1 UP 10.0.1.10/24`.
+Then senders can run from WSL too (plain UDP sockets; no raw L2). `player`'s default `--mac` is
+00-0A-35-18-3C-**0F** but the IP filter/pcaps use …3C-**1F** — pass `--mac` explicitly. The old
+raw_run pcaps came from 10.0.1.10 with a Mellanox MAC (a different NIC).
