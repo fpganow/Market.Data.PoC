@@ -123,4 +123,21 @@
 		compatible = "generic-uio";
 		reg = <0x0 0x80090000 0x0 0x10000>;
 	};
+	/* axi_dma_0 -- the market-data path DMA (SG, 32-bit addressing: DDR_LOW only).
+	 * MM2S -> tx_data_fifo -> axis2xgmii -> xxv 10G TX; xgmii2axis zy stream ->
+	 * rx_data_fifo -> S2MM. Exposed for apps/poc_inject (frame injection). */
+	axi_dma_0@80020000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80020000 0x0 0x10000>;
+		dma-coherent;
+	};
+
+	/* xxv_ethernet_0 AXI4-Lite: PCS/PMA registers (MODE_REG local loopback,
+	 * block-lock status, statistics). */
+	xxv_ethernet_0@80030000 {
+		clocks = <&zynqmp_clk 0x47>;
+		compatible = "generic-uio";
+		reg = <0x0 0x80030000 0x0 0x10000>;
+	};
 };
