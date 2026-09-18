@@ -178,10 +178,11 @@ def fifo_poller(name, info, broker):
         nwords = (length + 7) // 8
         raw = bytearray()
         for _ in range(nwords):
-            # 64-bit RDFD word as the two 32-bit halves of the same beat;
-            # LSB of the word is the first byte on the stream.
+            # The FIFO data port is 32 bits wide (axis_dwidth_converter 64->32
+            # in the BD): each 32-bit read of RDFD pops one word, LSW first,
+            # so two reads rebuild one 64-bit stream beat.
             lo = data.r32(FIFO_AXI4_RDFD)
-            hi = data.r32(FIFO_AXI4_RDFD + 4)
+            hi = data.r32(FIFO_AXI4_RDFD)
             raw += struct.pack("<Q", lo | (hi << 32))
 
         frame += 1

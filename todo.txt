@@ -222,3 +222,20 @@
         carries over to cmd and mdebug. (Still gate RLR on RDFO -- the SIGBUS-on-empty
         quirk is unrelated to width.) The planned axis_const read-narrowing rebuild is
         therefore unnecessary and was dropped.
+
+✅ 24 - [DONE 2026-09-16] 10G TX path never worked: axis2xgmii_0/rst (active-HIGH) was driven by
+        tx_rst_n/Res (the inverted, active-LOW user_tx_reset), so the TX adapter sat in reset
+        forever -- it emitted idles (link and PCS loopback lock looked fine) but TREADY stayed 0
+        and every frame from axi_dma_0 MM2S died in tx_data_fifo. Fixed by driving rst from
+        xxv_ethernet_0/user_tx_reset_0 directly. Verified with apps/poc_inject (PCS local
+        loopback, MODE_REG bit 31): 307 B frame out via MM2S, back on S2MM byte-identical, and
+        the NI IP parsed it. WNS after rebuild +0.031 ns.
+
+✅ 25 - [DONE 2026-09-17] Item 23 was wrong: 64-bit CPU loads of the capture FIFOs' RDFD do NOT
+        return one beat. Proven against an xsim run of the same netlist/frame: every hardware
+        64-bit word = low32(beat 2k) | high32(beat 2k+1) -- each 32-bit half-access popped a
+        whole 64-bit beat through the 32->64 upsizer (60/80 CMD words predicted exactly; the
+        other 20 were seq/parse.time, which legitimately differ). Fix: axis_dwidth_converter
+        64->32 (axis_dw_{debug,mdebug,cmd}) in front of each capture FIFO and
+        C_S_AXI4_DATA_WIDTH=32 on the FIFOs; poc_server / fifo_server.py now read two 32-bit
+        words per stream beat (LSW first). RLR byte lengths unchanged.

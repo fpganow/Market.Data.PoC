@@ -277,7 +277,7 @@ static std::string json_frame(const char *tag, unsigned frame,
 static void fifo_poller(poller *p)
 {
     volatile uint32_t *ctrl = p->ctrl;
-    volatile uint64_t *d64  = reinterpret_cast<volatile uint64_t *>(p->data);
+    volatile uint32_t *d32  = p->data;
 
     /* RX-only core reset: SRR + RDFR, then clear sticky ISR. No TX regs. */
     w32(ctrl, FIFO_SRR, FIFO_RESET_MAGIC);
@@ -330,10 +330,19 @@ static void fifo_poller(poller *p)
             continue;
         }
 
+        /* The capture FIFOs' AXI4 data port is 32 bits wide (an
+         * axis_dwidth_converter splits each 64-bit stream beat into two
+         * 32-bit words, LSW first). Every 32-bit read of RDFD pops one
+         * word, so two reads rebuild one stream beat. (With the old 64-bit
+         * port each 32-bit half-access of a 64-bit load popped a whole
+         * beat and half of every word was lost.) */
         std::vector<uint64_t> words(nwords);
         for (uint32_t i = 0; i < nwords; i++) {
             asm volatile("dsb sy" ::: "memory");
-            words[i] = d64[FIFO_AXI4_RDFD / 8];
+            uint64_t lo = d32[FIFO_AXI4_RDFD / 4];
+            asm volatile("dsb sy" ::: "memory");
+            uint64_t hi = d32[FIFO_AXI4_RDFD / 4];
+            words[i] = lo | (hi << 32);
         }
 
         frame++;
