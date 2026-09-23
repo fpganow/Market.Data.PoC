@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert pcap frames into AXI-stream beats for the xsim testbench.
 
-Output format per line:  <tdata_hex16> <tkeep_hex2> <tlast> <frame_no>
+Output format per line:  <tdata_hex16> <tkeep_hex2> <tlast> <frame_no> [<tvalid>=1]
 A line with tlast=1 ends a frame. Byte 0 of the frame goes in TDATA[7:0]
 (standard AXI4-Stream byte lane order, as xgmii2axis.v produces).
 """
@@ -29,7 +29,7 @@ def main():
                 chunk = chunk + b"\x00" * (8 - len(chunk))
                 tdata = int.from_bytes(chunk, "little")
                 last = 1 if i == nbeats - 1 else 0
-                out.write(f"{tdata:016x} {keep:02x} {last} {fno}\n")
+                out.write(f"{tdata:016x} {keep:02x} {last} {fno} 1\n")   # 5th column = tvalid (tb.sv reads 5 columns)
             fno += 1
     out.close()
     print(f"wrote {fno} frames")

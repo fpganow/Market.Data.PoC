@@ -66,7 +66,7 @@ module tb;
     end
 
     // ---- stimulus ----------------------------------------------------------
-    integer fd, r, beat = 0, fno, last_fno = -1;
+    integer fd, r, beat = 0, fno, last_fno = -1, tv = 1;
     reg [63:0] d; reg [7:0] k; reg l;
     integer gap;
 
@@ -87,8 +87,9 @@ module tb;
         if (fd == 0) begin $display("ERROR: frames.txt not found"); $finish; end
         @(posedge clk156);
         while (!$feof(fd)) begin
-            r = $fscanf(fd, "%h %h %d %d\n", d, k, l, fno);
-            if (r == 4) begin
+            r = $fscanf(fd, "%h %h %d %d %d\n", d, k, l, fno, tv);
+            if (r == 4) tv = 1;
+            if (r >= 4) begin
                 if (fno != last_fno) begin
                     // inter-frame gap: idle beats
                     in_tvalid <= 0; in_tlast <= 0;
@@ -96,14 +97,16 @@ module tb;
                     $display("# frame %0d starts at cyc100=%0d (156 MHz beat %0d)", fno, cyc100, beat);
                     last_fno = fno;
                 end
-                in_tdata <= d; in_tkeep <= k; in_tlast <= l; in_tvalid <= 1;
+                in_tdata <= d; in_tkeep <= k; in_tlast <= l; in_tvalid <= tv;
                 @(posedge clk156);
                 beat = beat + 1;
             end
         end
         in_tvalid <= 0; in_tlast <= 0;
         $fclose(fd);
-        repeat (3000) @(posedge clk100);
+        // drain: the CMD stream serialises 16 words per message at 100 MHz (160 ns/message),
+        // so a dense multi-frame file needs well over 100 us after the last beat.
+        repeat (20000) @(posedge clk100);
         $display("# done at cyc %0d", cyc100);
         $finish;
     end

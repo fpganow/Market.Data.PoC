@@ -35,3 +35,4 @@ ip_export/netlist_sim/*.jou
 ip_export/netlist_sim/*.pb
 ip_export/netlist_sim/sim_*.txt
 ip_export/netlist_sim/frames*.txt
+scripts/__pycache__/
