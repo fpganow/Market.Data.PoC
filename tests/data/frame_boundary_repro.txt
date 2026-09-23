@@ -1,0 +1,16 @@
+frame_boundary_repro.pcap -- reproduces the NI stream-filter end-of-frame bug (see CLAUDE.md).
+Six frames taken from generated_2026_09_17_multi.pcap (same SUH sequence numbers as there):
+
+  frame 1: 1037 B on the wire, last 64-bit beat has 5 valid bytes, SUH len 995 count 37 seq 93
+  frame 2: 1033 B on the wire, last 64-bit beat has 1 valid bytes, SUH len 991 count 31 seq 130
+  frame 3: 1039 B on the wire, last 64-bit beat has 7 valid bytes, SUH len 997 count 32 seq 261   <-- 7 or 8 valid: corrupts its own last message byte AND the NEXT frame's header
+  frame 4: 1041 B on the wire, last 64-bit beat has 1 valid bytes, SUH len 999 count 35 seq 293
+  frame 5: 1040 B on the wire, last 64-bit beat has 8 valid bytes, SUH len 998 count 32 seq 360   <-- 7 or 8 valid: corrupts its own last message byte AND the NEXT frame's header
+  frame 6: 1018 B on the wire, last 64-bit beat has 2 valid bytes, SUH len 976 count 36 seq 392
+
+Expected with the current LabVIEW code (netlist sim or hardware):
+  frames 1,2: all messages parsed; frame 3: 32 records (last message's byte 4 wrong), frame 4: garbage
+  (header length 0), frame 5: 32 records, frame 6: garbage (header length 12593 = 0x3131).
+Expected after the fix: 6 frames, 37+31+32+35+32+36 = 203 messages, all headers correct.
+Replay: netlist_sim/gen_frames.py frames.txt tests/data/frame_boundary_repro.pcap && netlist_sim/run.sh
+        or send the UDP payloads over the 10G cable / feed the pcap to the LabVIEW host runner.
