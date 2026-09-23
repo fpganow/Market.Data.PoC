@@ -231,7 +231,7 @@ power cycle.
   (WNS **+0.031 ns**, 0 failing) and deployed; `kria_app/build` bit.bin md5 810ab582….
 - **PCS loopback injection works:** `poc_inject` → TX → loopback → S2MM got the 307 B frame back
   byte-identical, and the NI IP emitted DEBUG/MDEBUG/CMD (5 hw CMD records = 10 messages under the
-  readout defect, matching the sim). `poc_inject --loopback-off --rx-only --rx-wait-ms 10`
+  readout defect, matching the sim). `poc_inject <frame.hex> --loopback-off --rx-only --rx-wait-ms 10` (the frame file must come first)
   restores cable RX (the loopback bit persists across runs — always clear it afterwards).
 - **Cable path works from WSL without Windows admin:** mirrored mode accepts a Linux-only address:
   `sudo ip addr add 10.0.1.10/24 dev eth1; sudo ip neigh replace 10.0.1.14 lladdr
@@ -268,14 +268,98 @@ pyyaml scapy prettytable ruamel.yaml`. **Generator trap:** order-size ranges mus
 25 shares (sizes are min + k·25) or `getNextMsg()` loops forever on a Modify.
 
 ### LabVIEW parser bugs found with the multi-frame pcap (2026-09-17, hardware + xsim agree)
-1. **Frame-boundary corruption when a frame's last 64-bit word holds 5 or 6 valid bytes**
-   (UDP payload length ≡ 5 or 6 mod 8, i.e. TKEEP 0x1F/0x3F on the final beat): leftover bytes of
-   that word are not discarded, so the next frame's Sequenced Unit Header is read at the wrong
-   offset (DEBUG shows a 0xDE record with length 0 / garbage) and the parser stays desynced for
-   many frames (frames 10–17 of the test file; it resynced by luck at 18). Lengths ≡ 0,1,2,3,4,7
-   are fine. Reproduce: `ip_export/netlist_sim/frames_f14_15.txt` (bad) vs `frames_f5_6.txt` (ok).
-   Fix area: end-of-frame handling in `bats.parser.vi` / `add.data.to.buffer.vi` /
-   `compress.buffer.vi` (the "TODO: If End of Frame / Next -> Read SeqUnitHdr" comment).
+1. **Frame-boundary corruption — root cause (2026-09-18): NI's IPv4/UDP stream VIs mangle the
+   tail of any frame whose LAST AXI BEAT has 7 or 8 valid bytes** (frame length ≡ 7 or 0 mod 8 ⇔
+   UDP payload ≡ 5 or 6 mod 8). After the real last payload word (whose byte 4 arrives stale) they
+   emit one EXTRA data-valid word holding the frame's last 8 bytes with 7 or 8 byte enables. The
+   parser (correctly) never clears its buffer, so the next frame's Sequenced Unit Header is read
+   from that leftover and it desyncs for many frames. Evidence: the garbage header lengths seen on
+   hardware and in xsim (0, 12593, 21071) equal LE16(frame[-8:][:2]) of the preceding frame in every
+   case; a bit-exact Python model of add.data.to.buffer/compress.buffer/bats.parser
+   (`ip_export/netlist_sim/parser_model.py`) parses all 20 frames when fed clean payload words, so
+   the parser's buffer arithmetic is NOT the bug. The spec (Cboe Multicast PITCH, "UDP delivered
+   data will not cross frame boundaries and a single Ethernet frame will contain only one Sequenced
+   Unit Header") is only half-used: bats.parser.vi reads eof.good/eof.bad just to jump to the
+   header state and never discards leftovers at a frame start.
+   Ruled out by xsim: appending an FCS (moves the problem, adds leftover), signalling EOF on a
+   separate data-valid=false beat (breaks every frame — Reader.vi's "EOF on the last data word" is
+   right), splitting the last beat 6+1 / 4+3, or an empty TKEEP=0 EOF beat (NI's stream stalls on
+   any mid-frame partial beat). **What works (`frames_pad.txt` run):** pad such frames with 1–2
+   bytes so the final beat is short — then the frame arrives intact and the only leftover is the
+   known pad.
+   **Fix (both in LabVIEW):** (a) `fpga/Ethernet MAC - Custom/Reader.vi`: when TLAST && TKEEP ∈
+   {0x7F,0xFF}, send the beat without TLAST and follow it with a 2-byte (0x7F) / 1-byte (0xFF) pad
+   beat carrying TLAST (needs one pipeline stage; the 10G inter-frame gap covers the extra beat);
+   (b) `bats.parser.vi`: at the first word of a new frame (Timestamp change, or an explicit
+   start-of-frame flag added in poc.ip.kria.vi = data valid && !previous data valid) set
+   buffer.length := 0 before adding — this is the spec-compliant "each frame starts with a SUH"
+   rule and also discards the pad. (b) alone stops the desync but leaves the frame's last byte(s)
+   corrupted in the 7/8 cases; (a)+(b) fixes both. tb.sv now takes an optional 5th column (tvalid).
+   **Status 2026-09-22 (OneDrive working tree, verified with lvkit + the model):** (a) is done in
+   Reader.vi exactly as designed (cluster Feedback Node → split = TVALID∧TLAST∧(TKEEP∈{7F,FF}) →
+   `pad pending` FB → five Selects; pad beat = TKEEP 0x01, TLAST, TDATA 0). (b) is done as an
+   end-of-frame clear in Read.Msg only (L ≥ len branch: buffer.length := 0 and state := header
+   when done ∨ eof). Model on the 20-frame pcap: shipped Reader + this parser 10/20 headers;
+   padded Reader + this parser **20/20 headers, 659/659 messages**. NI's Find IPv4 Subframe drops
+   every byte past the IP Total Length, so the pad bytes never reach the parser (no leftover at
+   all). Still recommended for bad/truncated frames: the same eof clear in the header state
+   (L < 8 branch) and in Read.Msg's L < len branch — with those two the model recovers all 20
+   headers even with the shipped Reader. Checker: `ip_export/netlist_sim/check_parser_variants.py <frames.txt> <pcap>`
+   (pads beats in software, runs parser variants).
+   **2026-09-23 export of these edits (dcp md5 5acb0ed4…, wrapper VHDL unchanged) — netlist sim
+   results:** `frame_boundary_repro.pcap` 6/6 headers, 203/203 messages; the 20-frame pcap
+   659/659 messages, every header the DEBUG stream carried correct. Only remaining content error
+   is bug 2 (OrderExecuted after Time, frame 9 msg 24). Scorer: `ip_export/netlist_sim/eval_sim.py
+   <sim_out.txt | poc_server-poll capture> <pcap>`. Testbench notes: `gen_frames.py` now writes the
+   5th (tvalid) column tb.sv expects — a 4-column file is read mis-aligned and NO frames reach the
+   IP; tb.sv now drains 20 000 cycles after the last beat because the CMD stream serialises 16
+   words/message (160 ns) and the 20-frame file needs > 100 µs to flush; the DEBUG stream (4 words
+   every parser cycle) overflows its FIFO on dense input and silently drops records (7 of 20
+   header records missing in the multi run) — score by CMD records, match headers by sequence no.
+   **Hardware 2026-09-23 (rebuilt: WNS +0.035 ns, 0 failing; bit.bin md5 84f3e78d…):** loopback
+   injection = 10 CMD records as in sim; over the 10G cable (`scripts/send_pcap_udp.py <pcap>
+   --gap-ms 5` from WSL eth1) the repro pcap gives 6/6 headers, 203/203 messages and the 20-frame
+   pcap 20/20 headers, 659/659 messages, all content right except bug 2. **Frame-boundary bug
+   (bug 1) is FIXED on hardware.** Latency per frame: first message 20–140 ns, last ~2.0–2.1 µs.
+   Gotchas met on the way: `poc_inject` needs the frame file as its first argument
+   (`poc_inject <hex> --loopback-off --rx-only`), otherwise the loopback bit stays set and the
+   cable path is dead; the IP reset does not clear the capture FIFOs, so frames parsed while no
+   consumer runs come out first (and, after an overflow, mis-framed) in the next `poll` —
+   eval_sim.py resyncs on the parser's seq counter (CMD word 12 restarts at 1 after reset).
+   Timestamp quirk: the Time message that starts a frame can show parse.time 20 ns *before*
+   recv.time (recv.time is latched a cycle after the first word); harmless, not investigated.
+   **Bit-exact model (2026-09-18): `ip_export/netlist_sim/ni_stream_model.py`** transcribes
+   Reader.vi + NI's Stream Filter MAC / Find IPv4 Subframe / Stream Filter IPv4 / UDP Rx State
+   Machine + the poc.ip.kria glue + bats.parser (parser_model.py) register by register and
+   reproduces the netlist simulation's parser DEBUG stream word for word on six runs (frame pairs
+   4-5, 5-6, 9-10, 12-13, 14-15 and the padded set). Two facts lvkit cannot show were established
+   by that match: (1) `Delete From Array` nodes with an unwired index delete from the END (this
+   sets the role schedules and makes the MAC filter's Purge test look at byte-enable lanes 6–7 and
+   the IPv4 filter's at lanes 4–7); (2) the MAC filter's two-word data and byte-enable histories
+   (fb20/fb21, fb19/fb22) are enable-gated and only shift on a valid input word.
+   **Exact mechanism for a final beat with 7 or 8 valid bytes:** the MAC filter sees lanes 6–7
+   valid on the TLAST beat and enters its one-cycle Purge to flush the two tail bytes, but its
+   history cannot advance during the idle gap, so Purge re-emits the previous assembled word
+   (A_L = prev[6:8]+last[0:6]) with 8 byte enables and the real tail bytes are never emitted. The
+   IPv4 filter therefore receives A_L twice: it outputs A_L[4:8]+A_L[0:4] with 8 enables (byte 4 of
+   the frame's last message is now A_L[0] instead of the true byte), then, because that word had
+   lanes 4–7 valid at EOF, takes its own Purge and outputs the same word again with 4 enables.
+   Net: the parser gets 12 bytes where the frame had 5 — one wrong byte and 7 junk bytes that
+   become the next frame's header. With ≤ 6 valid bytes no MAC Purge occurs and everything aligns.
+   **Repro:** `tests/data/frame_boundary_repro.pcap` (+ `.txt`): 6 frames, frames 3 and 5 end in
+   7- and 8-byte beats and break frames 4 and 6. **Library fix validated in the model:** letting the
+   MAC filter's history registers shift every cycle (or at least during Purge) makes all 20 test
+   frames parse with correct headers (as shipped: 9/20). The IPv4 filter needs no change.
+   **NI's IDL VIs are readable with lvkit** (block diagrams intact): `/mnt/c/Program Files (x86)/
+   National Instruments/LabVIEW 2020/instr.lib/_niInstr/Network/{Ethernet/Utility/v1/FPGA/Stream
+   Filter MAC.vi, IPv4/FPGA/v1/{Stream Filter IPv4.vi,Find IPv4 Subframe.vi}, IPv4/UDP/FPGA/v1/UDP
+   Rx State Machine.vi}` (use `--search-path` = that Network dir). Mechanism seen there: the MAC
+   filter strips 14 B with a two-word history (output = word[n-2] bytes 6–7 + word[n-1] bytes 0–5),
+   ends a frame with ONE "Purge" flush cycle that also carries the deferred End-of-Good-Frame, and
+   the IPv4 subframe finder counts Total Length bytes then "caches the last data and holds it until
+   the packet ends, so we can align the last data with End of Good Frame". A last input word with
+   bytes 6–7 valid (7 or 8 valid) needs a second flush that the single Purge cycle does not give,
+   so EOF lands one cycle off the last data and the IPv4 cache re-emits the tail → the extra word.
 2. **OrderExecuted right after a 6-byte Time message that starts at byte 1 of a word** gets byte 2
    of its orderId zeroed (`'OR\x00D0204'`, frame 9 msg 24). All other Add/Exec alignments were
    correct (300+ checked). Fix area: `OrderExecuted.vi` / `new.uxx.be.vi` remainder handling.
