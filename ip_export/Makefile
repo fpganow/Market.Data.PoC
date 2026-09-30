@@ -17,6 +17,11 @@
 # +---------------------------------------------------------------------------+
 # |  New Idea                                                                 |
 # +---------------------------------------------------------------------------+
+
+# Directory holding this Makefile, so recipes can use paths relative to it
+# instead of depending on where make was invoked from.
+MK_DIR      :=  $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+
 help:
 	@echo "+------+"
 	@echo "| Help |"
@@ -134,20 +139,32 @@ local-list:
 	@echo
 
 #  - generate verilog version of local version
-local-gen-%: export dcp_file=$(shell ls  *$*.dcp)
-local-gen-%: export v_file=$(shell ls  *$*.dcp | sed 's/dcp/v/g')
+#    The .dcp must already be in this directory: 'make ip-export-list' then
+#    'make ip-export-copy-<N>' puts it there.
+#    Every path handed to Vivado is relative to this Makefile's directory - the
+#    recipe cd's there first and powershell.exe inherits it as its working
+#    directory - so the target also works as 'make -C ip_export local-gen-<name>'
+#    and does not care where the tree is checked out.
+local-gen-%: export dcp_file=$(notdir $(firstword $(wildcard $(MK_DIR)/*$*.dcp)))
+local-gen-%: export v_file=$(dcp_file:.dcp=.v)
 local-gen-%:
 	@echo "+-----------------------------------------+"
 	@echo "| Writing Verilog for Vivado Block Design |"
 	@echo "+-----------------------------------------+"
+	@if [ -z "${dcp_file}" ]; then \
+		echo "ERROR: no *$*.dcp in $(MK_DIR)"; \
+		echo "       Run 'make ip-export-list', then 'make ip-export-copy-<N>' to copy"; \
+		echo "       that export's .dcp/.vhd here, then re-run this target."; \
+		exit 1; \
+	fi
 	@echo "Using:"
 	@echo "  - ${dcp_file}"
 	@echo "to generate:"
 	@echo "  - ${v_file}"
-	@powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
+	@cd $(MK_DIR) && powershell.exe "C:\\NIFPGA\\programs\\Vivado2021_1\\bin\\vivado.bat \
 		-nolog -nojournal -notrace -mode batch \
-		-source ${PWD_WIN3}\\gen.tcl" \
-		-tclargs "${PWD_WIN3}\\${dcp_file}"
+		-source gen.tcl" \
+		-tclargs "${dcp_file}"
 
 
 py-codegen-%:
