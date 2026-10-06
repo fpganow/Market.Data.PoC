@@ -1,0 +1,64 @@
+<VI _name="OrderExecuted.vi" description="Cboe PITCH Order Executed (0x23) and Order Executed at Price/Size (0x24) -> orderbook.command: type OrderExecuted or OrderExecutedAtPrice, orderId, executed.qty, remaining.qty and price (0x24 only), nanoseconds, Edit.">
+  <Control _name="buffer.in" conIdx="11" connection="recommended" outputs="value:1101.value" type="array{uint64.Numeric}" uid="1101" uid_parent="root" value="[0,0,0,0,0,0,0,0,0]"/>
+  <Constant _name="OrderBook.Command" outputs="value:1102.value" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1102" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+  <Constant _name="Edit" outputs="value:1103.value" type="bool" uid="1103" uid_parent="root" value="true"/>
+  <Constant _name="Start.Idx" outputs="value:1104.value" type="uint8" uid="1104" uid_parent="root" value="1"/>
+  <Constant _name="Length" outputs="value:1105.value" type="uint8" uid="1105" uid_parent="root" value="1"/>
+  <Call inputs="buffer (U64):1101.value,Start.Idx:1104.value,Length:1105.value,Big.Endian?:" outputs="Out.Value U64:1106.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1106" uid_parent="root"/>
+  <Node _name="To Unsigned Byte Integer" inputs="number:1106.Out.Value U64" outputs="unsigned 8bit integer:1107.unsigned 8bit integer" uid="1107" uid_parent="root"/>
+  <Constant _name="Start.Idx" outputs="value:1108.value" type="uint8" uid="1108" uid_parent="root" value="2"/>
+  <Constant _name="Length" outputs="value:1109.value" type="uint8" uid="1109" uid_parent="root" value="4"/>
+  <Call inputs="buffer (U64):1101.value,Start.Idx:1108.value,Length:1109.value,Big.Endian?:" outputs="Out.Value U64:1110.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1110" uid_parent="root"/>
+  <Node _name="To Unsigned Quad Integer" inputs="number:1110.Out.Value U64" outputs="unsigned 64bit integer:1111.unsigned 64bit integer" uid="1111" uid_parent="root"/>
+  <Constant _name="Start.Idx" outputs="value:1112.value" type="uint8" uid="1112" uid_parent="root" value="6"/>
+  <Constant _name="Length" outputs="value:1113.value" type="uint8" uid="1113" uid_parent="root" value="8"/>
+  <Call inputs="buffer (U64):1101.value,Start.Idx:1112.value,Length:1113.value,Big.Endian?:" outputs="Out.Value U64:1114.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1114" uid_parent="root"/>
+  <Node _name="To Unsigned Quad Integer" inputs="number:1114.Out.Value U64" outputs="unsigned 64bit integer:1115.unsigned 64bit integer" uid="1115" uid_parent="root"/>
+  <Structure _name="Case Structure" selectin="1107.unsigned 8bit integer" uid="1116" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:1101.value" uid="1117" uid_parent="1116"/>
+    <CaseFrame selector="35\2C Default" selectout="" uid="1118" uid_parent="1116">
+      <FreeLabel comment="OrderExecuted" uid="1119" uid_parent="1118"/>
+      <Tunnel _id="In1" outputs="value:1120.value" uid="1120" uid_parent="1118"/>
+  <Constant _name="type" outputs="value:1121.value" type="uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}" uid="1121" uid_parent="1118" value="2"/>
+  <Constant _name="Start.Idx" outputs="value:1122.value" type="uint8" uid="1122" uid_parent="1118" value="14"/>
+  <Constant _name="Length" outputs="value:1123.value" type="uint8" uid="1123" uid_parent="1118" value="4"/>
+  <Call inputs="buffer (U64):1120.value,Start.Idx:1122.value,Length:1123.value,Big.Endian?:" outputs="Out.Value U64:1124.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1124" uid_parent="1118"/>
+  <Node _name="To Unsigned Long Integer" inputs="number:1124.Out.Value U64" outputs="unsigned 32bit integer:1125.unsigned 32bit integer" uid="1125" uid_parent="1118"/>
+  <Constant _name="remaining_qty" outputs="value:1126.value" type="uint32" uid="1126" uid_parent="1118" value="0"/>
+  <Constant _name="price" outputs="value:1127.value" type="uint64" uid="1127" uid_parent="1118" value="0"/>
+      <Tunnel _id="Out1" inputs="value:1121.value" uid="1128" uid_parent="1118"/>
+      <Tunnel _id="Out2" inputs="value:1125.unsigned 32bit integer" uid="1129" uid_parent="1118"/>
+      <Tunnel _id="Out3" inputs="value:1126.value" uid="1130" uid_parent="1118"/>
+      <Tunnel _id="Out4" inputs="value:1127.value" uid="1131" uid_parent="1118"/>
+    </CaseFrame>
+    <CaseFrame selector="36" selectout="" uid="1132" uid_parent="1116">
+      <FreeLabel comment="OrderExecutedAtPriceSize" uid="1133" uid_parent="1132"/>
+      <Tunnel _id="In1" outputs="value:1134.value" uid="1134" uid_parent="1132"/>
+  <Constant _name="type" outputs="value:1135.value" type="uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}" uid="1135" uid_parent="1132" value="3"/>
+  <Constant _name="Start.Idx" outputs="value:1136.value" type="uint8" uid="1136" uid_parent="1132" value="14"/>
+  <Constant _name="Length" outputs="value:1137.value" type="uint8" uid="1137" uid_parent="1132" value="4"/>
+  <Call inputs="buffer (U64):1134.value,Start.Idx:1136.value,Length:1137.value,Big.Endian?:" outputs="Out.Value U64:1138.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1138" uid_parent="1132"/>
+  <Node _name="To Unsigned Long Integer" inputs="number:1138.Out.Value U64" outputs="unsigned 32bit integer:1139.unsigned 32bit integer" uid="1139" uid_parent="1132"/>
+  <Constant _name="Start.Idx" outputs="value:1140.value" type="uint8" uid="1140" uid_parent="1132" value="18"/>
+  <Constant _name="Length" outputs="value:1141.value" type="uint8" uid="1141" uid_parent="1132" value="4"/>
+  <Call inputs="buffer (U64):1134.value,Start.Idx:1140.value,Length:1141.value,Big.Endian?:" outputs="Out.Value U64:1142.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1142" uid_parent="1132"/>
+  <Node _name="To Unsigned Long Integer" inputs="number:1142.Out.Value U64" outputs="unsigned 32bit integer:1143.unsigned 32bit integer" uid="1143" uid_parent="1132"/>
+  <Constant _name="Start.Idx" outputs="value:1144.value" type="uint8" uid="1144" uid_parent="1132" value="30"/>
+  <Constant _name="Length" outputs="value:1145.value" type="uint8" uid="1145" uid_parent="1132" value="8"/>
+  <Call inputs="buffer (U64):1134.value,Start.Idx:1144.value,Length:1145.value,Big.Endian?:" outputs="Out.Value U64:1146.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1146" uid_parent="1132"/>
+  <Node _name="To Unsigned Quad Integer" inputs="number:1146.Out.Value U64" outputs="unsigned 64bit integer:1147.unsigned 64bit integer" uid="1147" uid_parent="1132"/>
+      <Tunnel _id="Out1" inputs="value:1135.value" uid="1148" uid_parent="1132"/>
+      <Tunnel _id="Out2" inputs="value:1139.unsigned 32bit integer" uid="1149" uid_parent="1132"/>
+      <Tunnel _id="Out3" inputs="value:1143.unsigned 32bit integer" uid="1150" uid_parent="1132"/>
+      <Tunnel _id="Out4" inputs="value:1147.unsigned 64bit integer" uid="1151" uid_parent="1132"/>
+    </CaseFrame>
+    <Tunnel _id="Out1" outputs="value:1152.value" uid="1152" uid_parent="1116"/>
+    <Tunnel _id="Out2" outputs="value:1153.value" uid="1153" uid_parent="1116"/>
+    <Tunnel _id="Out3" outputs="value:1154.value" uid="1154" uid_parent="1116"/>
+    <Tunnel _id="Out4" outputs="value:1155.value" uid="1155" uid_parent="1116"/>
+  </Structure>
+  <Node _name="Unbundle" inputs="cluster:1102.value" outputs="element:1156.e0,element:1156.e1,element:1156.e2,element:1156.e3,element:1156.e4,element:1156.e5,element:1156.e6,element:1156.e7,element:1156.e8,element:1156.e9,element:1156.e10,element:1156.e11,element:1156.e12,element:1156.e13,element:1156.e14,element:1156.e15,element:1156.e16" uid="1156" uid_parent="root"/>
+  <Node _name="Bundle" comment="dotted fields by position" inputs="element:1156.e0,element:1156.e1,element:1156.e2,element:1156.e3,element:1156.e4,element:1156.e5,element:1153.value,element:1156.e7,element:1154.value,element:1156.e9,element:1156.e10,element:1156.e11,element:1156.e12,element:1156.e13,element:1156.e14,element:1156.e15,element:1156.e16,cluster:" outputs="output cluster:1157.output cluster" uid="1157" uid_parent="root"/>
+  <Node _name="Bundle By Name" fields="type,orderId,price,nanoseconds,Edit" inputs="type:1152.value,orderId :1115.unsigned 64bit integer,price:1155.value,nanoseconds:1111.unsigned 64bit integer,Edit:1103.value,input cluster:1157.output cluster" outputs="output cluster:1158.output cluster" uid="1158" uid_parent="root"/>
+  <Indicator _name="OrderBook.Command" conIdx="3" connection="recommended" inputs="value:1158.output cluster" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1159" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+</VI>

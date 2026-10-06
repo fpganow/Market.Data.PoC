@@ -54,15 +54,21 @@ help:
 
 define AWK_EXPORT_LIST
 BEGIN { \
-	print "+-------+-------------+--------------------------------------------------------+"; \
-	print "| Index | Date        | Name                                                   |"; \
-	print "+-------+-------------+--------------------------------------------------------+"; \
+	sep = "+-------+--------------+--------------------------------------------------------+"; \
+	print sep; \
+	printf "| %5s | %-12s | %-54s |\n", "Index", "Date", "Name"; \
+	print sep; \
 } \
 { \
-	print "|     " NR " | " $$6 " " $$7 " " $$8 " | " $$9; \
+	printf "| %5d | %3s %2s %5s | %-54s |\n", NR, $$6, $$7, $$8, $$9; \
 } \
 END { \
-	print "+-------+-------------+--------------------------------------------------------+"; \
+	print sep; \
+	if (NR > 0) { \
+		print ""; \
+		print "Example (copies #" NR ", " $$9 "):"; \
+		print "    make ip-export-copy-" NR; \
+	} \
 }
 endef
 
@@ -91,6 +97,9 @@ ip-export-copy-%:
 	@echo "Copying VHD_WRAPPER:"
 	@echo "  - ${vhd_wrapper}"
 	@cp ${IMP_BASE}/${vhd_wrapper} .
+	@echo
+	@echo "Next, generate the Verilog from the copied .dcp:"
+	@echo "    make local-gen-$(patsubst NiFpgaAG_%.dcp,%,${dcp_file})"
 
 
 # ** <Switch to another computer> **

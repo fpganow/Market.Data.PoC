@@ -1,0 +1,20 @@
+<VI _name="DeleteOrder.vi" description="Cboe PITCH Delete Order (0x29) -> orderbook.command: type DeleteOrder, orderId, nanoseconds, Remove.">
+  <Control _name="buffer.in" conIdx="11" connection="recommended" outputs="value:1101.value" type="array{uint64.Numeric}" uid="1101" uid_parent="root" value="[0,0,0,0,0,0,0,0,0]"/>
+  <Constant _name="OrderBook.Command" outputs="value:1102.value" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1102" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+  <Constant _name="OrderBook Command" outputs="value:1103.value" type="uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}" uid="1103" uid_parent="root" value="6"/>
+  <Constant _name="Remove" outputs="value:1104.value" type="bool" uid="1104" uid_parent="root" value="true"/>
+  <Constant _name="Start.Idx" outputs="value:1105.value" type="uint8" uid="1105" uid_parent="root" value="1"/>
+  <Constant _name="Length" outputs="value:1106.value" type="uint8" uid="1106" uid_parent="root" value="1"/>
+  <Call inputs="buffer (U64):1101.value,Start.Idx:1105.value,Length:1106.value,Big.Endian?:" outputs="Out.Value U64:1107.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1107" uid_parent="root"/>
+  <Node _name="To Unsigned Byte Integer" inputs="number:1107.Out.Value U64" outputs="unsigned 8bit integer:1108.unsigned 8bit integer" uid="1108" uid_parent="root"/>
+  <Constant _name="Start.Idx" outputs="value:1109.value" type="uint8" uid="1109" uid_parent="root" value="2"/>
+  <Constant _name="Length" outputs="value:1110.value" type="uint8" uid="1110" uid_parent="root" value="4"/>
+  <Call inputs="buffer (U64):1101.value,Start.Idx:1109.value,Length:1110.value,Big.Endian?:" outputs="Out.Value U64:1111.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1111" uid_parent="root"/>
+  <Node _name="To Unsigned Quad Integer" inputs="number:1111.Out.Value U64" outputs="unsigned 64bit integer:1112.unsigned 64bit integer" uid="1112" uid_parent="root"/>
+  <Constant _name="Start.Idx" outputs="value:1113.value" type="uint8" uid="1113" uid_parent="root" value="6"/>
+  <Constant _name="Length" outputs="value:1114.value" type="uint8" uid="1114" uid_parent="root" value="8"/>
+  <Call inputs="buffer (U64):1101.value,Start.Idx:1113.value,Length:1114.value,Big.Endian?:" outputs="Out.Value U64:1115.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1115" uid_parent="root"/>
+  <Node _name="To Unsigned Quad Integer" inputs="number:1115.Out.Value U64" outputs="unsigned 64bit integer:1116.unsigned 64bit integer" uid="1116" uid_parent="root"/>
+  <Node _name="Bundle By Name" fields="type,orderId,nanoseconds,Remove" inputs="type:1103.value,orderId :1116.unsigned 64bit integer,nanoseconds:1112.unsigned 64bit integer,Remove:1104.value,input cluster:1102.value" outputs="output cluster:1117.output cluster" uid="1117" uid_parent="root"/>
+  <Indicator _name="OrderBook.Command" conIdx="3" connection="recommended" inputs="value:1117.output cluster" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1118" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+</VI>
