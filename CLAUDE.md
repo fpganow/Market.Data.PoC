@@ -20,6 +20,16 @@ or edited with text tools — only with the LabVIEW IDE. Do not attempt to "fix"
 `.lvproj`/`.lvclass` are XML wrappers and can be *inspected* (targets, build specs, FIFOs, VI lists),
 but editing them by hand risks corrupting the project.
 
+**Reading VIs: `lvkit`** (read-only parser — `lvkit describe <vi>`, `lvkit render`, `lvkit diff`;
+`--search-path` resolves sub-VIs). It is how every "via lvkit" fact below was obtained. The source
+checkout is `~/work/lvkit`; as of 2026-10-05 it is not installed on PATH in this WSL — install it
+into a venv (`pip install -e ~/work/lvkit`) before relying on it.
+
+**Writing VIs** is only possible through LabVIEW itself. `tools/labview-aixml/` holds the one
+scripted route that has worked: AIXML sources + `gen_message_vi.py`, turned into VIs by the
+labview-mcp plugin driving LabVIEW 2026 and saved back to LV2020 with `SaveForPrevious` (recipe and
+pitfalls in its README).
+
 Text-editable parts: Python (`ip_export/`, `s_parse.py`, `udp_send.py`, `cboe_pitch/`),
 Makefiles, TCL (`vivado/`, `ip_export/gen.tcl`), SystemVerilog/Verilog testbenches and HDL, and the
 C sources under `apps/*/main.c`.
@@ -63,9 +73,9 @@ One FPGA Target plus "My Computer" (host).
   `TH-Command.out`, `TH-DEBUG`, `TH-MDEBUG` (target→host); `TS-Filter.Command`, `TS-Debug`, `TS-MDebug`
   (target-scoped, between parser and filter).
 - **Clocks**: 40 MHz base, 100 MHz (top-level timing source) and 156.28 MHz derived (the 10G MAC domain).
-- **Host** in `host/`: `Test.Runner.kria.vi` is the current entry point (`Test.Runner.versal.vi` and
-  `Test.Runner.vi` are older variants). `host/FpgaRunner/` is the class that opens the bitfile and
-  pushes/pulls DMA data (`openFpga.vi`, `Write.Data.vi`, `Read.Data.vi`, `Close.Fpga.vi`);
+- **Host** in `host/`: `Test.Runner.kria.bats.parser.vi` is the current entry point (renamed from
+  `Test.Runner.kria.vi` in a1fde2d; `Test.Runner.versal.vi` and `Test.Runner.vi` are older
+  variants). `host/FpgaRunner/` is the class that opens the bitfile and pushes/pulls DMA data (`openFpga.vi`, `Write.Data.vi`, `Read.Data.vi`, `Close.Fpga.vi`);
   `Read.Pcap.File.vi` feeds it from `tests/data/*.pcap`.
 
 The functional VIs live in the submodules — `Market.Data.Bats.Parser/fpga/bats.parser*.vi`,
@@ -75,7 +85,7 @@ parser→filter→host boundary).
 
 ## Two paths to hardware
 
-1. **Pure LabVIEW bitfile** — compile the `poc.ip.kria` build spec, run `Test.Runner.kria.vi`.
+1. **Pure LabVIEW bitfile** — compile the `poc.ip.kria` build spec, run `Test.Runner.kria.bats.parser.vi`.
 2. **Netlist export into Vivado** (what the KR260 design actually does) — export the LabVIEW IP to a
    netlist, convert the `.dcp` to Verilog, and instantiate it in the Vivado block design alongside the
    XXV Ethernet core, the FIFOs, and `vivado/ip/{axis2xgmii.v,xgmii2axis.v}`. A Vitis app reads the
@@ -107,9 +117,9 @@ sources, `pcs_pma`/`arty_z7` experiments) was removed; it lives at the `pre_clea
 ## Commands
 
 The IP-export targets live in `ip_export/Makefile` and are also delegated from the repo-root
-`Makefile` (`make help-ip`; the root delegation needed `PWD_WIN3` to use `$(CURDIR)`, fixed
-2026-09-15). Paths are hardcoded: Vivado 2021.1 at `C:\NIFPGA\programs\Vivado2021_1` (invoked via
-`powershell.exe`) for Verilog generation, and `/tools/Xilinx/Vivado/2024.1` for Linux-side
+`Makefile` (`make help-ip`; `local-gen-%` resolves its paths from the Makefile's own directory
+via `MK_DIR` and fails with guidance when no matching `.dcp` is present). Paths are hardcoded:
+Vivado 2021.1 at `C:\NIFPGA\programs\Vivado2021_1` (invoked via `powershell.exe`) for Verilog generation, and `/tools/Xilinx/Vivado/2024.1` for Linux-side
 simulation. `make help` / `make help2` list targets. After `local-gen-poc_ip_kria`, `make
 ip-install-poc_ip_kria` copies the `.v` + wrapper `.vhd` into `vivado/ip/`; then `make xsa-clean &&
 make xsa` (xsa does not track the netlist).
@@ -159,15 +169,29 @@ addresses and input paths.
   Renamed at some point without updating the callers — fix the reference rather than assuming it's broken.
 - `make gen-verilog` reads `.dcp_file`/`.v_file` dotfiles that are not in the repo (the old import flow
   wrote them); `make local-gen-<name>` is the working replacement.
-- `MESSAGE ==` on line 11 of `udp_send.py` is a comparison, not an assignment — intentional-looking dead code.
+- `MESSAGE ==` on line 10 of `udp_send.py` is a comparison, not an assignment — intentional-looking dead code.
 
-## Work in progress (state as of 2026-09-16 — read this first when resuming)
+## Work in progress (read this first when resuming)
 
-**Uncommitted working-tree changes** (all deliberate, none committed yet):
-`ip_export/Makefile` (CURDIR fix), `vivado/ip/NiFpgaAG_poc_ip_kria.v` (the 2026-09-11 LabVIEW
-export installed; the wrapper VHDL is byte-identical to July so the BD needs no change),
-`kria_app/mktdata_poc.dtso` (+ UIO nodes for `axi_dma_0@80020000` and `xxv_ethernet_0@80030000`),
-new `apps/poc_inject/` and new `ip_export/netlist_sim/`.
+The dated subsections below are a chronological log (2026-09-15 … 09-23); where an earlier one
+says "unresolved" and a later one says "FIXED", the later one wins. **Current state (2026-10-05):**
+
+- Fixed and hardware-verified: 10G TX reset polarity, 32-bit capture-FIFO readout, the
+  frame-boundary bug (parser bug 1). Everything through commit a1fde2d is committed.
+- **Active task: the remaining PITCH message types** (ReduceSize, ModifyOrder, DeleteOrder, Trade,
+  OrderExecutedAtPriceSize). The plan, per-message field map, and status are in
+  `rest.of.order.types.txt` (untracked — read it before touching the parser). Generated LV2020 VIs
+  `ModifyOrder.vi`, `DeleteOrder.vi`, `Trade.vi`, `OrderExecuted.generated.vi`,
+  `ReduceSize.generated.vi` sit untracked in `submodules/Market.Data.Bats.Parser/fpga/message.types/`
+  beside the hand-made `OrderExecuted.vi` / `ReduceSize.vi` (the latter is still a copy of
+  OrderExecuted). Still to do in the IDE: append `Trade = 10`, `Unsupported = 11` to
+  `orderbook.command.type.ctl`; add the parser case frames; then export, simulate
+  (`netlist_sim`), extend `eval_sim.py`'s expectations, rebuild (timing margin is only +0.035 ns).
+- Uncommitted LabVIEW edits in progress: `bats.parser.vi`, `OrderExecuted.vi`, `openFpga.vi`,
+  `Test.Runner.kria.bats.parser.vi`, and the `.lvproj` (adds a `bats.parser` folder to the target
+  and switches the FPGA target's execution mode to simulation with simulated I/O — check before
+  compiling a bitfile).
+- Open parser bugs: bug 2 (root cause in `compress.buffer.vi`) and bug 4 (6-char symbols) below.
 
 ### Build / deploy facts (hardware-proven 2026-09-15)
 - `make xsa` from Claude Code must run **detached** (`setsid nohup bash -c "make xsa JOBS=2 …" &`)
@@ -362,9 +386,16 @@ pyyaml scapy prettytable ruamel.yaml`. **Generator trap:** order-size ranges mus
    so EOF lands one cycle off the last data and the IPv4 cache re-emits the tail → the extra word.
 2. **OrderExecuted right after a 6-byte Time message that starts at byte 1 of a word** gets byte 2
    of its orderId zeroed (`'OR\x00D0204'`, frame 9 msg 24). All other Add/Exec alignments were
-   correct (300+ checked). Fix area: `OrderExecuted.vi` / `new.uxx.be.vi` remainder handling.
-3. Already known: ReduceSize/Modify/Delete/Trade unsupported (type 0, empty); 6-char symbols land
-   byte-reversed vs 8-char ones.
+   correct (300+ checked). **Root cause (model-reproduced, 2026-09-25): `compress.buffer.vi`**, not
+   `OrderExecuted.vi`/`new.uxx.be.vi` — it only rebuilds word 0 of the remainder, so when a message
+   was already complete in the buffer before the new word was added the 9–15-byte remainder loses
+   everything from byte 8 on. Fix: build `buffer.out[1]` (and `[2]`) with the same shift logic on
+   words widx+1/widx+2 (`rest.of.order.types.txt` §4).
+3. ReduceSize/Modify/Delete/Trade unsupported (type 0, which collides with Time) — the active
+   task above. 0x24 OrderExecutedAtPriceSize is decoded with the 0x23 layout.
+4. 6-char symbols land byte-reversed vs 8-char ones: `new.uxx.be.vi`'s Length = 6 little-endian
+   frame lacks the Swap Bytes/Words of the Length = 8 frame. Cheapest fix: read the symbol with
+   Length 8 in `AddOrder.vi`, AND 0x0000FFFFFFFFFFFF, OR 0x2020000000000000.
 Measured on clean frames (363 msgs, ~30 msgs/frame): first message 10–140 ns after the frame's
 first word, ~56–74 ns per additional message, last message ~2.0–2.1 µs; median 1.03 µs.
 Capture: `scripts/gen_pitch_pcap.py` file sent from WSL eth1 5 ms apart, `poc_server poll`,

@@ -1,0 +1,185 @@
+Implementing the remaining PITCH message types in the LabVIEW parser
+=====================================================================
+Written 2026-09-25 from the state of the repo after the frame-boundary fix
+(commit 5bb941b). Sources read: submodules/Market.Data.Common/fpga/
+orderbook.command.ctl + orderbook.command.type.ctl, the parser sub-VIs in
+submodules/Market.Data.Bats.Parser/fpga/message.types/, new.uxx.be.vi,
+compress.buffer.vi, the filter VIs in submodules/Market.Data.Filter/fpga/,
+and the field specs in cboe_pitch/cboe_pitch/*.py.
+
+
+1. The normalized format (orderbook.command) and what the filter does with it
+-----------------------------------------------------------------------------
+orderbook.command = { type : orderbook.command.type, side : U8, orderId : U64,
+  quantity : U32, symbol : U64, price : U64, executed.qty : U32,
+  canceled.qty : U32, remaining.qty : U32, seconds : U64, nanoseconds : U64,
+  Add : TF, Edit : TF, Remove : TF, seq no : U32, recv.time : U64,
+  parse.time : U64 }
+
+orderbook.command.type = { Time = 0, AddOrder = 1, OrderExecuted = 2,
+  OrderExecutedAtPrice = 3, ReduceSize = 4, ModifyOrder = 5, DeleteOrder = 6,
+  Get.Everything = 7, Get.All.Orders = 8, Get.Top = 9 }
+
+filter.wait.for.command.vi dispatches on `type` only:
+  Time            -> stay in Wait.for.Command
+  AddOrder        -> Filter.Add (symbol lookup in the ticker table -> Insert.Order)
+  Get.*           -> host queries
+  everything else -> Filter.Other, which looks the order up by orderId and then:
+
+  enum value                 filter action                          field read
+  OrderExecuted = 2          Quantity -= executed.qty, delete at 0   executed.qty
+  OrderExecutedAtPrice = 3   Quantity := remaining.qty, delete at 0  remaining.qty
+  ReduceSize = 4             Quantity -= canceled.qty, delete at 0   canceled.qty
+  ModifyOrder = 5            Quantity := quantity, delete at 0       quantity
+  DeleteOrder = 6            delete                                  (none)
+
+The Add / Edit / Remove flags are read only in filter.ip.vi (output side);
+no book logic depends on them. Set them consistently anyway.
+
+The enum has no value for Trade messages or for unsupported messages.
+APPEND to the typedef (keeps existing numbers and the host decoder valid):
+  Trade = 10
+  Unsupported = 11
+Today unsupported messages come out as type 0, which collides with Time.
+
+
+2. Field map per PITCH message
+------------------------------
+Offsets/lengths are from cboe_pitch/cboe_pitch/*.py (Cboe PITCH 2.x).
+All binary fields are little-endian, so call new.uxx.be.vi with
+Big.Endian? = False exactly as AddOrder.vi does. Every message also has the
+time offset at 2/4 -> nanoseconds (as Time.vi / AddOrder.vi already do).
+
+  PITCH type (length)            enum  fields to fill: offset/length
+  0x24 OrderExecutedAtPriceSize (38)  3   orderId 6/8, executed.qty 14/4,
+                                          remaining.qty 18/4, price 30/8
+  0x25 ReduceSize long (18)      4     orderId 6/8, canceled.qty 14/4
+  0x26 ReduceSize short (14)     4     orderId 6/8, canceled.qty 14/2
+  0x27 ModifyOrder long (27)     5     orderId 6/8, quantity 14/4, price 18/8
+  0x28 ModifyOrder short (19)    5     orderId 6/8, quantity 14/2, price 16/2
+  0x29 DeleteOrder (14)          6     orderId 6/8
+  0x2A Trade long (41)           10    orderId 6/8, side 14/1, quantity 15/4,
+                                       symbol 19/6, price 25/8
+  0x2B Trade short (33)          10    orderId 6/8, side 14/1, quantity 15/2,
+                                       symbol 17/6, price 23/2
+  0x30 Trade expanded (47)       10    orderId 6/8, side 14/1, quantity 15/4,
+                                       symbol 19/8, price 27/8
+  anything else                  11    nothing
+
+For reference, the types already decoded:
+  0x20 Time (6)                  0     seconds 2/4
+  0x21 AddOrder long (34)        1     orderId 6/8, side 14/1, quantity 15/4,
+                                       symbol 19/6, price 25/8
+  0x22 AddOrder short (26)       1     orderId 6/8, side 14/1, quantity 15/2,
+                                       symbol 17/6, price 23/2
+  0x2F AddOrder expanded (40)    1     orderId 6/8, side 14/1, quantity 15/4,
+                                       symbol 19/8, price 27/8
+  0x23 OrderExecuted (26)        2     orderId 6/8, executed.qty 14/4
+
+NOTE: 0x24 currently reaches OrderExecuted.vi through the parser's "35, 36"
+case but that VI has no frame for it, so it is decoded with the 0x23 layout,
+which is wrong past byte 18 and reports type 2 instead of 3. Add a frame
+for 36 inside OrderExecuted.vi (see section 3).
+
+
+3. How to build it in LabVIEW
+-----------------------------
+a) Copy message.types/AddOrder.vi as the template. It reads the type byte
+   (new.uxx.be Start.Idx 1, Length 1), has one case frame per variant
+   holding the new.uxx.be calls with that variant's offsets, converts each
+   value to the cluster field width, and bundles an orderbook.command.
+   Keep the sub-VIs purely combinational like AddOrder.vi.
+
+   Group by spec family, one VI per family, one case frame per variant,
+   as AddOrder.vi does for 0x21/0x22/0x2F. Each frame bundles its own
+   `type` value and fields, so variants with different outputs (0x23 vs
+   0x24) can share a VI too.
+
+     OrderExecuted.vi (exists)  add frame 36: orderId 6/8, executed.qty 14/4,
+                                remaining.qty 18/4, price 30/8, type 3
+                                (frame 35 keeps type 2)
+     ReduceSize.vi   (new)      frames 37, 38   -- GENERATED 2026-09-29
+     ModifyOrder.vi  (new)      frames 39, 40   -- GENERATED 2026-09-29
+     DeleteOrder.vi  (new)      frame 41        -- GENERATED 2026-09-29
+     Trade.vi        (new)      frames 42, 43, 48 -- GENERATED 2026-09-29 (6-char symbols
+                                already padded to 8 as in fix Bug 3 below)
+     OrderExecuted.generated.vi  frames 35, 36 -- GENERATED 2026-09-29, delivered BESIDE
+                                your OrderExecuted.vi (commit a1fde2d), whose frame 36 sets
+                                only the type: it does not yet read remaining.qty (18/4) or
+                                price (30/8). Either take the generated VI (rename it) or add
+                                those two reads to your frame 36.
+     ReduceSize.generated.vi    same for ReduceSize: your untracked ReduceSize.vi (dated
+                                2026-09-23) is still a copy of OrderExecuted (type 2,
+                                executed.qty). The generated one is complete and verified.
+
+   STATUS 2026-09-29: ModifyOrder.vi, DeleteOrder.vi, Trade.vi (new) and the two
+   *.generated.vi exist in message.types/ (repo clone and OneDrive) as LabVIEW 2020 files,
+   each loaded and run in LabVIEW 2020 on real messages from
+   generated_2026_09_17_multi.pcap with every field correct. Sources and the build recipe:
+   tools/labview-aixml/. Still to do in the IDE:
+   (1) add Trade = 10 and Unsupported = 11 to orderbook.command.type.ctl (Trade.vi already
+   uses that enum; the others use the current one), (2) add the parser case frames
+   "37, 38" -> ReduceSize.vi, "39, 40" -> ModifyOrder.vi, "41" -> DeleteOrder.vi,
+   "42, 43, 48" -> Trade.vi, default -> Unsupported, (3) optionally replace each VI's bare
+   OrderBook.Command constant/indicator with the typedef. Short-variant prices (0x28,
+   0x2B) are left unscaled, like AddOrder short; scale all of them together when fixing
+   the price scale.
+
+b) In bats.parser.vi's message-type case (the case on the type byte inside
+   Read.Msg) the "35, 36" frame already routes both executed types to
+   OrderExecuted.vi and takes `type` from the bundle, so it needs no change.
+   Add frames "37, 38", "39, 40", "41", "42, 43, 48", each calling its
+   sub-VI (as the "33, 34, 47" frame calls AddOrder.vi). The placeholder
+   "37" frame you already added becomes the ReduceSize frame.
+   Change the default frame to return Unsupported (11) instead of 0.
+
+c) Flags per sub-VI: Add for AddOrder; Edit for OrderExecuted,
+   OrderExecutedAtPrice, ReduceSize, ModifyOrder; Remove for DeleteOrder;
+   none for Trade and Time.
+
+
+4. Two fixes to make FIRST (the new types depend on them)
+---------------------------------------------------------
+Bug 2 - corrupted orderId after a Time message (frame 9 msg 24 of
+tests/data/generated_2026_09_17_multi.pcap, ORID0204 -> OR\0D0204).
+  Root cause is compress.buffer.vi, NOT new.uxx.be.vi. The bit-exact model
+  (ip_export/netlist_sim/parser_model.py) reproduces it: compress.buffer
+  only rebuilds word 0 of the remainder (it reads buffer[widx] and
+  buffer[widx+1] and writes buffer.out[0]). That is fine while the
+  remainder is < 8 bytes, but when a message was ALREADY complete in the
+  buffer before the new 8-byte word was added (the parser handles one
+  message per cycle), the remainder after that message can be 9-15 bytes
+  and everything from byte 8 on is dropped (zero). The trigger is a 6-byte
+  Time message following a leftover of 6 or 7 bytes.
+  Fix: compute buffer.out[1] with the same two-word shift logic applied to
+  words widx+1 and widx+2 (and buffer.out[2] from widx+2 / widx+3 to be safe
+  against runs of short messages). Same masks; only the word indices change.
+  Any variant can be validated in the model before exporting.
+
+Bug 3 - 6-character symbols arrive byte-reversed ('    TFSM'), 8-character
+ones forward ('MSFT    ').
+  Cause: new.uxx.be.vi's Length = 6 little-endian frame does not do the
+  Swap Bytes / Swap Words sequence that the Length = 8 frame does.
+  Cheapest fix, no change to new.uxx.be.vi: in AddOrder.vi (frames 33, 34)
+  and in the new Trade.vi (frames 42, 43) read the symbol with Length 8,
+  then AND with 0x0000FFFFFFFFFFFF and OR with 0x2020000000000000. The
+  price always follows the symbol, so the two extra bytes are in the buffer.
+
+
+5. Verification
+---------------
+- tests/data/generated_2026_09_17_multi.pcap already contains every type
+  above (659 messages, 14 types).
+- Netlist simulation:  cd ip_export/netlist_sim
+    python3 gen_frames.py frames.txt ../../tests/data/generated_2026_09_17_multi.pcap
+    ./run.sh
+    python3 eval_sim.py sim_out.txt ../../tests/data/generated_2026_09_17_multi.pcap
+- Hardware over the 10G cable: start `poc_server poll` on the board, reset,
+  `python3 scripts/send_pcap_udp.py tests/data/generated_2026_09_17_multi.pcap`,
+  then score the capture with the same eval_sim.py.
+- eval_sim.py's expect() only knows the existing types; extend its ENUM map
+  and field checks with the new enum numbers once chosen.
+- Timing: the current build closes at WNS +0.035 ns. If adding the frames
+  fails timing, register the orderbook.command output of the type case with
+  one Feedback Node (one cycle of extra latency) rather than reworking the
+  sub-VIs.
