@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "zuehlke-labview": {
+      "source": {
+        "source": "github",
+        "repo": "Zuehlke/labview-mcp"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "labview-mcp@zuehlke-labview": true
+  }
+}
