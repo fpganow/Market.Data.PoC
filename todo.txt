@@ -1,424 +1,120 @@
-Manual to-do list (LabVIEW IDE and other hands-on steps)
-=========================================================
-SUMMARY  (2026-10-11 20:00: working copy as of 19:23 = the 19:37 IP export, simulated here;
-          first bulb = code change in LabVIEW, second = confirmed by netlist sim of that export)
-   🟢🟢  1  Command-type enum: 94 Trades report type 10 (typedef + TS-Filter.Command FIFO type)
-   🟢🟢  2  Unknown types -> Unsupported: unsupported_repro.pcap 3 x type 11, 662/662 (sim 10-12)
-   🟢🟢  3  compress.buffer.generated.vi: 0 orderId mismatches in 862 messages
-   🟢🟢  4  6-char symbols: every 0x21/0x22/0x2A/0x2B/0x2F/0x30 symbol matches
-   🟢🟢  5+6  eof clears (already in the 10-05 export)
-   🟢🟢  7  Heartbeats: heartbeat_repro.pcap 26/26 headers, 659/659 messages
-   ⚪⚪  8  Edge case: two 6-byte messages ending a frame while one message behind (decide later)
-   🟢🟢  9  Short prices x100: every Add/Modify/Trade price matches with --short-price-scale 100
-   🟡⚪ 10  Timestamps: REWRITTEN 2026-10-11 22:00 - tick is 6.4 ns, the Register read must stay,
-            only decision left: frame-start latch (reference VI fpga/poc.ip.kria.generated.vi)
-   🟢🟢 11  DEBUG stream: 680 records for 679 events, nothing dropped
-   🟢➖ 12  Reentrancy: parser and poc.ip.kria.vi are preallocated clones
-   🟡➖ 13  Duplicates: only the old compress.buffer.vi is left (project + disk, used by fpga/tests/*)
-   🟢➖ 14  Typedefs: all seven message VIs use orderbook.command.ctl / orderbook.command.type.ctl
-   🟢➖ 15  Host decoder names Trade/Unsupported (done here 2026-10-11); filter needs nothing
-   🟢➖ 16  LV_MCP stub and C:\work\fpganow\lvgen are gone
-   🟢➖ 17  CLAUDE_CODE_DISABLE_MOUSE export is commented out in bash_profile.sh
+Manual to-do list (LabVIEW IDE and other hands-on steps) - UNRESOLVED ITEMS ONLY
+===============================================================================
+Trimmed 2026-10-16: the closed items (1-7, 9, 11, 12, 14-17 - enum, Unsupported type,
+compress.buffer remainders, 6-char symbols, eof clears, heartbeats, price scale, DEBUG flood,
+reentrancy, typedef rebinding, host decoder, LV_MCP/lvgen clean-up, bash_profile) were removed.
+Their write-ups are in the previous revision of this file (git log -p todo.txt) and the dated
+log in CLAUDE.md "Work in progress". Item numbers are kept so CLAUDE.md and
+docs/kr260/timing_2026-10-12_fail.txt references stay valid.
+
+SUMMARY (state of the 2026-10-11 19:37 IP export, dcp md5 7e039484, simulated here)
+   🔴⚪ 18  TIMING FAILS with the 19:37 netlist (clean build 2026-10-12): WNS -4.616 ns, 722
+            failing endpoints, all in the 100 MHz parser loop. Two causes (x100 multiply in
+            the decode path, 6-shifter compress.buffer). vivado/mktdata_poc.xsa (15:38) IS
+            that failing build: do NOT kria-build/deploy it.
+   🟡⚪ 10  Timestamps: tick is 6.4 ns, the Register read must stay; the only decision left is
+            the frame-start latch (reference VI fpga/poc.ip.kria.generated.vi).
+   🟡➖ 13  Duplicates: only the old compress.buffer.vi is left (project + disk, used by
+            fpga/tests/*); untracked *.generated copies in the repo clone to delete afterwards.
+   ⚪⚪  8  Edge case: two 6-byte messages ending a frame while one message behind (parked).
    RESULT of the 19:37 export: 203/203, 659/659, 659/659, 662/662 records, 100 % content match
-   on all four pcaps, all headers present. Items 1, 2, 3, 4, 7, 9, 11 can be removed; 10 and
-   13 are the remaining decisions; 8 is parked.
-   🔴    18 TIMING FAILS with the 19:37 netlist (clean build 2026-10-12): WNS -4.616 ns, 722
-            failing endpoints. Two causes, both in the parser cycle - see item 18 below.
-            vivado/mktdata_poc.xsa (15:38) IS that failing build: do NOT kria-build/deploy it.
+   on all four pcaps (frame_boundary_repro, generated_2026_09_17_multi, heartbeat_repro,
+   unsupported_repro), all headers present.
    NEXT  LabVIEW: fix item 18 (remove the x100 multiply from the parser cycle AND cut the
          compress.buffer cost), re-export, netlist sim (all four pcaps), then
          `make xsa-clean && make xsa JOBS=2` detached. xsa-clean IS needed after every
          ip-install even when the port numbering is unchanged: mktdata_poc.tcl uses
-         import_files, so the project keeps its own copy of the netlist (the 09-23 project still
-         held the 15.7 MB September one). Then kria-build/stage/deploy/load and a cable or
-         loopback run scored with eval_sim.py --short-price-scale 100 (or without the flag if
-         the scale moves to the host). Board was off (no route to host) on 10-12.
+         import_files, so the project keeps its own copy of the netlist. Then
+         kria-build/stage/deploy/load and a cable or loopback run scored with
+         eval_sim.py --short-price-scale 100 (or without the flag if the scale moves to the
+         host). Board was off (no route to host) on 10-12.
    NOTE  the OneDrive ip_export/NiFpgaIPWrapper_poc_ip_kria.vhd is still the 14:22 file and does
          NOT match the 19:37 dcp (LabVIEW did not rewrite it). Don't copy it; the committed
          wrapper matches. ip_export/netlist_sim/ports_from_dcp.py checks this from the .dcp.
 
-EXPORT 2026-10-11 19:37 (dcp md5 7e039484, .v 0d15afc5; installed 19:41; netlist sim here):
-   frame_boundary_repro.pcap   6/6 headers   203/203 messages   203/203 content
-   generated_2026_09_17_multi  20/20 headers 659/659 messages   659/659 content
-   heartbeat_repro.pcap        26/26 headers 659/659 messages   659/659 content
-   Type counts (multi): Time 7, AddOrder 286, OrderExecuted 32, OrderExecutedAtPrice 60,
-   ReduceSize 65, ModifyOrder 99, DeleteOrder 37, Trade 73 - exactly the pcap. parse.time -
-   recv.time 10..800 ns, never negative. DEBUG stream ~680 records (one per message + header).
-   Port numbering: BACK to the original (DEBUG 00-04, CMD 05-09, MDEBUG 10-14, TUSER/TLAST/
-   TVALID/TKEEP/TDATA 15-19, ip_reset 20) - the 14:22 export was the odd one; tb.sv and
-   vivado/mktdata_poc.tcl are back at their committed numbering. After every ip-install run
-   ip_export/netlist_sim/ports_from_dcp.py <dcp> tb.sv ../../vivado/mktdata_poc.tcl --check
-   <wrapper>: it reads the port list from the .dcp's *_stub.v, remaps both files by port name
-   and fails if the wrapper .vhd does not match the dcp (the exported .v is encrypted).
-   The 14:22 export (dcp e0d0241e) scored the same except 94 Trades typed 9 (FIFO type, item 1).
-
-Updated 2026-10-11 15:30. Working copy state: synced since the 13:23 check: AddOrder.generated.vi
-(13:46, hex display only), bats.parser.vi (13:48: Disable Structure removed, calls
-ReduceSize.vi), ReduceSize.vi (13:48 = the former .generated diagram, typedef'd, Bundle By
-Name canceled.qty), ReduceSize.generated.vi deleted, project file, compress.buffer.generated.vi
-(13:58 re-save, identical diagram). poc.ip.kria.vi and AddOrder.vi unchanged since 01:20.
-"checked" below means the diagram shows the change; "sim" means the 14:22 export shows it.
-Items are things that
-must be done by hand in LabVIEW or on the machines; the automated flow (ip-export-copy ->
-local-gen -> ip-install -> netlist sim -> xsa -> deploy) is in CLAUDE.md and can be run from
-Claude Code. Remove an item when it is done. The old numbered KR260 design-decision log that
-used to live in this file is now docs/kr260/design-decisions.txt (all 25 items closed).
+Items are things that must be done by hand in LabVIEW or on the machines; the automated flow
+(ip-export-copy -> local-gen -> ip-install -> netlist sim -> xsa -> deploy) is in CLAUDE.md and
+can be run from Claude Code. Remove an item when it is done. The old numbered KR260
+design-decision log that used to live in this file is docs/kr260/design-decisions.txt.
 
 Marks: two bulbs in front of every item, [code][export]
-         first bulb  = the code change:   ⚪ not started   🟡 partly done   🟢 done
+         first bulb  = the code change:   ⚪ not started   🟡 partly done   🟢 done   🔴 broken
          second bulb = confirmed by an IP export (netlist sim / hardware):
                        ⚪ not yet   🟢 confirmed   ➖ no export needed (housekeeping, host side)
        Remove an item once it shows 🟢🟢 (or 🟢➖).
 
-Verification used below: ip_export/netlist_sim (gen_frames.py, run.sh, eval_sim.py) on
-tests/data/frame_boundary_repro.pcap (203 msgs) and generated_2026_09_17_multi.pcap
-(659 msgs) and, since 2026-10-11, heartbeat_repro.pcap (26 frames incl. 6 heartbeats, 659
-msgs; item 7). State of the 2026-10-05 export: all 862 messages decoded; the only content errors
-are items 1 (73+21 Trades report type 9) and 3 (one order id per pcap).
+Verification: ip_export/netlist_sim (gen_frames.py, run.sh, eval_sim.py --short-price-scale 100)
+on tests/data/frame_boundary_repro.pcap (203 msgs), generated_2026_09_17_multi.pcap (659),
+heartbeat_repro.pcap (659, 6 heartbeats) and unsupported_repro.pcap (662).
 
 Every VI edit below is written as: WHERE (file, state/frame), WHAT YOU SEE NOW, WHAT TO
 CHANGE (node by node), HOW TO CHECK. Paths are relative to Market.Data.PoC/.
 
-GENERATED FILES (2026-10-07, in the repo clone and the OneDrive tree, LabVIEW 2020 format,
-terminals shown as small type stubs, not icons; sources in tools/labview-aixml/):
-  submodules/Market.Data.Common/fpga/orderbook.command.type.generated.ctl    item 1
-  submodules/Market.Data.Bats.Parser/fpga/compress.buffer.generated.vi       item 3
-  .../fpga/message.types/AddOrder.generated.vi                               items 4, 9
-  .../fpga/message.types/ModifyOrder.generated.vi, Trade.generated.vi        item 9
-  .../fpga/message.types/DeleteOrder.generated.vi, ReduceSize.generated.vi   12-item enum only
-Each was run in LabVIEW 2026 on real messages from generated_2026_09_17_multi.pcap, saved
-for 2020, loaded and run again in LabVIEW 2020. All message VIs now bundle the 12-item type
-enum (Trade = 10, Unsupported = 11), so swap the typedef (item 1) FIRST, then the VIs.
-Items 2, 5, 6, 7, 10, 11 cannot be generated: bats.parser.vi and poc.ip.kria.vi contain FPGA
-FIFO Write nodes (niFpgaContainer.xnode) that the AIXML round trip drops, so those stay
-hand edits (they are small).
+
+A. Blocking the next board run
+------------------------------
+🔴⚪ 18. Timing closure of the 19:37 export fails: WNS -4.616 ns (clean build 2026-10-12)
+    RESULT  Vivado 2024.1, JOBS=2, 2026-10-12 15:20-15:38: setup WNS -4.616 ns, TNS -792 ns,
+            722 failing endpoints, every one in clk_pl_0 (the 100 MHz parser loop); hold and
+            pulse width clean. History: +0.863 (Jul), +0.127 (09-11), +0.031 / +0.364 (09-17),
+            +0.035 ns (09-23 export). Every failing path starts at the input CDC FIFO read
+            (FPGAwFIFOn4, the 156 -> 100 MHz FIFO poc.ip.kria.vi reads before the parser).
+            Full worst-path listing: docs/kr260/timing_2026-10-12_fail.txt.
+    CAUSE A 128 paths run input FIFO -> message decode -> a DSP48E2 multiplier cascade (the
+            U64 x U64 "price_scale" Multiply of item 9 in AddOrder/ModifyOrder/Trade: 4 DSP
+            stages, ~4.5 ns on their own) -> CMD FIFO data. Worst -4.616 ns, 31-34 logic
+            levels, 13.9 ns of data delay in a 10 ns budget. A 64x64 multiply can never sit in
+            series with the decode in one 100 MHz cycle.
+    CAUSE B 594 paths have no multiplier: input FIFO -> add.data.to.buffer /
+            compress.buffer.generated shifters and masks -> the parser's state Feedback Node
+            (bits of the 9-word buffer) or the CMD/DEBUG FIFO write data. Worst -1.954 ns,
+            24-26 levels. This is the item 3 COST (6 variable 64-bit shifters instead of 2)
+            landing on a path that only had +0.035 ns of margin. Fixing A alone leaves ~-2 ns.
+    FIX A   (pick one; the first is the smallest LabVIEW edit)
+            a0. (REFERENCE VIs BUILT 2026-10-14) AddOrder/ModifyOrder/Trade.generated.vi beside
+                the originals in message.types/ (repo + OneDrive) show the x100 done as
+                (p<<6)+(p<<5)+(p<<2) on U32 - three Logical Shift + two Add, no DSP - with
+                results identical to the Multiply on 32 pcap messages. Copy that group into
+                frame 34 / 40 / 43 of the hand VIs (keep the typedefs); nothing on the host
+                changes (eval_sim.py keeps --short-price-scale 100).
+            a1. Take the x100 out of the FPGA: delete the Multiply + constant in AddOrder.vi
+                frame 34, ModifyOrder.vi frame 40, Trade.vi frame 43 (or regenerate with
+                gen_message_vi.py ... --unscaled) and let the host scale short prices
+                (eval_sim.py default --short-price-scale 1; decode_capture.py gets a note).
+            a2. Keep 4 implied decimals but do it narrow: multiply the 2-byte price as U16 ->
+                U32 by a U32 100 BEFORE widening (one DSP, ~3 ns) - probably still too slow
+                in series with the decode; only safe together with a3.
+            a3. Pipeline it: put the multiply (or the whole OrderBook.Command bundle) behind a
+                Feedback Node so the CMD FIFO write happens one parser cycle later. Costs one
+                cycle of latency per message, no throughput change.
+    FIX B   (the compress.buffer cost)
+            b0. (REFERENCE VI BUILT 2026-10-14) submodules/.../fpga/bats.parser.generated.vi (repo +
+                OneDrive) is the parser rebuilt from its AIXML export with the two FPGA FIFO writes
+                replaced by FIFO.WRITE.vi calls (constants TS-Filter.Command / TS-Debug + Data
+                Type). It is for looking at / editing-and-regenerating on My Computer, not for the
+                FPGA target; tools/labview-aixml/parser_export_to_generated.py rebuilds it.
+            b1. "Fix B" from item 3: in bats.parser.vi do not pop the input FIFO in a cycle in
+                which buffer.length >= the buffered message's length (the parser is already a
+                message behind). Then a remainder never exceeds 8 bytes, compress.buffer.vi
+                (the old 2-shifter one) is correct again and the 09-23 timing (+0.035 ns)
+                comes back. The FIFO has 4096 words of slack for the stall; throughput of the
+                parser does not change (it still emits at most one message per cycle).
+            b2. Or pipeline compress.buffer.generated.vi (register raw_k/mask_k) - but it sits
+                inside the buffer feedback loop, so that halves the parser's word rate; avoid.
+            Either way also consider the recommendations.txt playbook (docs/kr260/): the
+            parser's data-dependent 64-bit barrel shifters on the whole buffer are the
+            structural reason the margin was ~0 before any of this.
+    CHECK   `make xsa-clean && make xsa JOBS=2` detached; read WNS in
+            vivado/mktdata_poc/mktdata_poc.runs/impl_1/*_timing_summary_routed.rpt. To list
+            the failing paths of a build: open the routed .dcp in Vivado batch and run
+            report_timing -slack_lesser_than 0 -max_paths 1000 -nworst 1 -unique_pins; the
+            "Logic Levels" line of each path names DSP_MULTIPLIER when the multiply is in it.
 
 
-A. Needed before the next IP export is useful
----------------------------------------------
-🟢🟢 1. Extend the command-type enum   -- SIM OK 19:37 export (94 Trades = type 10), remove
-   WHERE   submodules/Market.Data.Common/fpga/orderbook.command.type.ctl (a typedef enum,
-           U8). Open it from the project tree, not by double-clicking a constant.
-   NOW     Items end at Get.Top (= 9). Trade.vi bundles 10 from its own 12-item enum; the
-           coercion onto the 10-item typedef clamps it to 9, so every Trade reports Get.Top.
-   CHANGE  Either take the generated file: in the project window remove
-           orderbook.command.type.ctl, rename orderbook.command.type.generated.ctl to
-           orderbook.command.type.ctl (Windows Explorer or the project's Rename), and let
-           every VI relink on load (same path, same first 10 items, so instances keep their
-           values). Or by hand: right-click the enum -> Edit Items, APPEND two rows at the
-           end, in this order:
-             Trade          10
-             Unsupported    11
-           Do not insert, reorder or rename existing items: the CMD type word read by the
-           host decoder (apps/poc_inject/decode_capture.py) and the filter's case frames use
-           the numeric values. Ctrl-S the .ctl and accept "Apply changes to all instances".
-   CHECKED 2026-10-09: orderbook.command.type.ctl in the working copy has the 12 items in
-           the right order (Time ... Get.Top, Trade, Unsupported). The generated .ctl is now
-           redundant; delete orderbook.command.type.generated.ctl (item 13).
-   SIM 2026-10-11: the 94 Trades STILL report type 9. Cause: the target-scoped FPGA FIFO
-           "TS-Filter.Command" (project tree, under FPGA Target, 4096 elements) stores its
-           element type as a copy made when it was created: the lvproj configString for that
-           FIFO has the 10-item enum (…Get.All.Orders, Get.Top, then the cluster fields; no
-           Trade/Unsupported). The parser bundles 10, poc.ip.kria.vi writes it into that FIFO,
-           and the coercion onto the FIFO's 10-item enum clamps it to 9. FIFO data types do
-           not follow typedef edits.
-   CHANGE  Project window -> FPGA Target -> right-click TS-Filter.Command -> Properties ->
-           Data Type: pick the typedef again (Browse/"Select Control" -> Market.Data.Common/
-           fpga/orderbook.command.ctl) or toggle to another type and back, OK. The FIFO
-           Write/Read nodes in poc.ip.kria.vi relink automatically. Then check every other
-           FIFO/Memory/Register with that cluster (only this one has it today, the two DMA
-           FIFOs carry U64). Re-export.
-   CHECKED 2026-10-11 19:23: the lvproj configString of TS-Filter.Command now carries the
-           12-item enum, and the FIFO Read/Write node types in poc.ip.kria.vi (and the parser's
-           output tunnel) show Trade = 10, Unsupported = 11. Only the re-export remains.
-   SIM 19:37 export: 21 + 73 + 73 Trades report type 10; 0 content mismatches on all three
-           pcaps. Fixed.
-
-🟢🟢 2. Make unknown message types report Unsupported   -- SIM OK 2026-10-12, remove
-   WHERE   submodules/Market.Data.Bats.Parser/fpga/bats.parser.vi, state Read.Msg, the Case
-           Structure selected by the message-type byte (8 frames: "0, Default" (pass-
-           through), "32" Time.vi, "33, 34, 47" AddOrder.vi, "35, 36" OrderExecuted.vi,
-           "37, 38" ReduceSize.generated.vi, "39, 40" ModifyOrder.vi, "41" DeleteOrder.vi,
-           "42, 43, 48" Trade.vi).
-   NOW     The "0, Default" frame (labelled "Other/Unsupported") is empty: its output
-           tunnel is unwired and the tunnel is set to "Use Default If Unwired", so the
-           frame emits the default OrderBook.Command, type 0, which the host decodes as
-           Time. Every PITCH type without a VI (0x2C Trade Break, 0x2D End of Session,
-           0x2E Symbol Mapping, 0x31 Trading Status, 0x97 Unit Clear, 0xBC/0xBD/0xBE
-           auctions/RPI) therefore looks like a Time message. The selectors of this case
-           are shown in hex ("20", "21, 22, 2F", ...).
-   CHANGE  In the "0, Default" frame drop an orderbook.command.ctl constant (from the
-           project, so it is the typedef), drop a Bundle By Name on it, select the `type`
-           element and wire an orderbook.command.type constant set to Unsupported (needs
-           item 1 first). Wire the Bundle By Name output to the frame's output tunnel. The
-           tunnel can keep "Use Default If Unwired" (nothing else is unwired) but the
-           cleaner option is to turn it off once every frame is wired. No sub-VI, flags
-           all false.
-   CHECKED 2026-10-09 (lvkit --format lvnet, which shows the wiring): frame "0, Default"
-           holds an orderbook.command.ctl constant wired into a Bundle By Name whose `type`
-           input is an orderbook.command.type constant = Unsupported (11), and the Bundle
-           By Name output feeds the frame's output tunnel. Correct as wired; only the
-           export/sim check remains.
-   SIM 2026-10-11: type-0 records = 7 = the Time messages in each pcap, so nothing falls
-           into the default frame by accident. A pcap with 0x2C/0x2D/0x2E/0x31 messages is
-           still needed to see an 11 (none of the three test pcaps has one).
-   SIM 2026-10-12 (19:37 export): tests/data/unsupported_repro.pcap (made by
-           scripts/make_unsupported_pcap.py: the multi pcap with 0x2D End of Session, 0x2C
-           Trade Break and 0x31 Trading Status spliced into frame 10 after its first message,
-           later sequence numbers shifted by 3) -> 20/20 headers, 662/662 records, 662/662
-           content; the three records are type 11 with every other field 0 (seq 329-331) and
-           the AddOrder behind them (seq 332, ORID0348) is decoded correctly. Type-0 count
-           stays 7 = the Time messages. Fixed.
-   CHECK   Sim: eval_sim.py counts type 11 records for 0x2C/0x2D/0x2E/0x31 messages (the
-           multi pcap has none, so also check that no record reports type 0 except the
-           real 0x20 Time messages: 20 per pcap).
-
-🟢🟢 3. Preserve remainders longer than 8 bytes (orderId corruption 'OR\0D0204')   -- SIM OK 2026-10-11, remove
-   WHERE   submodules/Market.Data.Bats.Parser/fpga/compress.buffer.vi, called twice from
-           bats.parser.vi: in Read.Sequenced.Unit.Header (start.idx = 8, after the header is
-           parsed) and in Read.Msg (start.idx = message length, after a message is emitted).
-   NOW     The VI moves the bytes after the consumed message to the top of buffer.out, but
-           it rebuilds buffer.out[0] ONLY. On the diagram: the Case Structure on
-           Equal To 0?(Remainder.idx) has one Replace Array Subset per frame, both writing
-           index 0 of the 9-element zero constant. The unaligned (False) frame also sizes
-           its second-word mask with Remainder.len (= buffer.length AND 7), which assumes
-           buffer[Word+1] is the last word of the buffer. (Remainder.idx, Word and
-           Remainder.len are the three indicators on the front panel: start.idx AND 7,
-           start.idx >> 3 and buffer.length AND 7.)
-           Both assumptions hold while the remainder is < 8 bytes, which is the normal case
-           (one 8-byte word added per cycle, one message consumed per cycle). They break
-           when a message was ALREADY complete before this cycle's word was added: the
-           parser is one message behind, the remainder is 9..15 bytes, and bytes 8.. of it
-           are dropped (buffer.out[1] stays 0). Trigger: a 6-byte message (Time, End of
-           Session, Unit Clear) following a 6- or 7-byte leftover. Observed once per test
-           pcap (multi frame 9 msg 24, repro msg 93): OrderExecuted orderId 'OR\0D0204'.
-           The bit-exact model reproduces it: ip_export/netlist_sim/compress_fix_proto.py.
-   READY   compress.buffer.generated.vi (LabVIEW 2020 file, same connector pane 4815:
-           buffer 11, buffer.length 10, start.idx 9 -> buffer.out 3, buffer.length.out 2)
-           is in the same directory, in the repo clone and in the OneDrive tree. Built
-           2026-10-07 from tools/labview-aixml/gen_compress_buffer_vi.py (AIXML in
-           compress.buffer.xml) and verified: 79 vectors run in LabVIEW 2026 and the
-           pcap case re-run in LabVIEW 2020 all match the model, which decodes both pcaps
-           with 0 content mismatches (the old function: 1 each).
-           What it computes, in the names used on its diagram (free labels explain each
-           block):
-             diff   = buffer.length - start.idx          -> buffer.length.out (unchanged)
-             s      = start.idx AND 7                    (Remainder.idx)
-             widx   = start.idx >> 3                     (Word)
-             w0..w3 = Index Array(buffer, widx) with 4 outputs (past the end reads 0)
-             Case on Equal To 0?(s):
-               True  (aligned):  raw_k = w_k                              k = 0, 1, 2
-               False:            raw_k = (w_k << 8s) OR (w_k+1 >> 8(8-s))  k = 0, 1, 2
-                                 = the two Logical Shifts the old VI did for w0/w1,
-                                   repeated for w1/w2 and w2/w3
-             mask_k (outside the case, per word): Select chain on diff
-               diff >= 8(k+1) -> all ones         (whole word valid)
-               diff <= 8k     -> 0                (nothing left for this word)
-               otherwise      -> all ones << 8*(8(k+1)-diff)   (top diff-8k bytes)
-             buffer.out[k] = raw_k AND mask_k, written with three Replace Array Subset
-             (index 0, 1, 2) into the 9-element zero constant.
-           No shift amount ever reaches 64, so it does not depend on how Logical Shift
-           saturates. The masks also stop stale bytes beyond buffer.length from leaking
-           (they exist since the eof clear sets buffer.length to 0 without zeroing the
-           words); the old VI leaked them when diff was 0 or 1 in the unaligned frame.
-   CHANGE  Either (a) in bats.parser.vi right-click each of the two compress.buffer.vi
-           sub-VI nodes -> Replace -> All Palettes... -> Select a VI... ->
-           compress.buffer.generated.vi (the pane is identical, so the wires stay), or
-           (b) in the project rename compress.buffer.vi -> compress.buffer.old.vi and
-           compress.buffer.generated.vi -> compress.buffer.vi, then let the parser relink
-           (it will ask once). Option (b) keeps the test VIs in fpga/tests/
-           (test.compress.buffer.vi, compare.compress.buffer.results.vi) pointing at the
-           new code without edits. Delete the old VI from the project when done.
-           Cosmetics after the swap: the generated diagram is wide (about 2700 px); run
-           Clean Up Diagram and move the three mask blocks under the case if you want. The
-           VI has no icon yet; copy compress.buffer.vi's icon via the icon editor if you
-           care. Reentrancy/inlining are LabVIEW defaults; set them like the old VI if the
-           compile complains (the old one was non-reentrant, inlinable).
-   COST    Four more 64-bit variable shifters than before (6 vs 2) plus three constant-mask
-           shifters. Timing closed at WNS +0.035 ns before the 2026-10-05 netlist, on the
-           FIFO -> parser -> FIFO path, so check WNS after the next xsa build. If it fails:
-           register the parser output with one Feedback Node, or fall back to Fix B
-           (do not pop the FIFO word in a cycle where buffer.length >= message length
-           already; then the remainder never exceeds 8 bytes and the old VI is correct).
-   CHECKED 2026-10-09: both call sites in bats.parser.vi (header state and Read.Msg) now
-           call compress.buffer.generated.vi; compress.buffer.vi is no longer referenced by
-           the parser (only by fpga/tests/*, see item 13). The generated VI itself is
-           byte-identical to the delivered one (not rebound to the typedefs yet, item 14).
-   SIM 2026-10-11: 203/203 and 659/659 with zero orderId mismatches (was one each).
-           WNS still to be seen in the next xsa build (see COST).
-
-🟢🟢 4. 6-character symbols byte-reversed in AddOrder long/short   -- OPTION A, SIM OK 2026-10-11, remove
-   WHERE   submodules/Market.Data.Bats.Parser/fpga/message.types/AddOrder.vi, case frames
-           "33" (0x21 long) and "34" (0x22 short). Frame "47" (0x2F expanded, 8-char symbol)
-           is correct and stays as it is. The PITCH Symbol field is 6 bytes in 0x21/0x22
-           and 8 bytes in 0x2F/0x30; the standard did not change.
-   CAUSE   new.uxx.be.vi chops Length bytes out of the buffer (stream byte 0 in the MSB of
-           the U64) and then, in its Big.Endian? = False frame, has one inner frame per
-           Length. The Length 8 frame reverses all 8 bytes (Split Number -> Swap Bytes x2
-           -> Join Numbers -> Swap Words, twice, -> Join Numbers), so a little-endian host
-           read gives the stream order: 'MSFT    '. The Length 6 frame does NOT reverse:
-           it keeps the 6 bytes in place and joins 0x2020 below them, so the host reads
-           '    ALST'. (Oddly the Big.Endian? = True Length 6 frame is the one with the
-           reversal; it looks like the two were written for the wrong side. Nothing calls
-           the True side with Length 6.)
-   CHECKED 2026-10-11: AddOrder.vi frames 33 and 34 now have Length 8 on the symbol read,
-           And mask6 = 0xFFFFFFFFFFFF, Or pad = 0x2020000000000000, Or output into the
-           symbol tunnel (lvnet). Option A complete; new.uxx.be.vi untouched. Only the
-           export check remains.
-   (older) 2026-10-09: frames 33 and 34 read the symbol with Length 8 (constants 19/8
-           and 17/8) but the And/Or pair is missing, so the low two bytes of the symbol
-           word are the first two price bytes: 'GE    ' + 2 binary bytes. The filter's
-           ticker lookup compares the whole U64, so 0x21/0x22 orders for a 6-char symbol
-           would never match the ticker table and would be dropped - worse than today.
-           Finish it one of these two ways.
-
-   OPTION A - finish the workaround (3 nodes per frame, new.uxx.be.vi untouched)
-     1. Keep Length = 8 on the symbol call in frames 33 and 34 (the price follows the
-        symbol, so the two extra bytes are in the buffer and the Length 8 frame reverses
-        them along with the symbol into the LOW two bytes of the result).
-     2. On that call's Out.Value U64 wire add
-          And  with a U64 constant 0x0000FFFFFFFFFFFF  (= 281474976710655): drops the two
-               price bytes
-          Or   with a U64 constant 0x2020000000000000  (= 2314850208468434944): puts two
-               spaces in their place
-        and wire the Or output to the symbol element of the Bundle. Set the constants'
-        display format to hex. Trade.vi frames 42 and 43 have exactly these three nodes;
-        copy them. message.types/AddOrder.generated.vi is this option already done (plus
-        the Add flag and the item 9 price scale).
-
-   OPTION B - fix new.uxx.be.vi so Length 6 behaves like Length 8 (the "proper" fix)
-     1. Open new.uxx.be.vi, outer case Big.Endian? = False ("Little Endian"), inner frame
-        "6" ("Keep first 6 bytes - and pad with spaces (0x20)"). Delete its contents (the
-        Split/Join chain and the U16 0x2020 constant).
-     2. Copy the whole contents of inner frame "8" ("Keep all 8 bytes - and reverse": two
-        Split Number, four Swap Bytes, three Join Numbers, two Swap Words) into frame "6"
-        and wire the frame's input/output tunnels the same way.
-     3. After the final Join Numbers add
-          And  with U64 0x0000FFFFFFFFFFFF   (the two unused bytes, which the root logic
-               should already have zeroed, land in the top two bytes after the reversal;
-               the And makes that certain)
-          Or   with U64 0x2020000000000000   (space padding in the top two bytes)
-        and wire the Or to the frame's output tunnel.
-     4. AddOrder.vi frames 33 and 34: set the symbol Length constants back to 6 (19/6 and
-        17/6), wire Out.Value U64 straight to the Bundle as before; remove the "Length is
-        incorrect" comment.
-     5. Trade.vi frames 42 and 43 (Length 8 + And/Or) keep working unchanged, because the
-        Length 8 frame is untouched; change them to Length 6 without the mask only if you
-        want the VIs uniform. The .generated.vi files can be regenerated for Length 6 on
-        request (gen_message_vi.py: sym6 -> plain 6-byte read).
-     6. Every other caller of new.uxx.be.vi uses Length 1, 2, 4 or 8, so nothing else
-        changes. If the Big.Endian? = True Length 6 frame is ever needed, give it the
-        non-reversing version (what the False frame has today) - today's True frame is
-        the reversed one.
-
-   SIM 2026-10-11: eval_sim.py now compares the symbol of every 0x21/0x22/0x2A/0x2B/0x2F/
-           0x30 record; 0 mismatches in 862 messages (the old export scores 397/659 on the
-           same check).
-   CHECK   Both options: run new.uxx.be.vi (or AddOrder.vi) on the 0x21 message for GE in
-           tests/data: the symbol U64 must be 0x2020202020204547 (= 'GE      ' read as
-           little-endian text; the host shows it as 'GE      '). Sim after the export:
-           eval_sim.py checks the symbol of every Add/Trade variant; all must read
-           'XXXXXX  ' left-aligned (today 0x21/0x22 show '      EG', '    ALST').
-
-
-B. Parser robustness (needed for a live feed, not for the test pcaps)
----------------------------------------------------------------------
-🟢🟢 5. + 6. (eof clears in the header state and in Read.Msg when the message is incomplete)
-   ALREADY DONE and in the 2026-10-05 export - my list was stale. The committed bats.parser.vi (3d3523d) already has
-   both: in Read.Sequenced.Unit.Header, buffer.length < 8 frame, a Select (t = 0,
-   s = eof.good OR eof.bad, f = buffer.length) feeds buffer.length; in Read.Msg,
-   buffer.length < message length frame, the same Select on buffer.length plus the one
-   on the next state. Only the hardware check remains if you want it: send a truncated
-   frame with scripts/send_pcap_udp.py and confirm the next frame's header record (DEBUG)
-   shows the right length. Removed from the list.
-
-🟢🟢 7. Heartbeats (Sequenced Unit Header with count 0, length 8)   -- SIM OK 2026-10-11, remove
-   CHECKED 2026-10-11 10:47 (lvkit lvnet of bats.parser.vi): in Read.Sequenced.Unit.Header,
-           buffer.length >= 8 branch, the next-state Select now takes
-           (eof.good OR eof.bad) OR (hdr.length == 0) -> t = Read.Sequenced.Unit.Header,
-           f = Read.Msg (the Or you added feeds Select_6164; before it was only the == 0
-           test). That is the only diagram change between the 01:22 and 10:47 saves.
-           Why it works without the "== 8" test: a heartbeat is one 8-byte UDP payload, so
-           its header word is also the eof word (NI's Find IPv4 Subframe drops the Ethernet
-           pad to 60 bytes, so no pad bytes follow). The state stays in Header and
-           compress.buffer.generated(start 8, length 8) leaves buffer.length 0. A data
-           frame's header word never carries eof, so it still goes to Read.Msg.
-           Not done (optional hardening): buffer.length in that branch is not forced to 0
-           on eof (the L < 8 branch and Read.Msg both do that with a Select). Only matters
-           for a malformed frame that ends with 9..15 bytes of header+junk; standard
-           heartbeats are fine.
-   WHERE   bats.parser.vi, state Read.Sequenced.Unit.Header, the buffer.length >= 8 frame
-           (where the header is parsed and the state moves to Read.Msg).
-   NOW     (before the fix) A heartbeat (a live Cboe feed sends one per second per unit)
-           parses as a header and moves the parser to Read.Msg with an empty buffer; the
-           next frame's header is then parsed as a message.
-   CHANGE  (done as above; the original suggestion was Equal?(hdr.length, 8) OR eof.good OR
-           eof.bad -> Select next state and Select buffer.length := 0.)
-   CHECK   tests/data/heartbeat_repro.pcap (made 2026-10-11 by scripts/make_heartbeat_pcap.py
-           from the 20-frame multi pcap: 6 real-wire 60-byte heartbeats - before frame 1,
-           before 5, two in a row before 10, before 15, one after the last; 26 frames,
-           659 messages, listing in heartbeat_repro.txt). After the next export:
-             cd ip_export/netlist_sim && python3 gen_frames.py frames.txt \
-               ../../tests/data/heartbeat_repro.pcap && ./run.sh && \
-               python3 eval_sim.py sim_out.txt ../../tests/data/heartbeat_repro.pcap
-           Pass = 659/659 CMD records and every data frame after a heartbeat decoded.
-           BASELINE on the 2026-10-05 export (run 2026-10-11, 1 min): 804 CMD records for
-           659 messages, 147 correct, the header of frame 13 (data after the double
-           heartbeat) parsed as length 973 - i.e. the pcap reproduces the bug; the fix is
-           confirmed when this run comes back clean.
-           RESULT with the 14:22 export: 26/26 headers (all six heartbeats parsed as length-8
-           headers, the double one too), 659/659 messages, content identical to the plain
-           multi run. Fixed.
-           eval_sim.py now reads the UDP length (ignores the Ethernet pad) and matches
-           header records by sequence number allowing duplicates (a heartbeat carries the
-           sequence of the frame that follows it).
-
-⚪⚪ 8. Known edge case, decide later (no fix yet): the eof clear in Read.Msg (buffer.length >=
-   message length frame) also fires when two 6-byte messages end a frame and the parser is
-   one message behind, dropping the last one. Only consecutive Time/End-of-Session/Unit-
-   Clear messages at a frame end are affected. A clear on `done` alone (count reached)
-   avoids it but leaves junk after a malformed frame; item 3's VI makes a clear-on-done
-   safe again as long as items 5/6 clear on eof in the other two frames.
 
 
 C. Normalized format / correctness
 ----------------------------------
-🟢🟢 9. Price scale is inconsistent between short and long variants   -- SIM OK 2026-10-11, remove
-   WHERE   message.types/AddOrder.vi frame "34" (0x22), ModifyOrder.vi frame "40" (0x28),
-           Trade.vi frame "43" (0x2B): the price is read with Length 2.
-   NOW     PITCH short prices have 2 implied decimals, long ones 4. The short frames pass
-           the raw value through, so 52.10 arrives as 5210 from a short message and as
-           521000 from a long one.
-   READY   AddOrder.generated.vi, ModifyOrder.generated.vi and Trade.generated.vi multiply
-           the 2-byte price by a U64 constant 100 (node "price scale" in frames 34, 40, 43)
-           so every price leaves the parser with 4 implied decimals. Verified: 0x22 AAPL
-           186.61 -> 1866100 next to 0x21 GE 58.30 -> 583000. If you prefer the wire value,
-           regenerate with `gen_message_vi.py ... --unscaled`.
-   BY HAND In each of the three frames, Multiply the U64 price by a U64 constant 100 before
-           the To Unsigned Quad Integer / Bundle. Do all three in the same edit and write
-           "price: 4 implied decimals" into the description of orderbook.command.ctl's
-           price element (right-click -> Description and Tip). Alternative: move every
-           price to 1e-9 units like CME/Databento (multiply long by 100000, short by
-           10000000) - only if the host side is changed at the same time.
-   CHECKED 2026-10-11 13:23: AddOrder.vi frame 34, ModifyOrder.vi frame 40 and Trade.vi
-           frame 43 all multiply the 2-byte price by a U64 constant 100 ("price_scale")
-           before the Bundle (lvnet). ModifyOrder.vi and Trade.vi now have the same
-           diagram as their .generated.vi (ModifyOrder.vi keeps the old 10-item bare enum,
-           harmless: values 5/6 unchanged, see item 14). The parser calls the three hand
-           VIs. From the next export on, score with --short-price-scale 100. Note on width: the
-           Multiply is U64 x U64; converting U16 -> U32, multiplying by a U32 100 and
-           widening afterwards gives two ~23-bit adders instead of two 64-bit ones (see
-           item 3 COST for why the parser cycle is tight). eval_sim: until all three are
-           done, expect 0x28/0x2B price mismatches with --short-price-scale 100 (or 0x22
-           mismatches without it).
-   SIM 2026-10-11: with --short-price-scale 100 every 0x21/0x22/0x27/0x28/0x2A/0x2B/0x2F/
-           0x30 price matches (0 price mismatches in 862 messages). Use that flag from now on.
-   CHECK   eval_sim.py now checks the price of every Add/Modify/Trade variant; run it with
-           `--short-price-scale 100` once the generated VIs are in the export (default 1
-           scores the current export unchanged). apps/poc_inject/decode_capture.py prints
-           the raw CMD word, so nothing to change there until a human-readable price is
-           wanted (then divide by 10000).
-
 🟡⚪ 10. recv.time / parse.time: tick is 6.4 ns, the Register read stays, decide the latch
    REWRITTEN 2026-10-11 22:00 after exporting poc.ip.kria.vi to AIXML (which shows which Timed
    Loop each node is in) and measuring the counter in the 19:37 netlist sim. The earlier text
@@ -489,51 +185,6 @@ C. Normalized format / correctness
    HOST    Done 2026-10-11: TICK_NS = 6.4 in apps/poc_inject/decode_capture.py, TICK = 6.4 in
            eval_sim.py (latency printed with one decimal); CLAUDE.md stream-format note fixed.
 
-🟢🟢 11. DEBUG stream floods its FIFO   -- SIM OK 2026-10-11, remove: one 4-word record per INPUT WORD while in Read.Msg
-    (not per message), so on dense traffic the FIFO overflows and header records are dropped
-    (13 of 20 in the 2026-10-05 sim). Record census of that sim: 1522 DEBUG records = 1508
-    Read.Msg records (marker 0x99 in word 3), 13 headers (0xDE), 1 reset (0xAAAB); the
-    0xAAAA/0xBBBB "waiting" records never actually appear, because the parser body only runs
-    when a word arrives and a header is exactly one word.
-    DONE    (seen in the 01:22 save) the two waiting records (0xAAAA in the Header state's
-            L < 8 frame, 0xBBBB in Read.Msg's buffer.length = 0 frame) now bundle
-            write := False. Harmless but, per the census, not what was flooding.
-    WHERE   bats.parser.vi, state Read.Msg, buffer.length > 0 frame, the Bundle By Name that
-            writes the debug cluster right next to the CMD "FIFO Method Node" (its data is
-            the Build Array [first 8 bytes of the message, 0, 0, 0x99]). Its `write` input
-            is a True constant - that is the flood: True every cycle a word lands.
-    HOW TO DETECT the two events (both booleans already exist on the diagram):
-            header parsed  = the selector of the Case in Read.Sequenced.Unit.Header,
-                             "buffer.length >= 8" (Greater Or Equal? on the
-                             add.data.to.buffer length output). The header debug record is
-                             already written only inside that frame -> nothing to change.
-            message emitted = in Read.Msg, the Greater Or Equal? that compares
-                             buffer.length (add.data.to.buffer length output, x) with the
-                             message length byte (To U8 of new.uxx.be(offset 0, length 1),
-                             y). Its output is ALREADY the Input Valid of the CMD FIFO
-                             write and the selector of the Case that advances Total
-                             Counter / resets the state, i.e. it is true exactly in the
-                             cycle a message is emitted.
-    CHECKED 2026-10-11 13:17 (lvnet): that Bundle By Name's `write` input is now wired from
-            the Greater Or Equal? output (same wire as the CMD FIFO write's Input Valid);
-            the True constant is gone. Only this one wire changed between the 10:47 and
-            13:17 saves. Done; the export check remains.
-    CHANGE  (done) Delete the True constant on `write` of that debug Bundle By Name and wire the
-            Greater Or Equal? output (the same wire that goes to the CMD FIFO write's Input
-            Valid) into it. One wire. Result: one DEBUG record per message + one per header
-            (~680 records for the 20-frame pcap instead of 1500+), no FIFO overflow.
-            Optional: the Reset frame writes one record (0xAAAB, 0, 1, 2) per cycle while
-            reset is held; leave it, the FIFO is cleared on reset.
-    SIM 2026-10-11: 2720 DEBUG lines = 680 records for 659 messages + 20 headers + 1
-            reset; 20/20 and 26/26 headers, no dropped records. Fixed.
-    CHECK   Netlist sim of the 20-frame pcap: eval_sim.py must report 20/20 headers with no
-            "not in DEBUG stream (dropped records)" list, and the DEBUG line count in
-            sim_out.txt drops to about 4 x (messages + frames). eval_sim.py already
-            matches headers by sequence number, so nothing on the host breaks.
-
-🟢➖ 12. Reentrancy: bats.parser.vi and fpga/poc.ip.kria.vi are both "Preallocated clone"
-    again in the working copy (checked 2026-10-11). Done; remove at the next clean-up.
-
 
 D. Housekeeping in the LabVIEW project
 --------------------------------------
@@ -564,111 +215,13 @@ D. Housekeeping in the LabVIEW project
       are still on disk; they can be deleted here too once your deletions are committed
       and pulled (git will not remove untracked files on pull).
 
-🟢➖ 14. (DONE 19:12) Rebind the generated VIs to the typedefs. All *.generated.vi carry bare constants and
-    indicators (OrderBook.Command cluster, the 12-item type enum, the 9-element U64 array)
-    because AIXML cannot express typedefs. For each: right-click the constant/indicator ->
-    Replace -> Select a Control... -> the .ctl (orderbook.command.ctl /
-    orderbook.command.type.ctl under Market.Data.Common/fpga). Values are kept. Optional,
-    but after it a change to the typedef propagates and the coercion dots disappear.
-    CHECKED 2026-10-11 19:12: ModifyOrder.vi, Trade.vi and DeleteOrder.vi now have an
-    orderbook.command.ctl constant, an orderbook.command.type.ctl constant and a typedef'd
-    output (lvnet shows `orderbook.command` on the Bundle By Name and the indicator). With
-    AddOrder, OrderExecuted, Time and ReduceSize that is every message VI. No bare copies of
-    the cluster remain in the parser tree. Done.
 
-🟢➖ 15. After the typedef gains Trade/Unsupported (item 1):   -- host side done 2026-10-11
-    - apps/poc_inject/decode_capture.py: DONE 2026-10-11 - CMD_TYPE_NAMES (0..11 incl.
-      Trade, Unsupported) printed next to the type number, MSG_TYPES extended to 0x25-0x30.
-    - submodules/Market.Data.Filter/fpga/filter.filter.other.vi: checked 2026-10-07. Its
-      type case is "OrderExecuted, Default" / OrderExecutedAtPrice / ReduceSize /
-      ModifyOrder / DeleteOrder, so a Trade or Unsupported record whose orderId is found
-      in the book takes the OrderExecuted path: Quantity -= executed.qty (0 for both), the
-      order is written back unchanged and deleted only if its quantity was already 0. An
-      orderId that is not in the book (Unsupported has 0; a Trade's id is normally not an
-      open order) is dropped. So no change is required; an explicit "Trade, Unsupported"
-      frame that skips the memory write would only save the redundant write.
-
-
-🔴⚪ 18. Timing closure of the 19:37 export fails: WNS -4.616 ns (clean build 2026-10-12)
-    RESULT  Vivado 2024.1, JOBS=2, 2026-10-12 15:20-15:38: setup WNS -4.616 ns, TNS -792 ns,
-            722 failing endpoints, every one in clk_pl_0 (the 100 MHz parser loop); hold and
-            pulse width clean. History: +0.863 (Jul), +0.127 (09-11), +0.031 / +0.364 (09-17),
-            +0.035 ns (09-23 export). Every failing path starts at the input CDC FIFO read
-            (FPGAwFIFOn4, the 156 -> 100 MHz FIFO poc.ip.kria.vi reads before the parser).
-            Full worst-path listing: docs/kr260/timing_2026-10-12_fail.txt.
-    CAUSE A 128 paths run input FIFO -> message decode -> a DSP48E2 multiplier cascade (the
-            U64 x U64 "price_scale" Multiply of item 9 in AddOrder/ModifyOrder/Trade: 4 DSP
-            stages, ~4.5 ns on their own) -> CMD FIFO data. Worst -4.616 ns, 31-34 logic
-            levels, 13.9 ns of data delay in a 10 ns budget. A 64x64 multiply can never sit in
-            series with the decode in one 100 MHz cycle.
-    CAUSE B 594 paths have no multiplier: input FIFO -> add.data.to.buffer /
-            compress.buffer.generated shifters and masks -> the parser's state Feedback Node
-            (bits of the 9-word buffer) or the CMD/DEBUG FIFO write data. Worst -1.954 ns,
-            24-26 levels. This is the item 3 COST (6 variable 64-bit shifters instead of 2)
-            landing on a path that only had +0.035 ns of margin. Fixing A alone leaves ~-2 ns.
-    FIX A   (pick one; the first is the smallest LabVIEW edit)
-            a0. (REFERENCE VIs BUILT 2026-10-14) AddOrder/ModifyOrder/Trade.generated.vi beside
-                the originals in message.types/ (repo + OneDrive) show the x100 done as
-                (p<<6)+(p<<5)+(p<<2) on U32 - three Logical Shift + two Add, no DSP - with
-                results identical to the Multiply on 32 pcap messages. Copy that group into
-                frame 34 / 40 / 43 of the hand VIs (keep the typedefs); nothing on the host
-                changes (eval_sim.py keeps --short-price-scale 100).
-            a1. Take the x100 out of the FPGA: delete the Multiply + constant in AddOrder.vi
-                frame 34, ModifyOrder.vi frame 40, Trade.vi frame 43 (or regenerate with
-                gen_message_vi.py ... --unscaled) and let the host scale short prices
-                (eval_sim.py default --short-price-scale 1; decode_capture.py gets a note).
-            a2. Keep 4 implied decimals but do it narrow: multiply the 2-byte price as U16 ->
-                U32 by a U32 100 BEFORE widening (one DSP, ~3 ns) - probably still too slow
-                in series with the decode; only safe together with a3.
-            a3. Pipeline it: put the multiply (or the whole OrderBook.Command bundle) behind a
-                Feedback Node so the CMD FIFO write happens one parser cycle later. Costs one
-                cycle of latency per message, no throughput change.
-    FIX B   (the compress.buffer cost)
-            b0. (REFERENCE VI BUILT 2026-10-14) submodules/.../fpga/bats.parser.generated.vi (repo +
-                OneDrive) is the parser rebuilt from its AIXML export with the two FPGA FIFO writes
-                replaced by FIFO.WRITE.vi calls (constants TS-Filter.Command / TS-Debug + Data
-                Type). It is for looking at / editing-and-regenerating on My Computer, not for the
-                FPGA target; tools/labview-aixml/parser_export_to_generated.py rebuilds it.
-            b1. "Fix B" from item 3: in bats.parser.vi do not pop the input FIFO in a cycle in
-                which buffer.length >= the buffered message's length (the parser is already a
-                message behind). Then a remainder never exceeds 8 bytes, compress.buffer.vi
-                (the old 2-shifter one) is correct again and the 09-23 timing (+0.035 ns)
-                comes back. The FIFO has 4096 words of slack for the stall; throughput of the
-                parser does not change (it still emits at most one message per cycle).
-            b2. Or pipeline compress.buffer.generated.vi (register raw_k/mask_k) - but it sits
-                inside the buffer feedback loop, so that halves the parser's word rate; avoid.
-            Either way also consider the recommendations.txt playbook (docs/kr260/): the
-            parser's data-dependent 64-bit barrel shifters on the whole buffer are the
-            structural reason the margin was ~0 before any of this.
-    CHECK   `make xsa-clean && make xsa JOBS=2` detached; read WNS in
-            vivado/mktdata_poc/mktdata_poc.runs/impl_1/*_timing_summary_routed.rpt. To list
-            the failing paths of a build: open the routed .dcp in Vivado batch and run
-            report_timing -slack_lesser_than 0 -max_paths 1000 -nworst 1 -unique_pins; the
-            "Logic Levels" line of each path names DSP_MULTIPLIER when the multiply is in it.
-
-
-E. This machine / board (manual, not LabVIEW)
----------------------------------------------
-🟢➖ 16. (DONE 2026-10-11: both directories are gone) LabVIEW 2026: C:\Program Files\National Instruments\LabVIEW 2026\user.lib\LV_MCP\ holds
-    the placeholder stub VI the labview-mcp plugin created ("LVMCP Stub a1799e0563.vi").
-    Safe to delete; it is recreated on demand. C:\work\fpganow\lvgen\ is the scratch tree
-    used to build the *.generated.vi files (2026 originals, AIXML, renders, lv2020/ copies,
-    the set_terminals_small helper); safe to delete, the sources of record are
-    tools/labview-aixml/.
-
-🟢➖ 17. tmux/Claude Code: ~/my_files/bash_profile.sh exported CLAUDE_CODE_DISABLE_MOUSE=1
-    (file has CRLF line endings). Checked 2026-10-11: the line is commented out (wheel
-    scrolling inside Claude Code; use shift-drag or tmux copy mode for text selection).
-    Done; takes effect in new shells. Claude Code is set to the
-    classic renderer (tui = default) so tmux scrollback holds the conversation.
-
-
-Done since this list was first drafted (removed from the list above)
+B. Parser robustness (needed for a live feed, not for the test pcaps)
 ---------------------------------------------------------------------
-- Reader.vi pad beat for frames ending in 7/8 valid bytes; parser end-of-frame clear in
-  Read.Msg; frame-boundary bug verified fixed in sim and on the 10G cable (2026-09-23).
-- Message-type VIs for 0x24-0x30 generated, verified, wired into bats.parser.vi frames
-  "37, 38", "39, 40", "41", "42, 43, 48"; OrderExecuted.vi frame 36 completed by hand;
-  exported 2026-10-05 and simulated 2026-10-06 (all 862 test messages decoded).
-- compress.buffer.generated.vi built and verified 2026-10-07 (item 3 now only needs the
-  swap in bats.parser.vi).
+⚪⚪ 8. Known edge case, decide later (no fix yet): the eof clear in Read.Msg (buffer.length >=
+   message length frame) also fires when two 6-byte messages end a frame and the parser is
+   one message behind, dropping the last one. Only consecutive Time/End-of-Session/Unit-
+   Clear messages at a frame end are affected. A clear on `done` alone (count reached)
+   avoids it but leaves junk after a malformed frame; item 3's VI makes a clear-on-done
+   safe again as long as items 5/6 clear on eof in the other two frames.
+
