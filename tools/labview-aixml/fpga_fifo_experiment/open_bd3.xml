@@ -1,0 +1,43 @@
+<VI _name="open_bd3.vi" description="Opens the project at project path\2C finds the project item named vi name\2C loads that VI in its target context\2C lists every object on its block diagram (class name\2C left\2C top)\2C runs Clean Up Diagram\2C saves the VI\2C opens its block diagram window and holds it open for hold ms milliseconds so a screenshot can be taken.">
+  <Control _name="project path" conIdx="11" connection="recommended" type="string" uid="5001" uid_parent="root" value="" outputs="value:5001.value"/>
+  <Control _name="vi name" conIdx="10" connection="recommended" type="string" uid="5003" uid_parent="root" value="fifo_scratch.vi" outputs="value:5003.value"/>
+  <Control _name="hold ms" type="int32" uid="5004" uid_parent="root" value="25000" outputs="value:5004.value"/>
+  <Node _name="String To Path" inputs="string:5001.value" outputs="path:5100.path" uid="5100" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Project.Open" type="{LV.Application}" inputs="reference:,error in (no error):,Path:5100.path" outputs="reference out:,error out:5101.err,Project.Open:5101.proj" uid="5101" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Root" type="{LV.Project}" inputs="reference:5101.proj,error in (no error):5101.err" outputs="Root:5102.root,reference out:,error out:5102.err" uid="5102" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Get All Descendents" type="{LV.ProjectItem}" inputs="reference:5102.root,error in (no error):5102.err,Type:,Exclude Dependencies:,ExcludeBuilds:,ExcludeTargets:" outputs="All Descendents:5103.items,reference out:,error out:5103.err" uid="5103" uid_parent="root"/>
+  <Structure _name="For Loop" count="" maxin="" maxout="" uid="5110" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:5103.items" mode="index" outputs="value:5111.item" uid="5111" uid_parent="5110"/>
+    <Node _name="Property Node" fields="read+Name" type="{LV.ProjectItem}" inputs="reference:5111.item,error in (no error):" outputs="Name:5112.name,reference out:,error out:5112.err" uid="5112" uid_parent="5110"/>
+    <Tunnel _id="Out1" inputs="value:5112.name" mode="index" outputs="value:5113.names" uid="5113" uid_parent="5110"/>
+    <Tunnel _id="Out2" inputs="value:5112.err" mode="index" outputs="value:5114.errs" uid="5114" uid_parent="5110"/>
+  </Structure>
+  <Indicator _name="name read errors" type="array{cluster{bool.status,int32.code,string.source}}" uid="5115" uid_parent="root" value="[]" inputs="value:5114.errs"/>
+  <Node _name="Search 1D Array" inputs="1D array:5113.names,element:5003.value,start index (0):" outputs="index of element:5122.idx" uid="5122" uid_parent="root"/>
+  <Node _name="Index Array" inputs="array:5103.items,index:5122.idx" outputs="element:5123.viitem" uid="5123" uid_parent="root"/>
+  <Indicator _name="vi index" conIdx="2" connection="recommended" type="int32" uid="5125" uid_parent="root" value="0" inputs="value:5122.idx"/>
+  <Node _name="Property Node" fields="read+VI Reference" type="{LV.ProjectItem}" inputs="reference:5123.viitem,error in (no error):5103.err" outputs="VI Reference:5130.vi,reference out:,error out:5130.err" uid="5130" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Block Diagram" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5130.err" outputs="Block Diagram:5131.bd,reference out:,error out:5131.err" uid="5131" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+All Objects[]" type="{LV.Diagram}" inputs="reference:5131.bd,error in (no error):5131.err" outputs="All Objects[]:5132.objs,reference out:,error out:5132.err" uid="5132" uid_parent="root"/>
+  <Structure _name="For Loop" count="" maxin="" maxout="" uid="5140" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:5132.objs" mode="index" outputs="value:5141.obj" uid="5141" uid_parent="5140"/>
+    <Node _name="Property Node" fields="read+Class Name,read+Position\3ALeft,read+Position\3ATop" type="{LV.GObject}" inputs="reference:5141.obj,error in (no error):" outputs="Class Name:5142.class,Position\3ALeft:5142.left,Position\3ATop:5142.top,reference out:,error out:5142.err" uid="5142" uid_parent="5140"/>
+    <Tunnel _id="Out1" inputs="value:5142.class" mode="index" outputs="value:5143.classes" uid="5143" uid_parent="5140"/>
+    <Tunnel _id="Out2" inputs="value:5142.left" mode="index" outputs="value:5144.lefts" uid="5144" uid_parent="5140"/>
+    <Tunnel _id="Out3" inputs="value:5142.top" mode="index" outputs="value:5145.tops" uid="5145" uid_parent="5140"/>
+    <Tunnel _id="Out4" inputs="value:5142.err" mode="index" outputs="value:5146.errs" uid="5146" uid_parent="5140"/>
+  </Structure>
+  <Indicator _name="classes" type="array{string}" uid="5147" uid_parent="root" value="[]" inputs="value:5143.classes"/>
+  <Indicator _name="lefts" type="array{int32}" uid="5148" uid_parent="root" value="[]" inputs="value:5144.lefts"/>
+  <Indicator _name="tops" type="array{int32}" uid="5149" uid_parent="root" value="[]" inputs="value:5145.tops"/>
+  <Indicator _name="object read errors" type="array{cluster{bool.status,int32.code,string.source}}" uid="5150" uid_parent="root" value="[]" inputs="value:5146.errs"/>
+  <Node _name="Invoke Node" target="CleanUp" type="{LV.TopLevelDiagram}" inputs="reference:5131.bd,error in (no error):5132.err" outputs="reference out:,error out:5151.err" uid="5151" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Save.Instrument" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5151.err,Path to saved file:,Save a Copy:,Without Diagram:" outputs="reference out:,error out:5152.err" uid="5152" uid_parent="root"/>
+  <Constant _name="open" type="bool" uid="5153" uid_parent="root" value="true" outputs="value:5153.value"/>
+  <Node _name="Property Node" fields="write+Block Diagram Window\3AOpen" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5152.err,Block Diagram Window\3AOpen:5153.value" outputs="reference out:,error out:5154.err" uid="5154" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Execution\3AState" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5154.err" outputs="Execution\3AState:5155.state,reference out:,error out:5155.err" uid="5155" uid_parent="root"/>
+  <Indicator _name="exec state" conIdx="3" connection="recommended" type="int32" uid="5156" uid_parent="root" value="0" inputs="value:5155.state"/>
+  <Indicator _name="error out" conIdx="0" connection="recommended" type="cluster{bool.status,int32.code,string.source}" uid="5170" uid_parent="root" value="[false,0,]" inputs="value:5155.err"/>
+  <Node _name="Add" inputs="x:5155.state,y:5004.value" outputs="x+y:5160.ms" uid="5160" uid_parent="root"/>
+  <Node _name="Wait (ms)" inputs="milliseconds to wait:5160.ms" outputs="millisecond timer value:" uid="5161" uid_parent="root"/>
+</VI>

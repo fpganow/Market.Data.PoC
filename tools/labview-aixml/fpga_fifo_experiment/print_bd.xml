@@ -1,0 +1,28 @@
+<VI _name="print_bd.vi" description="Opens the project at project path\2C finds the project item named vi name\2C loads that VI in its target context and prints it (Complete format) to html path with PNG images in image dir. Used to picture an FPGA-target VI's block diagram without a window.">
+  <Control _name="project path" conIdx="11" connection="recommended" type="string" uid="5001" uid_parent="root" value="" outputs="value:5001.value"/>
+  <Control _name="vi name" conIdx="10" connection="recommended" type="string" uid="5003" uid_parent="root" value="fifo_scratch.vi" outputs="value:5003.value"/>
+  <Control _name="html path" conIdx="9" connection="recommended" type="string" uid="5004" uid_parent="root" value="" outputs="value:5004.value"/>
+  <Control _name="image dir" conIdx="8" connection="recommended" type="string" uid="5005" uid_parent="root" value="" outputs="value:5005.value"/>
+  <Node _name="String To Path" inputs="string:5001.value" outputs="path:5100.path" uid="5100" uid_parent="root"/>
+  <Node _name="String To Path" inputs="string:5004.value" outputs="path:5106.path" uid="5106" uid_parent="root"/>
+  <Node _name="String To Path" inputs="string:5005.value" outputs="path:5107.path" uid="5107" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Project.Open" type="{LV.Application}" inputs="reference:,error in (no error):,Path:5100.path" outputs="reference out:,error out:5101.err,Project.Open:5101.proj" uid="5101" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Root" type="{LV.Project}" inputs="reference:5101.proj,error in (no error):5101.err" outputs="Root:5102.root,reference out:,error out:5102.err" uid="5102" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Get All Descendents" type="{LV.ProjectItem}" inputs="reference:5102.root,error in (no error):5102.err,Type:,Exclude Dependencies:,ExcludeBuilds:,ExcludeTargets:" outputs="All Descendents:5103.items,reference out:,error out:5103.err" uid="5103" uid_parent="root"/>
+  <Structure _name="For Loop" count="" maxin="" maxout="" uid="5110" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:5103.items" mode="index" outputs="value:5111.item" uid="5111" uid_parent="5110"/>
+    <Node _name="Property Node" fields="read+Name" type="{LV.ProjectItem}" inputs="reference:5111.item,error in (no error):" outputs="Name:5112.name,reference out:,error out:5112.err" uid="5112" uid_parent="5110"/>
+    <Tunnel _id="Out1" inputs="value:5112.name" mode="index" outputs="value:5113.names" uid="5113" uid_parent="5110"/>
+    <Tunnel _id="Out2" inputs="value:5112.err" mode="index" outputs="value:5114.errs" uid="5114" uid_parent="5110"/>
+  </Structure>
+  <Indicator _name="name read errors" type="array{cluster{bool.status,int32.code,string.source}}" uid="5115" uid_parent="root" value="[]" inputs="value:5114.errs"/>
+  <Node _name="Search 1D Array" inputs="1D array:5113.names,element:5003.value,start index (0):" outputs="index of element:5122.idx" uid="5122" uid_parent="root"/>
+  <Node _name="Index Array" inputs="array:5103.items,index:5122.idx" outputs="element:5123.viitem" uid="5123" uid_parent="root"/>
+  <Indicator _name="vi index" conIdx="2" connection="recommended" type="int32" uid="5125" uid_parent="root" value="0" inputs="value:5122.idx"/>
+  <Node _name="Property Node" fields="read+VI Reference" type="{LV.ProjectItem}" inputs="reference:5123.viitem,error in (no error):5103.err" outputs="VI Reference:5130.vi,reference out:,error out:5130.err" uid="5130" uid_parent="root"/>
+  <Constant _name="Format" outputs="value:5131.value" type="uint16{Custom,Standard,Using Panel,Using SubVI,Complete}" uid="5131" uid_parent="root" value="4"/>
+  <Node _name="Invoke Node" target="Print.VI To HTML" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5130.err,HTML File Path:5106.path,Format:5131.value,Image Directory:5107.path" outputs="reference out:,error out:5132.err" uid="5132" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Execution\3AState" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5132.err" outputs="Execution\3AState:5133.state,reference out:,error out:5133.err" uid="5133" uid_parent="root"/>
+  <Indicator _name="exec state" conIdx="3" connection="recommended" type="int32" uid="5134" uid_parent="root" value="0" inputs="value:5133.state"/>
+  <Indicator _name="error out" conIdx="0" connection="recommended" type="cluster{bool.status,int32.code,string.source}" uid="5170" uid_parent="root" value="[false,0,]" inputs="value:5133.err"/>
+</VI>

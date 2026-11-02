@@ -1,0 +1,21 @@
+<Item Name="EXP-Fifo" Type="FPGA FIFO">
+				<Property Name="Actual Number of Elements" Type="UInt">1029</Property>
+				<Property Name="Arbitration for Read" Type="UInt">1</Property>
+				<Property Name="Arbitration for Write" Type="UInt">1</Property>
+				<Property Name="Control Logic" Type="UInt">1</Property>
+				<Property Name="Data Type" Type="UInt">8</Property>
+				<Property Name="Disable on Overflow/Underflow" Type="Bool">false</Property>
+				<Property Name="fifo.configuration" Type="Str">"ControlLogic=1;NumberOfElements=1029;Type=0;ReadArbs=Arbitrate if Multiple Requestors Only;ElementsPerRead=1;WriteArbs=Arbitrate if Multiple Requestors Only;ElementsPerWrite=1;Implementation=2;;DataType=100080000000000100094008000355363400010000000000000000000000000000;DisableOnOverflowUnderflow=FALSE"</Property>
+				<Property Name="fifo.configured" Type="Bool">true</Property>
+				<Property Name="fifo.projectItemValid" Type="Bool">true</Property>
+				<Property Name="fifo.valid" Type="Bool">true</Property>
+				<Property Name="fifo.version" Type="Int">13</Property>
+				<Property Name="FPGA.PersistentID" Type="Str">{F80AC80E-D3B0-441B-9A22-56F27955DC61}</Property>
+				<Property Name="Local" Type="Bool">false</Property>
+				<Property Name="Memory Type" Type="UInt">2</Property>
+				<Property Name="Number Of Elements Per Read" Type="UInt">1</Property>
+				<Property Name="Number Of Elements Per Write" Type="UInt">1</Property>
+				<Property Name="Requested Number of Elements" Type="UInt">1024</Property>
+				<Property Name="Type" Type="UInt">0</Property>
+				<Property Name="Type Descriptor" Type="Str">100080000000000100094008000355363400010000000000000000000000000000</Property>
+			</Item>

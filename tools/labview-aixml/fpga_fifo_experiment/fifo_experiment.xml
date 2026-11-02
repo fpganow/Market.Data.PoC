@@ -1,0 +1,54 @@
+<VI _name="fifo_experiment.vi" description="One-FIFO scripting experiment (2026-10-16). Opens the project at project path\2C finds the project item named target name (the FPGA target) and the VI item named vi name under it\2C creates a target-scoped U64 FIFO named fifo name with the given depth through NI's unsupported FPGA scripting API (vi.lib\5Crvi\5CClientSDK\5CCore\5CScript\5CFifo)\2C commits it to the project\2C drops the FIFO Method Node for it onto the VI's block diagram (nirvififoDropXNodeFromProject.vi)\2C saves the VI and the project and closes the project. succeeded = the node drop reported success.">
+  <Control _name="project path" conIdx="11" connection="recommended" type="string" uid="5001" uid_parent="root" value="" outputs="value:5001.value"/>
+  <Control _name="target name" conIdx="10" connection="recommended" type="string" uid="5002" uid_parent="root" value="FPGA Target" outputs="value:5002.value"/>
+  <Control _name="vi name" conIdx="9" connection="recommended" type="string" uid="5003" uid_parent="root" value="fifo_scratch.vi" outputs="value:5003.value"/>
+  <Control _name="fifo name" conIdx="8" connection="recommended" type="string" uid="5004" uid_parent="root" value="EXP-Fifo" outputs="value:5004.value"/>
+  <Control _name="depth" type="uint32" uid="5005" uid_parent="root" value="1024" outputs="value:5005.value"/>
+
+  <Node _name="String To Path" inputs="string:5001.value" outputs="path:5100.path" uid="5100" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Project.Open" type="{LV.Application}" inputs="reference:,error in (no error):,Path:5100.path" outputs="reference out:,error out:5101.err,Project.Open:5101.proj" uid="5101" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Root" type="{LV.Project}" inputs="reference:5101.proj,error in (no error):5101.err" outputs="Root:5102.root,reference out:,error out:5102.err" uid="5102" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Get All Descendents" type="{LV.ProjectItem}" inputs="reference:5102.root,error in (no error):5102.err,Type:,Exclude Dependencies:,ExcludeBuilds:,ExcludeTargets:" outputs="All Descendents:5103.items,reference out:,error out:5103.err" uid="5103" uid_parent="root"/>
+
+  <Structure _name="For Loop" count="" maxin="" maxout="" uid="5110" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:5103.items" mode="index" outputs="value:5111.item" uid="5111" uid_parent="5110"/>
+    <Node _name="Property Node" fields="read+Name" type="{LV.ProjectItem}" inputs="reference:5111.item,error in (no error):" outputs="Name:5112.name,reference out:,error out:5112.err" uid="5112" uid_parent="5110"/>
+    <Tunnel _id="Out1" inputs="value:5112.name" mode="index" outputs="value:5113.names" uid="5113" uid_parent="5110"/>
+    <Tunnel _id="Out2" inputs="value:5112.err" mode="index" outputs="value:5114.errs" uid="5114" uid_parent="5110"/>
+  </Structure>
+  <Indicator _name="name read errors" type="array{cluster{bool.status,int32.code,string.source}}" uid="5115" uid_parent="root" value="[]" inputs="value:5114.errs"/>
+  <Indicator _name="item count" type="int32" uid="5116" uid_parent="root" value="0" inputs="value:5117.n"/>
+  <Node _name="Array Size" inputs="array:5103.items" outputs="size(s):5117.n" uid="5117" uid_parent="root"/>
+
+  <Node _name="Search 1D Array" inputs="1D array:5113.names,element:5002.value,start index (0):" outputs="index of element:5120.idx" uid="5120" uid_parent="root"/>
+  <Node _name="Index Array" inputs="array:5103.items,index:5120.idx" outputs="element:5121.target" uid="5121" uid_parent="root"/>
+  <Node _name="Search 1D Array" inputs="1D array:5113.names,element:5003.value,start index (0):" outputs="index of element:5122.idx" uid="5122" uid_parent="root"/>
+  <Node _name="Index Array" inputs="array:5103.items,index:5122.idx" outputs="element:5123.viitem" uid="5123" uid_parent="root"/>
+  <Indicator _name="target index" type="int32" uid="5124" uid_parent="root" value="0" inputs="value:5120.idx"/>
+  <Indicator _name="vi index" type="int32" uid="5125" uid_parent="root" value="0" inputs="value:5122.idx"/>
+
+  <Node _name="Property Node" fields="read+VI Reference" type="{LV.ProjectItem}" inputs="reference:5123.viitem,error in (no error):5103.err" outputs="VI Reference:5130.vi,reference out:,error out:5130.err" uid="5130" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Block Diagram" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5130.err" outputs="Block Diagram:5131.bd,reference out:,error out:5131.err" uid="5131" uid_parent="root"/>
+
+  <Call target="nirviPiFifo_CreateGlobalItem.vi" inputs="parent item:5121.target,name:5004.value,error in (no error):5131.err" outputs="reference:5140.ref,error out:5140.err" uid="5140" uid_parent="root"/>
+  <Constant _name="U64 element" type="uint64" uid="5141" uid_parent="root" value="0" outputs="value:5141.value"/>
+  <Node _name="To Variant" inputs="anything:5141.value" outputs="Variant:5142.Variant" uid="5142" uid_parent="root"/>
+  <Call target="nirviPiFifo_SetDataType2.vi" inputs="Reference:5140.ref,Data Type:5142.Variant,error in (no error):5140.err" outputs="Reference:5143.ref,error out:5143.err" uid="5143" uid_parent="root"/>
+  <Call target="nirviPiFifo_SetSize.vi" inputs="Reference:5143.ref,Size:5005.value,error in (no error):5143.err" outputs="Reference:5144.ref,error out:5144.err" uid="5144" uid_parent="root"/>
+  <Constant _name="Target-Scoped" type="uint16{Target-Scoped,Host to Target - DMA,Target to Host - DMA,Peer to Peer Reader,Peer to Peer Writer}" uid="5145" uid_parent="root" value="0" outputs="value:5145.value"/>
+  <Call target="nirviPiFifo_SetTransferType2.vi" inputs="Reference:5144.ref,Transfer Type:5145.value,Channel (DEPRECATED AND UNUSED):,error in (no error):5144.err" outputs="Reference:5146.ref,error out:5146.err" uid="5146" uid_parent="root"/>
+  <Call target="nirviPiFifo_CommitGlobal.vi" inputs="Reference:5146.ref,Close Reference?:,error in (no error):5146.err" outputs="ProjectItem:5147.item,error out:5147.err" uid="5147" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Name" type="{LV.ProjectItem}" inputs="reference:5147.item,error in (no error):5147.err" outputs="Name:5148.name,reference out:,error out:5148.err" uid="5148" uid_parent="root"/>
+  <Indicator _name="fifo item name" conIdx="2" connection="recommended" type="string" uid="5149" uid_parent="root" value="" inputs="value:5148.name"/>
+
+  <Constant _name="X" type="int32" uid="5150" uid_parent="root" value="100" outputs="value:5150.value"/>
+  <Constant _name="Y" type="int32" uid="5151" uid_parent="root" value="100" outputs="value:5151.value"/>
+  <Call target="nirvififoDropXNodeFromProject.vi" inputs="Scratch Diagram:5131.bd,Add Ref to Selection List? (F):,Fifo ProjectItem:5147.item,X:5150.value,Y:5151.value,error in (no error):5148.err,Error Terminals? (F):" outputs="XNode Refnum:,Succeeded:5152.ok,error out:5152.err" uid="5152" uid_parent="root"/>
+  <Indicator _name="succeeded" conIdx="3" connection="recommended" type="bool" uid="5153" uid_parent="root" value="false" inputs="value:5152.ok"/>
+
+  <Node _name="Invoke Node" target="Save.Instrument" type="{LV.VI}" inputs="reference:5130.vi,error in (no error):5152.err,Path to saved file:,Save a Copy:,Without Diagram:" outputs="reference out:,error out:5160.err" uid="5160" uid_parent="root"/>
+  <Node _name="Close Reference" inputs="reference:5130.vi,error in (no error):5160.err" outputs="error out:5161.err" uid="5161" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Save" type="{LV.Project}" inputs="reference:5101.proj,error in (no error):5161.err" outputs="reference out:,error out:5162.err" uid="5162" uid_parent="root"/>
+  <Node _name="Invoke Node" target="Close" type="{LV.Project}" inputs="reference:5101.proj,error in (no error):5162.err" outputs="reference out:,error out:5163.err" uid="5163" uid_parent="root"/>
+  <Indicator _name="error out" conIdx="0" connection="recommended" type="cluster{bool.status,int32.code,string.source}" uid="5170" uid_parent="root" value="[false,0,]" inputs="value:5163.err"/>
+</VI>

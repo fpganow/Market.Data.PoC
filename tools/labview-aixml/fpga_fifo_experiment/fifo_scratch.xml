@@ -1,0 +1,5 @@
+<VI _name="fifo_scratch.vi" description="Scratch FPGA-target VI for the one-FIFO scripting experiment (2026-10-16). Starts as a U64 pass-through; the experiment helper drops a target-scoped FIFO Method Node onto this diagram by script.">
+  <Control _name="in" conIdx="11" connection="recommended" type="uint64" uid="10" uid_parent="root" value="0" outputs="value:10.value"/>
+  <Node _name="Increment" inputs="x:10.value" outputs="x+1:11.out" uid="11" uid_parent="root"/>
+  <Indicator _name="out" conIdx="3" connection="recommended" type="uint64" uid="12" uid_parent="root" value="0" inputs="value:11.out"/>
+</VI>
