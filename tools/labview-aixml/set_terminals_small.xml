@@ -1,0 +1,21 @@
+<VI _name="set_terminals_small.vi" description="Scripting helper: switches every front-panel terminal of the VI at vi path to the small (non-icon) representation and saves it. AIXML cannot express the terminal view mode\2C so generated VIs come out with icon terminals; run this on them afterwards.">
+  <Control _name="vi path" conIdx="11" connection="recommended" type="string" uid="10" uid_parent="root" value="" outputs="value:10.value"/>
+  <Node _name="String To Path" inputs="string:10.value" outputs="path:11.path" uid="11" uid_parent="root"/>
+  <Node _name="Open VI Reference" inputs="application reference (local):,vi path:11.path,error in (no error):" outputs="vi reference:12.vi,error out:12.err" uid="12" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Front Panel" type="{LV.VI}" inputs="reference:12.vi,error in (no error):12.err" outputs="Front Panel:13.panel,reference out:,error out:13.err" uid="13" uid_parent="root"/>
+  <Node _name="Property Node" fields="read+Controls[]" type="{LV.Panel}" inputs="reference:13.panel,error in (no error):13.err" outputs="Controls[]:14.controls,reference out:,error out:14.err" uid="14" uid_parent="root"/>
+  <Constant _name="small" type="bool" uid="15" uid_parent="root" value="false" outputs="value:15.value"/>
+  <Structure _name="For Loop" count="" maxin="" maxout="" uid="20" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:14.controls" mode="index" outputs="value:21.value" uid="21" uid_parent="20"/>
+    <Tunnel _id="In2" inputs="value:15.value" outputs="value:22.value" uid="22" uid_parent="20"/>
+    <Node _name="Property Node" fields="read+Terminal" type="{LV.Control}" inputs="reference:21.value" outputs="Terminal:23.term,reference out:,error out:23.err" uid="23" uid_parent="20"/>
+    <Node _name="Property Node" fields="write+Icon View?" type="{LV.ControlTerminal}" inputs="reference:23.term,error in (no error):23.err,Icon View?:22.value" outputs="reference out:,error out:24.err" uid="24" uid_parent="20"/>
+    <Tunnel _id="Out1" inputs="value:24.err" mode="index" outputs="value:25.errs" uid="25" uid_parent="20"/>
+  </Structure>
+  <Node _name="Invoke Node" target="Save.Instrument" type="{LV.VI}" inputs="reference:12.vi,error in (no error):14.err,Path to saved file:,Save a Copy:,Without Diagram:" outputs="reference out:,error out:30.err" uid="30" uid_parent="root"/>
+  <Node _name="Close Reference" inputs="reference:12.vi,error in (no error):30.err" outputs="error out:31.err" uid="31" uid_parent="root"/>
+  <Node _name="Array Size" inputs="array:14.controls" outputs="size(s):32.n" uid="32" uid_parent="root"/>
+  <Indicator _name="terminals" conIdx="3" connection="recommended" type="int32" uid="40" uid_parent="root" value="0" inputs="value:32.n"/>
+  <Indicator _name="terminal errors" type="array{cluster{bool.status,int32.code,string.source}}" uid="41" uid_parent="root" value="[]" inputs="value:25.errs"/>
+  <Indicator _name="error out" conIdx="2" connection="recommended" type="cluster{bool.status,int32.code,string.source}" uid="42" uid_parent="root" value="[false,0,]" inputs="value:31.err"/>
+</VI>

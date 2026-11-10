@@ -1,0 +1,386 @@
+<VI _name="bats.parser.generated.vi" description="REFERENCE COPY of bats.parser.vi\2C built 2026-10-14 from its AIXML export. The two FPGA FIFO Write nodes (handshake interface)\2C which AIXML cannot carry\2C are replaced by calls to FIFO.WRITE.vi with the FIFO's configuration wired as constants\3A FIFO Name and Data Type\2C Element through To Variant. Everything else is the exported diagram; typedefs come back as bare clusters (rebind if this is ever used for real). To put the real FIFO nodes back\3A replace each FIFO.WRITE.vi call with the FPGA FIFO Method Node (Write) for the named FIFO\2C wire Element and Input Valid\2C read Ready for Input\2C delete the constants and To Variant.">
+  <FreeLabel comment="Use isValid AND\0Aprev.isValid to detect\0Aframe start" uid="2741" uid_parent="root"/>
+  <FreeLabel comment="Provides\3A\0Adata\0Adata valid\0Abyte enables" uid="5434" uid_parent="root"/>
+  <FreeLabel comment="Pins\3A\0ADebug.data\0ADebug.valid" uid="1644" uid_parent="root"/>
+  <FreeLabel comment="We parse incoming BATS messages and send out\0Aa normalized version of the message\0A\0Ahttps\3A//cdn.cboe.com/resources/membership/US_EQUITIES_OPTIONS_MULTICAST_PITCH_SPECIFICATION.pdf " uid="97" uid_parent="root"/>
+  <Constant _name="BATS.Parser.State.Data" outputs="value:3302.value" type="cluster{uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}.BATS.Parser.States,uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}.Saved.BATS.Parser.State,uint16.Hdr Length (U16),uint8.MessageLength (U8),uint8.MessageType (U8),uint32.Time (U32),uint16.Total Counter (U16),uint8.Message Counter (U8),uint16.i,uint16.Number.of.Tickers,uint16.n,uint8.msg.counter,uint8.msg.length,uint8.buffer.start,uint8.buffer.length,array{uint64.Numeric}.buffer,uint32.Next.Seq.No,cluster{bool.write,array{uint64.Data}.data}.debug}" uid="3302" uid_parent="root" value="[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[0,0,0,0,0,0,0,0,0],0,[false,[0,0,0,0]]]"/>
+  <Constant _name="BATS.Parser.States" outputs="value:284.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="284" uid_parent="root" value="1"/>
+  <Control _name="reset" conIdx="11" connection="recommended" outputs="value:1586.value" type="bool" uid="1586" uid_parent="root" value="false"/>
+  <Constant _name="BATS.Parser.States" outputs="value:1746.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="1746" uid_parent="root" value="0"/>
+  <Constant _name="BATS.Parser.States" outputs="value:2016.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="2016" uid_parent="root" value="3"/>
+  <Constant _name="Debug.Write.to.Debug" outputs="value:6477.value" type="bool" uid="6477" uid_parent="root" value="false"/>
+  <Control _name="data.stream" conIdx="10" connection="recommended" outputs="value:3507.value" type="cluster{array{uint8.Numeric}.data,bool.data valid,array{bool.Boolean}.byte enables,bool.eof.good,bool.eof.bad,uint64.recv.time}" uid="3507" uid_parent="root" value="[[0,0,0,0,0,0,0,0],false,[false,false,false,false,false,false,false,false],false,false,0]"/>
+  <Node _name="Feedback Node" inputs="initializer:,next value:3539.next value" outputs="previous value:3539.previous value" uid="3539" uid_parent="root"/>
+  <Node _name="Feedback Node" inputs="initializer:3302.value,next value:4033.next value" outputs="previous value:4033.previous value" uid="4033" uid_parent="root"/>
+  <Constant _name="reset + data.stream" outputs="value:6106.value" type="cluster{bool.reset,cluster{array{uint8.Numeric}.data,bool.data valid,array{bool.Boolean}.byte enables,bool.eof.good,bool.eof.bad,uint64.recv.time}.data.stream}" uid="6106" uid_parent="root" value="[false,[[0,0,0,0,0,0,0,0],false,[false,false,false,false,false,false,false,false],false,false,0]]"/>
+  <Node _name="Unbundle" inputs="cluster:6106.value" outputs="element:,element:" uid="300001" uid_parent="root"/>
+  <Node _name="Bundle" inputs="element:1586.value,element:3507.value,cluster:6106.value" outputs="output cluster:6105.output cluster" uid="300002" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:4033.previous value" outputs="element:2936.BATS.Parser.States,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:" uid="300003" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:6105.output cluster" outputs="element:6949.reset,element:" uid="300004" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:6105.output cluster" outputs="element:,element:300005.data.stream" uid="300006" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:300005.data.stream" outputs="element:,element:8069.data.stream.data valid,element:,element:,element:,element:" uid="300007" uid_parent="root"/>
+  <Node _name="Equal?" inputs="x:2016.value,y:2936.BATS.Parser.States" outputs="x = y?:2114.x = y?" uid="2114" uid_parent="root"/>
+  <Node _name="Not" inputs="x:6949.reset" outputs=".not. x?:3539.next value" uid="3990" uid_parent="root"/>
+  <Node _name="And" inputs="x:6949.reset,y:3539.previous value" outputs="x .and. y?:3696.x .and. y?" uid="3696" uid_parent="root"/>
+  <Node _name="Compound Arithmetic" inputs="value:8069.data.stream.data valid,value:2114.x = y?" inversions=" , , " operation="or" outputs="result:1847.result" uid="1847" uid_parent="root"/>
+  <Node _name="Select" inputs="t:2936.BATS.Parser.States,s:1847.result,f:284.value" outputs="s? t\3Af:832.s? t\3Af" uid="832" uid_parent="root"/>
+  <Node _name="Select" inputs="t:1746.value,s:3696.x .and. y?,f:832.s? t\3Af" outputs="s? t\3Af:1124.s? t\3Af" uid="1124" uid_parent="root"/>
+  <Structure _name="Case Structure" selectin="1124.s? t\3Af" uid="2889" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:4033.previous value" uid="3520" uid_parent="2889"/>
+    <Tunnel _id="In2" inputs="value:6105.output cluster" uid="6914" uid_parent="2889"/>
+    <CaseFrame selector="&quot;Reset&quot;" selectout="" uid="926" uid_parent="2889">
+      <Tunnel _id="In1" outputs="value:" uid="934" uid_parent="926"/>
+      <Constant _name="BATS.Parser.State.Data" outputs="value:985.value" type="cluster{uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}.BATS.Parser.States,uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}.Saved.BATS.Parser.State,uint16.Hdr Length (U16),uint8.MessageLength (U8),uint8.MessageType (U8),uint32.Time (U32),uint16.Total Counter (U16),uint8.Message Counter (U8),uint16.i,uint16.Number.of.Tickers,uint16.n,uint8.msg.counter,uint8.msg.length,uint8.buffer.start,uint8.buffer.length,array{uint64.Numeric}.buffer,uint32.Next.Seq.No,cluster{bool.write,array{uint64.Data}.data}.debug}" uid="985" uid_parent="926" value="[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[0,0,0,0,0,0,0,0,0],0,[false,[0,0,0,0]]]"/>
+      <Constant _name="BATS.Parser.States" outputs="value:1300.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="1300" uid_parent="926" value="1"/>
+      <Constant _name="Hdr Length (U16)" outputs="value:4297.value" type="uint16" uid="4297" uid_parent="926" value="0"/>
+      <Constant _name="MessageLength (U8)" outputs="value:4561.value" type="uint8" uid="4561" uid_parent="926" value="0"/>
+      <Constant _name="MessageType (U8)" outputs="value:4605.value" type="uint8" uid="4605" uid_parent="926" value="0"/>
+      <Constant _name="Time (U32)" outputs="value:4627.value" type="uint32" uid="4627" uid_parent="926" value="0"/>
+      <Constant _name="Total Counter (U16)" outputs="value:4709.value" type="uint16" uid="4709" uid_parent="926" value="0"/>
+      <Constant _name="Message Counter (U8)" outputs="value:4748.value" type="uint8" uid="4748" uid_parent="926" value="0"/>
+      <Constant _name="i" outputs="value:5261.value" type="uint16" uid="5261" uid_parent="926" value="0"/>
+      <Constant _name="Number.of.Tickers" outputs="value:5324.value" type="uint16" uid="5324" uid_parent="926" value="0"/>
+      <Tunnel _id="In2" outputs="value:" uid="6832" uid_parent="926"/>
+      <Constant _name="buffer" outputs="value:5683.value" type="array{uint64.Numeric}" uid="5683" uid_parent="926" value="[0,0,0,0,0,0,0,0,0]"/>
+      <Constant _name="buffer.length" outputs="value:6149.value" type="uint8" uid="6149" uid_parent="926" value="0"/>
+      <Constant _name="Write.to.Debug" outputs="value:9273.value" type="bool" uid="9273" uid_parent="926" value="true"/>
+      <Constant _name="BATS.Parser.States" outputs="value:448.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="448" uid_parent="926" value="2"/>
+      <Constant _name="Ready for Input" outputs="value:2737.value" type="bool" uid="2737" uid_parent="926" value="true"/>
+      <Constant _name="Next.Seq.No" outputs="value:1840.value" type="uint32" uid="1840" uid_parent="926" value="1"/>
+      <Constant _name="debug" outputs="value:223.value" type="cluster{bool.write,array{uint64.Data}.data}" uid="223" uid_parent="926" value="[false,[0,0,0,0]]"/>
+      <Constant _name="appended array" outputs="value:3840.value" type="array{uint64.Data}" uid="3840" uid_parent="926" value="[43691,0,1,2]"/>
+      <Node _name="Bundle By Name" fields="write,data" inputs="write:9273.value,data:3840.value,input cluster:223.value" outputs="output cluster:8953.output cluster" uid="8953" uid_parent="926"/>
+      <Node _name="Unbundle" inputs="cluster:985.value" outputs="element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:300008.n,element:,element:,element:,element:,element:,element:,element:" uid="300009" uid_parent="926"/>
+      <Node _name="Bundle" inputs="element:448.value,element:1300.value,element:4297.value,element:4561.value,element:4605.value,element:4627.value,element:4709.value,element:4748.value,element:5261.value,element:5324.value,element:300008.n,element:6149.value,element:6149.value,element:6149.value,element:6149.value,element:5683.value,element:1840.value,element:8953.output cluster,cluster:985.value" outputs="output cluster:1181.output cluster" uid="300010" uid_parent="926"/>
+      <Tunnel _id="Out1" inputs="value:1181.output cluster" uid="954" uid_parent="926"/>
+      <Tunnel _id="Out2" inputs="value:2737.value" uid="5792" uid_parent="926"/>
+    </CaseFrame>
+    <CaseFrame selector="&quot;Noop&quot;\2C Default" selectout="" uid="161" uid_parent="2889">
+      <Tunnel _id="In1" outputs="value:192.value" uid="192" uid_parent="161"/>
+      <Constant _name="Ready for Input" outputs="value:733.value" type="bool" uid="733" uid_parent="161" value="true"/>
+      <Tunnel _id="In2" outputs="value:" uid="6901" uid_parent="161"/>
+      <Tunnel _id="Out1" inputs="value:192.value" uid="207" uid_parent="161"/>
+      <Tunnel _id="Out2" inputs="value:733.value" uid="5797" uid_parent="161"/>
+    </CaseFrame>
+    <CaseFrame selector="&quot;Read.Sequenced.Unit.Header&quot;" selectout="" uid="6224" uid_parent="2889">
+      <Tunnel _id="In1" outputs="value:6231.value" uid="6231" uid_parent="6224"/>
+      <Tunnel _id="In2" outputs="value:6254.value" uid="6254" uid_parent="6224"/>
+      <Constant _name="y" outputs="value:8396.value" type="uint8" uid="8396" uid_parent="6224" value="8"/>
+      <Constant _name="Ready for Input" outputs="value:4016.value" type="bool" uid="4016" uid_parent="6224" value="true"/>
+      <Node _name="Unbundle" inputs="cluster:6231.value" outputs="element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:12811.buffer.length,element:12811.buffer,element:,element:" uid="300011" uid_parent="6224"/>
+      <Node _name="Unbundle" inputs="cluster:6254.value" outputs="element:,element:3000.data.stream" uid="300012" uid_parent="6224"/>
+      <Call inputs="data.stream:3000.data.stream,buffer:12811.buffer,buffer.length:12811.buffer.length" outputs="buffer.length.out:12830.buffer.length.out,buffer.out:12830.buffer.out" target="add.data.to.buffer.vi" uid="12830" uid_parent="6224"/>
+      <Node _name="Unbundle" inputs="cluster:3000.data.stream" outputs="element:,element:,element:,element:3005.eof.good,element:3005.eof.bad,element:" uid="300013" uid_parent="6224"/>
+      <Node _name="Greater Or Equal?" inputs="x:12830.buffer.length.out,y:8396.value" outputs="x >= y?:8301.x >= y?" uid="8301" uid_parent="6224"/>
+      <Node _name="Or" inputs="x:3005.eof.good,y:3005.eof.bad" outputs="x .or. y?:3357.x .or. y?" uid="3357" uid_parent="6224"/>
+      <Structure _name="Case Structure" selectin="8301.x >= y?" uid="1895" uid_parent="6224">
+        <Tunnel _id="In1" inputs="value:12830.buffer.out" uid="7536" uid_parent="1895"/>
+        <Tunnel _id="In2" inputs="value:12830.buffer.length.out" uid="7574" uid_parent="1895"/>
+        <Tunnel _id="In3" inputs="value:6231.value" uid="7619" uid_parent="1895"/>
+        <Tunnel _id="In4" inputs="value:3357.x .or. y?" uid="3666" uid_parent="1895"/>
+        <CaseFrame selector="False" selectout="" uid="7431" uid_parent="1895">
+          <Tunnel _id="In1" outputs="value:7534.value" uid="7534" uid_parent="7431"/>
+          <Tunnel _id="In2" outputs="value:7567.value" uid="7567" uid_parent="7431"/>
+          <Tunnel _id="In3" outputs="value:7615.value" uid="7615" uid_parent="7431"/>
+          <Constant _name="Write.to.Debug" outputs="value:2791.value" type="bool" uid="2791" uid_parent="7431" value="false"/>
+          <Constant _name="Data" outputs="value:3218.value" type="uint64" uid="3218" uid_parent="7431" value="43690"/>
+          <Constant _name="debug" outputs="value:3915.value" type="cluster{bool.write,array{uint64.Data}.data}" uid="3915" uid_parent="7431" value="[false,[0,0,0,0]]"/>
+          <Constant _name="t" outputs="value:2566.value" type="uint8" uid="2566" uid_parent="7431" value="0"/>
+          <Tunnel _id="In4" outputs="value:3657.value" uid="3657" uid_parent="7431"/>
+          <Node _name="Build Array" inputs="element:3218.value" outputs="appended array:4224.appended array" uid="4224" uid_parent="7431"/>
+          <Node _name="Select" inputs="t:2566.value,s:3657.value,f:7567.value" outputs="s? t\3Af:2443.s? t\3Af" uid="2443" uid_parent="7431"/>
+          <Node _name="Bundle By Name" fields="write,data" inputs="write:2791.value,data:4224.appended array,input cluster:3915.value" outputs="output cluster:2775.output cluster" uid="2775" uid_parent="7431"/>
+          <Node _name="Unbundle" inputs="cluster:7615.value" outputs="element:300014.BATS.Parser.States,element:300015.Saved.BATS.Parser.State,element:300016.Hdr Length (U16),element:300017.MessageLength (U8),element:300018.MessageType (U8),element:300019.Time (U32),element:300020.Total Counter (U16),element:300021.Message Counter (U8),element:300022.i,element:300023.Number.of.Tickers,element:300024.n,element:300025.msg.counter,element:300026.msg.length,element:300027.buffer.start,element:,element:,element:300028.Next.Seq.No,element:" uid="300029" uid_parent="7431"/>
+          <Node _name="Bundle" inputs="element:300014.BATS.Parser.States,element:300015.Saved.BATS.Parser.State,element:300016.Hdr Length (U16),element:300017.MessageLength (U8),element:300018.MessageType (U8),element:300019.Time (U32),element:300020.Total Counter (U16),element:300021.Message Counter (U8),element:300022.i,element:300023.Number.of.Tickers,element:300024.n,element:300025.msg.counter,element:300026.msg.length,element:300027.buffer.start,element:2443.s? t\3Af,element:7534.value,element:300028.Next.Seq.No,element:2775.output cluster,cluster:7615.value" outputs="output cluster:2752.output cluster" uid="300030" uid_parent="7431"/>
+          <Tunnel _id="Out1" inputs="value:2752.output cluster" uid="7513" uid_parent="7431"/>
+        </CaseFrame>
+        <CaseFrame selector="True" selectout="" uid="7446" uid_parent="1895">
+          <FreeLabel comment="Length of Sequenced Unit\0AHeader and all messages" uid="1203" uid_parent="7446"/>
+          <Constant _name="BATS.Parser.States" outputs="value:13783.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="13783" uid_parent="7446" value="2"/>
+          <Tunnel _id="In1" outputs="value:7535.value" uid="7535" uid_parent="7446"/>
+          <Tunnel _id="In2" outputs="value:7571.value" uid="7571" uid_parent="7446"/>
+          <Tunnel _id="In3" outputs="value:7618.value" uid="7618" uid_parent="7446"/>
+          <Constant _name="Start.Idx" outputs="value:8123.value" type="uint8" uid="8123" uid_parent="7446" value="0"/>
+          <Constant _name="Length" outputs="value:1909.value" type="uint8" uid="1909" uid_parent="7446" value="2"/>
+          <Constant _name="start.idx" outputs="value:7478.value" type="uint8" uid="7478" uid_parent="7446" value="8"/>
+          <Constant _name="Write.to.Debug" outputs="value:1475.value" type="bool" uid="1475" uid_parent="7446" value="true"/>
+          <Constant _name="Total Counter (U16)" outputs="value:3673.value" type="uint16" uid="3673" uid_parent="7446" value="8"/>
+          <Constant _name="Data" outputs="value:1724.value" type="uint32" uid="1724" uid_parent="7446" value="222"/>
+          <Constant _name="debug" outputs="value:2452.value" type="cluster{bool.write,array{uint64.Data}.data}" uid="2452" uid_parent="7446" value="[false,[0,0,0,0]]"/>
+          <Tunnel _id="In4" outputs="value:3662.value" uid="3662" uid_parent="7446"/>
+          <Constant _name="BATS.Parser.States" outputs="value:6405.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="6405" uid_parent="7446" value="3"/>
+          <Node _name="Index Array" inputs="array:7535.value,index:,index:" outputs="element:3468.element,element:3468.element2" uid="3468" uid_parent="7446"/>
+          <Call inputs="buffer (U64):7535.value,Start.Idx:8123.value,Length:1909.value,Big.Endian?:" outputs="Out.Value U64:8609.Out.Value U64" target="new.uxx.be.vi" uid="8609" uid_parent="7446"/>
+          <Call inputs="buffer:7535.value,buffer.length:7571.value,start.idx:7478.value" outputs="buffer.out:3709.buffer.out,buffer.length.out:3709.buffer.length.out" target="compress.buffer.generated.vi" uid="3709" uid_parent="7446"/>
+          <Node _name="To Unsigned Word Integer" inputs="number:8609.Out.Value U64" outputs="unsigned 16bit integer:8051.unsigned 16bit integer" uid="8051" uid_parent="7446"/>
+          <Node _name="Join Numbers" inputs="hi:1724.value,lo:8051.unsigned 16bit integer" outputs="(hi.lo):1670.(hi.lo)" uid="1670" uid_parent="7446"/>
+          <Node _name="Equal To 0?" inputs="x:8051.unsigned 16bit integer" outputs="x = 0?:6072.x = 0?" uid="6072" uid_parent="7446"/>
+          <Node _name="Build Array" inputs="element:1670.(hi.lo),element:8051.unsigned 16bit integer,element:3468.element,element:3468.element2" outputs="appended array:3849.appended array" uid="3849" uid_parent="7446"/>
+          <Node _name="Or" inputs="x:3662.value,y:6072.x = 0?" outputs="x .or. y?:2844.x .or. y?" uid="2844" uid_parent="7446"/>
+          <Node _name="Bundle By Name" fields="write,data" inputs="write:1475.value,data:3849.appended array,input cluster:2452.value" outputs="output cluster:1433.output cluster" uid="1433" uid_parent="7446"/>
+          <Node _name="Select" inputs="t:13783.value,s:2844.x .or. y?,f:6405.value" outputs="s? t\3Af:6164.s? t\3Af" uid="6164" uid_parent="7446"/>
+          <Node _name="Unbundle" inputs="cluster:7618.value" outputs="element:,element:300031.Saved.BATS.Parser.State,element:,element:300032.MessageLength (U8),element:300033.MessageType (U8),element:300034.Time (U32),element:,element:300035.Message Counter (U8),element:300036.i,element:300037.Number.of.Tickers,element:300038.n,element:300039.msg.counter,element:300040.msg.length,element:300041.buffer.start,element:,element:,element:300042.Next.Seq.No,element:" uid="300043" uid_parent="7446"/>
+          <Node _name="Bundle" inputs="element:6164.s? t\3Af,element:300031.Saved.BATS.Parser.State,element:8051.unsigned 16bit integer,element:300032.MessageLength (U8),element:300033.MessageType (U8),element:300034.Time (U32),element:3673.value,element:300035.Message Counter (U8),element:300036.i,element:300037.Number.of.Tickers,element:300038.n,element:300039.msg.counter,element:300040.msg.length,element:300041.buffer.start,element:3709.buffer.length.out,element:3709.buffer.out,element:300042.Next.Seq.No,element:1433.output cluster,cluster:7618.value" outputs="output cluster:13426.output cluster" uid="300044" uid_parent="7446"/>
+          <Tunnel _id="Out1" inputs="value:13426.output cluster" uid="7514" uid_parent="7446"/>
+        </CaseFrame>
+        <Tunnel _id="Out1" outputs="value:7515.value" uid="7515" uid_parent="1895"/>
+      </Structure>
+      <Tunnel _id="Out1" inputs="value:7515.value" uid="6240" uid_parent="6224"/>
+      <Tunnel _id="Out2" inputs="value:4016.value" uid="6244" uid_parent="6224"/>
+    </CaseFrame>
+    <CaseFrame selector="&quot;Read.Msg&quot;" selectout="" uid="6490" uid_parent="2889">
+      <FreeLabel comment="Entire Message should \0Abe available now" uid="2229" uid_parent="6490"/>
+      <Tunnel _id="In1" outputs="value:6505.value" uid="6505" uid_parent="6490"/>
+      <Tunnel _id="In2" outputs="value:6524.value" uid="6524" uid_parent="6490"/>
+      <Constant _name="Ready for Input" outputs="value:3940.value" type="bool" uid="3940" uid_parent="6490" value="true"/>
+      <Node _name="Unbundle" inputs="cluster:6505.value" outputs="element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:6562.buffer.length,element:6562.buffer,element:,element:" uid="300045" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:6505.value" outputs="element:,element:,element:2879.Hdr Length (U16),element:,element:,element:,element:2879.Total Counter (U16),element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:" uid="300046" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:6524.value" outputs="element:,element:300047.data.stream" uid="300048" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:300047.data.stream" outputs="element:4079.data.stream.data,element:,element:,element:,element:,element:" uid="300049" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:6524.value" outputs="element:,element:2298.data.stream" uid="300050" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:6524.value" outputs="element:,element:300051.data.stream" uid="300052" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:300051.data.stream" outputs="element:,element:,element:,element:,element:,element:3551.data.stream.recv.time" uid="300053" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:6524.value" outputs="element:,element:300054.data.stream" uid="300055" uid_parent="6490"/>
+      <Node _name="Unbundle" inputs="cluster:300054.data.stream" outputs="element:,element:,element:,element:3187.data.stream.eof.good,element:3187.data.stream.eof.bad,element:" uid="300056" uid_parent="6490"/>
+      <Node _name="Index Array" inputs="array:4079.data.stream.data,index:,index:,index:,index:,index:,index:,index:,index:" outputs="element:1290.element,element:1290.element2,element:1290.element3,element:1290.element4,element:1290.element5,element:1290.element6,element:1290.element7,element:1290.element8" uid="1290" uid_parent="6490"/>
+      <Call inputs="data.stream:2298.data.stream,buffer:6562.buffer,buffer.length:6562.buffer.length" outputs="buffer.length.out:6575.buffer.length.out,buffer.out:6575.buffer.out" target="add.data.to.buffer.vi" uid="6575" uid_parent="6490"/>
+      <Node _name="Or" inputs="x:3187.data.stream.eof.good,y:3187.data.stream.eof.bad" outputs="x .or. y?:3817.x .or. y?" uid="3817" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:1290.element,lo:1290.element2" outputs="(hi.lo):2386.(hi.lo)" uid="2386" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:1290.element3,lo:1290.element4" outputs="(hi.lo):2877.(hi.lo)" uid="2877" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:1290.element5,lo:1290.element6" outputs="(hi.lo):3096.(hi.lo)" uid="3096" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:1290.element7,lo:1290.element8" outputs="(hi.lo):3266.(hi.lo)" uid="3266" uid_parent="6490"/>
+      <Node _name="Greater Than 0?" inputs="x:6575.buffer.length.out" outputs="x > 0?:6974.x > 0?" uid="6974" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:2386.(hi.lo),lo:2877.(hi.lo)" outputs="(hi.lo):3476.(hi.lo)" uid="3476" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:3096.(hi.lo),lo:3266.(hi.lo)" outputs="(hi.lo):3531.(hi.lo)" uid="3531" uid_parent="6490"/>
+      <Node _name="Join Numbers" inputs="hi:3476.(hi.lo),lo:3531.(hi.lo)" outputs="(hi.lo):3787.(hi.lo)" uid="3787" uid_parent="6490"/>
+      <Structure _name="Case Structure" selectin="6974.x > 0?" uid="6669" uid_parent="6490">
+        <Tunnel _id="In1" inputs="value:6575.buffer.out" uid="6687" uid_parent="6669"/>
+        <Tunnel _id="In2" inputs="value:6575.buffer.length.out" uid="6694" uid_parent="6669"/>
+        <Tunnel _id="In3" inputs="value:6505.value" uid="6703" uid_parent="6669"/>
+        <Tunnel _id="In4" inputs="value:2879.Hdr Length (U16)" uid="3193" uid_parent="6669"/>
+        <Tunnel _id="In5" inputs="value:2879.Total Counter (U16)" uid="3933" uid_parent="6669"/>
+        <Tunnel _id="In6" inputs="value:6505.value" uid="4426" uid_parent="6669"/>
+        <Tunnel _id="In7" inputs="value:3787.(hi.lo)" uid="3944" uid_parent="6669"/>
+        <Tunnel _id="In8" inputs="value:3551.data.stream.recv.time" uid="3774" uid_parent="6669"/>
+        <Tunnel _id="In9" inputs="value:3817.x .or. y?" uid="4331" uid_parent="6669"/>
+        <CaseFrame selector="False" selectout="" uid="6714" uid_parent="6669">
+          <Tunnel _id="In1" outputs="value:6692.value" uid="6692" uid_parent="6714"/>
+          <Tunnel _id="In2" outputs="value:6701.value" uid="6701" uid_parent="6714"/>
+          <Tunnel _id="In3" outputs="value:6706.value" uid="6706" uid_parent="6714"/>
+          <Tunnel _id="In4" outputs="value:" uid="3186" uid_parent="6714"/>
+          <Tunnel _id="In5" outputs="value:" uid="3923" uid_parent="6714"/>
+          <Constant _name="Write.to.Debug" outputs="value:2465.value" type="bool" uid="2465" uid_parent="6714" value="false"/>
+          <Constant _name="Data" outputs="value:3773.value" type="uint64" uid="3773" uid_parent="6714" value="48059"/>
+          <Tunnel _id="In6" outputs="value:" uid="4419" uid_parent="6714"/>
+          <Tunnel _id="In7" outputs="value:" uid="3934" uid_parent="6714"/>
+          <Constant _name="debug" outputs="value:3452.value" type="cluster{bool.write,array{uint64.Data}.data}" uid="3452" uid_parent="6714" value="[false,[0,0,0,0]]"/>
+          <Constant _name="element" outputs="value:4077.value" type="uint64" uid="4077" uid_parent="6714" value="0"/>
+          <Tunnel _id="In8" outputs="value:" uid="3763" uid_parent="6714"/>
+          <Tunnel _id="In9" outputs="value:" uid="4324" uid_parent="6714"/>
+          <Node _name="Build Array" inputs="element:3773.value,element:4077.value,element:4077.value,element:4077.value" outputs="appended array:746.appended array" uid="746" uid_parent="6714"/>
+          <Node _name="Bundle By Name" fields="write,data" inputs="write:2465.value,data:746.appended array,input cluster:3452.value" outputs="output cluster:2325.output cluster" uid="2325" uid_parent="6714"/>
+          <Node _name="Unbundle" inputs="cluster:6706.value" outputs="element:300057.BATS.Parser.States,element:300058.Saved.BATS.Parser.State,element:300059.Hdr Length (U16),element:300060.MessageLength (U8),element:300061.MessageType (U8),element:300062.Time (U32),element:300063.Total Counter (U16),element:300064.Message Counter (U8),element:300065.i,element:300066.Number.of.Tickers,element:300067.n,element:300068.msg.counter,element:300069.msg.length,element:300070.buffer.start,element:,element:,element:300071.Next.Seq.No,element:" uid="300072" uid_parent="6714"/>
+          <Node _name="Bundle" inputs="element:300057.BATS.Parser.States,element:300058.Saved.BATS.Parser.State,element:300059.Hdr Length (U16),element:300060.MessageLength (U8),element:300061.MessageType (U8),element:300062.Time (U32),element:300063.Total Counter (U16),element:300064.Message Counter (U8),element:300065.i,element:300066.Number.of.Tickers,element:300067.n,element:300068.msg.counter,element:300069.msg.length,element:300070.buffer.start,element:6701.value,element:6692.value,element:300071.Next.Seq.No,element:2325.output cluster,cluster:6706.value" outputs="output cluster:1630.output cluster" uid="300073" uid_parent="6714"/>
+          <Tunnel _id="Out1" inputs="value:1630.output cluster" uid="6683" uid_parent="6714"/>
+        </CaseFrame>
+        <CaseFrame selector="True" selectout="" uid="6730" uid_parent="6669">
+          <FreeLabel comment="TODO\3A If End of Frame\0ANext -> Read SeqUnitHdr" uid="503" uid_parent="6730"/>
+          <FreeLabel comment="buffer length" uid="2171" uid_parent="6730"/>
+          <FreeLabel comment="Message\0AType" uid="1911" uid_parent="6730"/>
+          <FreeLabel comment="Message\0ALength" uid="959" uid_parent="6730"/>
+          <Tunnel _id="In1" outputs="value:6693.value" uid="6693" uid_parent="6730"/>
+          <Tunnel _id="In2" outputs="value:6702.value" uid="6702" uid_parent="6730"/>
+          <Tunnel _id="In3" outputs="value:6709.value" uid="6709" uid_parent="6730"/>
+          <Constant _name="Start.Idx" outputs="value:6772.value" type="uint8" uid="6772" uid_parent="6730" value="0"/>
+          <Constant _name="Length" outputs="value:6788.value" type="uint8" uid="6788" uid_parent="6730" value="1"/>
+          <Constant _name="Start.Idx" outputs="value:394.value" type="uint8" uid="394" uid_parent="6730" value="1"/>
+          <Constant _name="Length" outputs="value:423.value" type="uint8" uid="423" uid_parent="6730" value="1"/>
+          <Tunnel _id="In4" outputs="value:3190.value" uid="3190" uid_parent="6730"/>
+          <Tunnel _id="In5" outputs="value:3929.value" uid="3929" uid_parent="6730"/>
+          <Constant _name="index" outputs="value:1647.value" type="int32" uid="1647" uid_parent="6730" value="0"/>
+          <Tunnel _id="In6" outputs="value:4423.value" uid="4423" uid_parent="6730"/>
+          <Tunnel _id="In7" outputs="value:3939.value" uid="3939" uid_parent="6730"/>
+          <Constant _name="debug" outputs="value:170.value" type="cluster{bool.write,array{uint64.Data}.data}" uid="170" uid_parent="6730" value="[false,[0,0,0,0]]"/>
+          <Constant _name="element" outputs="value:527.value" type="uint64" uid="527" uid_parent="6730" value="153"/>
+          <Constant _name="element" outputs="value:2280.value" type="uint64" uid="2280" uid_parent="6730" value="0"/>
+          <Tunnel _id="In8" outputs="value:3769.value" uid="3769" uid_parent="6730"/>
+          <Tunnel _id="In9" outputs="value:4328.value" uid="4328" uid_parent="6730"/>
+          <Call inputs="buffer (U64):6693.value,Start.Idx:6772.value,Length:6788.value,Big.Endian?:" outputs="Out.Value U64:6831.Out.Value U64" target="new.uxx.be.vi" uid="6831" uid_parent="6730"/>
+          <Call inputs="buffer (U64):6693.value,Start.Idx:394.value,Length:423.value,Big.Endian?:" outputs="Out.Value U64:262.Out.Value U64" target="new.uxx.be.vi" uid="262" uid_parent="6730"/>
+          <Node _name="Index Array" inputs="array:6693.value,index:1647.value" outputs="element:" uid="2604" uid_parent="6730"/>
+          <Node _name="Build Array" inputs="element:3939.value,element:2280.value,element:2280.value,element:527.value" outputs="appended array:2542.appended array" uid="2542" uid_parent="6730"/>
+          <Node _name="To Unsigned Byte Integer" inputs="number:6831.Out.Value U64" outputs="unsigned 8bit integer:6895.unsigned 8bit integer" uid="6895" uid_parent="6730"/>
+          <Node _name="To Unsigned Byte Integer" inputs="number:262.Out.Value U64" outputs="unsigned 8bit integer:364.unsigned 8bit integer" uid="364" uid_parent="6730"/>
+          <Node _name="Greater Or Equal?" inputs="x:6702.value,y:6895.unsigned 8bit integer" outputs="x >= y?:2212.x >= y?" uid="2212" uid_parent="6730"/>
+          <Structure _name="Case Structure" selectin="364.unsigned 8bit integer" uid="925" uid_parent="6730">
+            <Tunnel _id="In1" inputs="value:6693.value" uid="1885" uid_parent="925"/>
+            <Tunnel _id="In2" inputs="value:6895.unsigned 8bit integer" uid="2169" uid_parent="925"/>
+            <CaseFrame selector="0\2C Default" selectout="" uid="1323" uid_parent="925">
+              <FreeLabel comment="Other/Unsupported" uid="3015" uid_parent="1323"/>
+              <Tunnel _id="In1" outputs="value:" uid="1877" uid_parent="1323"/>
+              <Tunnel _id="In2" outputs="value:" uid="2068" uid_parent="1323"/>
+              <Constant _name="OrderBook.Command" outputs="value:3078.value" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top,Trade,Unsupported}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="3078" uid_parent="1323" value="[1,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+              <Constant _name="type" outputs="value:5027.value" type="uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top,Trade,Unsupported}" uid="5027" uid_parent="1323" value="11"/>
+              <Node _name="Unbundle" inputs="cluster:3078.value" outputs="element:,element:300074.side,element:300075.orderId ,element:300076.quantity,element:300077.symbol,element:300078.price,element:300079.executed.qty,element:300080.canceled.qty,element:300081.remaining.qty,element:300082.seconds,element:300083.nanoseconds,element:300084.Add,element:300085.Edit,element:300086.Remove,element:300087.seq no,element:300088.recv.time,element:300089.parse.time" uid="300090" uid_parent="1323"/>
+              <Node _name="Bundle" inputs="element:5027.value,element:300074.side,element:300075.orderId ,element:300076.quantity,element:300077.symbol,element:300078.price,element:300079.executed.qty,element:300080.canceled.qty,element:300081.remaining.qty,element:300082.seconds,element:300083.nanoseconds,element:300084.Add,element:300085.Edit,element:300086.Remove,element:300087.seq no,element:300088.recv.time,element:300089.parse.time,cluster:3078.value" outputs="output cluster:4648.output cluster" uid="300091" uid_parent="1323"/>
+              <Tunnel _id="Out1" inputs="value:4648.output cluster" uid="2619" uid_parent="1323"/>
+            </CaseFrame>
+            <CaseFrame selector="32" selectout="" uid="1336" uid_parent="925">
+              <FreeLabel comment="Time 0x20" uid="2627" uid_parent="1336"/>
+              <Tunnel _id="In1" outputs="value:1882.value" uid="1882" uid_parent="1336"/>
+              <Tunnel _id="In2" outputs="value:" uid="2093" uid_parent="1336"/>
+              <Call inputs="buffer.in:1882.value" outputs="OrderBook.Command:650.OrderBook.Command" target="Time.vi" uid="650" uid_parent="1336"/>
+              <Tunnel _id="Out1" inputs="value:650.OrderBook.Command" uid="2623" uid_parent="1336"/>
+            </CaseFrame>
+            <CaseFrame selector="33\2C 34\2C 47" selectout="" uid="2271" uid_parent="925">
+              <FreeLabel comment="AddOrder (long)   0x21\0AAddOrder (short)  0x22\0AAddOrder (expanded) 0x2F" uid="2644" uid_parent="2271"/>
+              <Tunnel _id="In1" outputs="value:2293.value" uid="2293" uid_parent="2271"/>
+              <Tunnel _id="In2" outputs="value:" uid="2113" uid_parent="2271"/>
+              <Call inputs="buffer.in:2293.value" outputs="OrderBook.Command:2320.OrderBook.Command" target="AddOrder.vi" uid="2320" uid_parent="2271"/>
+              <Tunnel _id="Out1" inputs="value:2320.OrderBook.Command" uid="2288" uid_parent="2271"/>
+            </CaseFrame>
+            <CaseFrame selector="35\2C 36" selectout="" uid="2451" uid_parent="925">
+              <FreeLabel comment="Order Executed   0x23\0AOrdered Executed at Price/Size  0x24" uid="2536" uid_parent="2451"/>
+              <Tunnel _id="In1" outputs="value:2474.value" uid="2474" uid_parent="2451"/>
+              <Tunnel _id="In2" outputs="value:" uid="2141" uid_parent="2451"/>
+              <Call inputs="buffer.in:2474.value" outputs="OrderBook.Command:2653.OrderBook.Command" target="OrderExecuted.vi" uid="2653" uid_parent="2451"/>
+              <Tunnel _id="Out1" inputs="value:2653.OrderBook.Command" uid="2470" uid_parent="2451"/>
+            </CaseFrame>
+            <CaseFrame selector="37\2C 38" selectout="" uid="6484" uid_parent="925">
+              <FreeLabel comment="Reduce Size Long   0x25\0AReduce Size Short  0x26" uid="6621" uid_parent="6484"/>
+              <Tunnel _id="In1" outputs="value:6495.value" uid="6495" uid_parent="6484"/>
+              <Tunnel _id="In2" outputs="value:" uid="6498" uid_parent="6484"/>
+              <Call inputs="buffer.in:6495.value" outputs="orderbook.command:3494.orderbook.command" target="ReduceSize.vi" uid="3494" uid_parent="6484"/>
+              <Tunnel _id="Out1" inputs="value:3494.orderbook.command" uid="6492" uid_parent="6484"/>
+            </CaseFrame>
+            <CaseFrame selector="39\2C 40" selectout="" uid="1149" uid_parent="925">
+              <FreeLabel comment="Modify Order Long   0x27\0AModify Order Short  0x28" uid="1860" uid_parent="1149"/>
+              <Tunnel _id="In1" outputs="value:1774.value" uid="1774" uid_parent="1149"/>
+              <Tunnel _id="In2" outputs="value:" uid="1824" uid_parent="1149"/>
+              <Call inputs="buffer.in:1774.value" outputs="OrderBook.Command:3559.OrderBook.Command" target="ModifyOrder.vi" uid="3559" uid_parent="1149"/>
+              <Tunnel _id="Out1" inputs="value:3559.OrderBook.Command" uid="1733" uid_parent="1149"/>
+            </CaseFrame>
+            <CaseFrame selector="41" selectout="" uid="2543" uid_parent="925">
+              <FreeLabel comment="Delete Order  0x29" uid="6661" uid_parent="2543"/>
+              <Tunnel _id="In1" outputs="value:6646.value" uid="6646" uid_parent="2543"/>
+              <Tunnel _id="In2" outputs="value:" uid="6651" uid_parent="2543"/>
+              <Call inputs="buffer.in:6646.value" outputs="OrderBook.Command:3885.OrderBook.Command" target="DeleteOrder.vi" uid="3885" uid_parent="2543"/>
+              <Tunnel _id="Out1" inputs="value:3885.OrderBook.Command" uid="6639" uid_parent="2543"/>
+            </CaseFrame>
+            <CaseFrame selector="42\2C 43\2C 48" selectout="" uid="6736" uid_parent="925">
+              <FreeLabel comment="Trade Long  0x2A\0ATrade Short 0x2B\0ATrade Expanded 0x30" uid="6763" uid_parent="6736"/>
+              <Tunnel _id="In1" outputs="value:6753.value" uid="6753" uid_parent="6736"/>
+              <Tunnel _id="In2" outputs="value:" uid="6756" uid_parent="6736"/>
+              <Call inputs="buffer.in:6753.value" outputs="OrderBook.Command:4225.OrderBook.Command" target="Trade.vi" uid="4225" uid_parent="6736"/>
+              <Tunnel _id="Out1" inputs="value:4225.OrderBook.Command" uid="6750" uid_parent="6736"/>
+            </CaseFrame>
+            <Tunnel _id="Out1" cond="true" outputs="value:2628.value" uid="2628" uid_parent="925"/>
+          </Structure>
+          <Structure _name="Case Structure" selectin="2212.x >= y?" uid="1743" uid_parent="6730">
+            <Tunnel _id="In1" inputs="value:6702.value" uid="2045" uid_parent="1743"/>
+            <Tunnel _id="In2" inputs="value:6693.value" uid="2092" uid_parent="1743"/>
+            <Tunnel _id="In3" inputs="value:6895.unsigned 8bit integer" uid="2152" uid_parent="1743"/>
+            <Tunnel _id="In4" inputs="value:3190.value" uid="3179" uid_parent="1743"/>
+            <Tunnel _id="In5" inputs="value:3929.value" uid="3908" uid_parent="1743"/>
+            <Tunnel _id="In6" inputs="value:4328.value" uid="4312" uid_parent="1743"/>
+            <CaseFrame selector="False" selectout="" uid="1755" uid_parent="1743">
+              <Tunnel _id="In1" outputs="value:2036.value" uid="2036" uid_parent="1755"/>
+              <Tunnel _id="In2" outputs="value:2085.value" uid="2085" uid_parent="1755"/>
+              <Tunnel _id="In3" outputs="value:" uid="2142" uid_parent="1755"/>
+              <Tunnel _id="In4" outputs="value:" uid="3177" uid_parent="1755"/>
+              <Constant _name="BATS.Parser.States" outputs="value:3313.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="3313" uid_parent="1755" value="3"/>
+              <Tunnel _id="In5" outputs="value:3895.value" uid="3895" uid_parent="1755"/>
+              <Constant _name="t" outputs="value:4144.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="4144" uid_parent="1755" value="2"/>
+              <Tunnel _id="In6" outputs="value:4298.value" uid="4298" uid_parent="1755"/>
+              <Constant _name="t" outputs="value:4317.value" type="uint8" uid="4317" uid_parent="1755" value="0"/>
+              <Node _name="Select" inputs="t:4144.value,s:4298.value,f:3313.value" outputs="s? t\3Af:4113.s? t\3Af" uid="4113" uid_parent="1755"/>
+              <Node _name="Select" inputs="t:4317.value,s:4298.value,f:2036.value" outputs="s? t\3Af:4278.s? t\3Af" uid="4278" uid_parent="1755"/>
+              <Tunnel _id="Out1" inputs="value:4278.s? t\3Af" uid="1934" uid_parent="1755"/>
+              <Tunnel _id="Out2" inputs="value:2085.value" uid="1989" uid_parent="1755"/>
+              <Tunnel _id="Out3" inputs="value:4113.s? t\3Af" uid="2666" uid_parent="1755"/>
+              <Tunnel _id="Out4" inputs="value:3895.value" uid="3160" uid_parent="1755"/>
+            </CaseFrame>
+            <CaseFrame selector="True" selectout="" uid="1761" uid_parent="1743">
+              <Tunnel _id="In1" outputs="value:2040.value" uid="2040" uid_parent="1761"/>
+              <Tunnel _id="In2" outputs="value:2089.value" uid="2089" uid_parent="1761"/>
+              <Tunnel _id="In3" outputs="value:2146.value" uid="2146" uid_parent="1761"/>
+              <Constant _name="BATS.Parser.States" outputs="value:6746.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="6746" uid_parent="1761" value="3"/>
+              <Tunnel _id="In4" outputs="value:3178.value" uid="3178" uid_parent="1761"/>
+              <Tunnel _id="In5" outputs="value:3904.value" uid="3904" uid_parent="1761"/>
+              <Constant _name="t" outputs="value:923.value" type="uint16{Reset,Noop,Read.Sequenced.Unit.Header,Read.Msg}" uid="923" uid_parent="1761" value="2"/>
+              <Tunnel _id="In6" outputs="value:4301.value" uid="4301" uid_parent="1761"/>
+              <Constant _name="t" outputs="value:5228.value" type="uint8" uid="5228" uid_parent="1761" value="0"/>
+              <Node _name="To Unsigned Word Integer" inputs="number:2146.value" outputs="unsigned 16bit integer:3513.unsigned 16bit integer" uid="3513" uid_parent="1761"/>
+              <Call inputs="buffer:2089.value,buffer.length:2040.value,start.idx:2146.value" outputs="buffer.out:4554.buffer.out,buffer.length.out:4554.buffer.length.out" target="compress.buffer.generated.vi" uid="4554" uid_parent="1761"/>
+              <Node _name="Add" inputs="x:3904.value,y:3513.unsigned 16bit integer" outputs="x+y:3416.x+y" uid="3416" uid_parent="1761"/>
+              <Node _name="Greater Or Equal?" inputs="x:3416.x+y,y:3178.value" outputs="x >= y?:1776.x >= y?" uid="1776" uid_parent="1761"/>
+              <Node _name="Boolean To (0\2C1)" inputs="Boolean:1776.x >= y?" outputs="0\2C 1:" uid="1779" uid_parent="1761"/>
+              <Node _name="Or" inputs="x:4301.value,y:1776.x >= y?" outputs="x .or. y?:4591.x .or. y?" uid="4591" uid_parent="1761"/>
+              <Node _name="Select" inputs="t:923.value,s:4591.x .or. y?,f:6746.value" outputs="s? t\3Af:856.s? t\3Af" uid="856" uid_parent="1761"/>
+              <Node _name="Select" inputs="t:5228.value,s:4591.x .or. y?,f:4554.buffer.length.out" outputs="s? t\3Af:1344.s? t\3Af" uid="1344" uid_parent="1761"/>
+              <Tunnel _id="Out1" inputs="value:1344.s? t\3Af" uid="1938" uid_parent="1761"/>
+              <Tunnel _id="Out2" inputs="value:4554.buffer.out" uid="1993" uid_parent="1761"/>
+              <Tunnel _id="Out3" inputs="value:856.s? t\3Af" uid="2670" uid_parent="1761"/>
+              <Tunnel _id="Out4" inputs="value:3416.x+y" uid="3164" uid_parent="1761"/>
+            </CaseFrame>
+            <Tunnel _id="Out1" outputs="value:1942.value" uid="1942" uid_parent="1743"/>
+            <Tunnel _id="Out2" outputs="value:1996.value" uid="1996" uid_parent="1743"/>
+            <Tunnel _id="Out3" outputs="value:2671.value" uid="2671" uid_parent="1743"/>
+            <Tunnel _id="Out4" outputs="value:3168.value" uid="3168" uid_parent="1743"/>
+          </Structure>
+          <Node _name="Bundle By Name" fields="write,data" inputs="write:2212.x >= y?,data:2542.appended array,input cluster:170.value" outputs="output cluster:9908.output cluster" uid="9908" uid_parent="6730"/>
+          <Structure _name="Case Structure" selectin="2212.x >= y?" uid="4637" uid_parent="6730">
+            <Tunnel _id="In1" inputs="value:2628.value" uid="4673" uid_parent="4637"/>
+            <Tunnel _id="In2" inputs="value:4423.value" uid="4705" uid_parent="4637"/>
+            <Tunnel _id="In3" inputs="value:3769.value" uid="3752" uid_parent="4637"/>
+            <CaseFrame label="" selector="False" selectout="" uid="4645" uid_parent="4637">
+              <Tunnel _id="In1" outputs="value:4671.value" uid="4671" uid_parent="4645"/>
+              <Tunnel _id="In2" outputs="value:4703.value" uid="4703" uid_parent="4645"/>
+              <Tunnel _id="In3" outputs="value:" uid="3744" uid_parent="4645"/>
+              <Node _name="Unbundle" inputs="cluster:4703.value" outputs="element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:5054.Next.Seq.No,element:" uid="300092" uid_parent="4645"/>
+              <Tunnel _id="Out1" inputs="value:4671.value" uid="4691" uid_parent="4645"/>
+              <Tunnel _id="Out2" inputs="value:5054.Next.Seq.No" uid="4960" uid_parent="4645"/>
+            </CaseFrame>
+            <CaseFrame label="Message Ready" selector="True" selectout="" uid="4651" uid_parent="4637">
+              <Tunnel _id="In1" outputs="value:4672.value" uid="4672" uid_parent="4651"/>
+              <Tunnel _id="In2" outputs="value:4704.value" uid="4704" uid_parent="4651"/>
+              <Control _name="time" conIdx="9" connection="recommended" outputs="value:162.value" type="uint64" uid="162" uid_parent="4651" value="0"/>
+              <Tunnel _id="In3" outputs="value:3748.value" uid="3748" uid_parent="4651"/>
+              <Node _name="Unbundle" inputs="cluster:4704.value" outputs="element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:4459.Next.Seq.No,element:" uid="300093" uid_parent="4651"/>
+              <Node _name="Unbundle" inputs="cluster:4672.value" outputs="element:300094.type,element:300095.side,element:300096.orderId ,element:300097.quantity,element:300098.symbol,element:300099.price,element:300100.executed.qty,element:300101.canceled.qty,element:300102.remaining.qty,element:300103.seconds,element:300104.nanoseconds,element:300105.Add,element:300106.Edit,element:300107.Remove,element:,element:,element:" uid="300108" uid_parent="4651"/>
+              <Node _name="Bundle" inputs="element:300094.type,element:300095.side,element:300096.orderId ,element:300097.quantity,element:300098.symbol,element:300099.price,element:300100.executed.qty,element:300101.canceled.qty,element:300102.remaining.qty,element:300103.seconds,element:300104.nanoseconds,element:300105.Add,element:300106.Edit,element:300107.Remove,element:4459.Next.Seq.No,element:3748.value,element:162.value,cluster:4672.value" outputs="output cluster:4104.output cluster" uid="300109" uid_parent="4651"/>
+              <Node _name="Increment" inputs="x:4459.Next.Seq.No" outputs="x+1:5004.x+1" uid="5004" uid_parent="4651"/>
+              <Tunnel _id="Out1" inputs="value:4104.output cluster" uid="4692" uid_parent="4651"/>
+              <Tunnel _id="Out2" inputs="value:5004.x+1" uid="4964" uid_parent="4651"/>
+            </CaseFrame>
+            <Tunnel _id="Out1" outputs="value:4693.value" uid="4693" uid_parent="4637"/>
+            <Tunnel _id="Out2" outputs="value:4968.value" uid="4968" uid_parent="4637"/>
+          </Structure>
+          <Constant _name="FIFO Name" outputs="value:114730.value" type="string" uid="114730" uid_parent="6730" value="TS-Filter.Command"/>
+          <Constant _name="Data Type" outputs="value:114731.value" type="string" uid="114731" uid_parent="6730" value="orderbook.command.ctl (cluster\2C 17 fields)"/>
+          <Node _name="To Variant" inputs="anything:4693.value" outputs="Variant:114732.Variant" uid="114732" uid_parent="6730"/>
+          <Call inputs="FIFO In:,FIFO Name:114730.value,Data Type:114731.value,Element:114732.Variant,Input Valid:2212.x >= y?" outputs="FIFO Out:,Ready for Input:" target="FIFO.WRITE.vi" uid="2473" uid_parent="6730"/>
+          <Node _name="Unbundle" inputs="cluster:6709.value" outputs="element:,element:300110.Saved.BATS.Parser.State,element:300111.Hdr Length (U16),element:300112.MessageLength (U8),element:300113.MessageType (U8),element:300114.Time (U32),element:,element:300115.Message Counter (U8),element:300116.i,element:300117.Number.of.Tickers,element:300118.n,element:300119.msg.counter,element:300120.msg.length,element:300121.buffer.start,element:,element:,element:,element:" uid="300122" uid_parent="6730"/>
+          <Node _name="Bundle" inputs="element:2671.value,element:300110.Saved.BATS.Parser.State,element:300111.Hdr Length (U16),element:300112.MessageLength (U8),element:300113.MessageType (U8),element:300114.Time (U32),element:3168.value,element:300115.Message Counter (U8),element:300116.i,element:300117.Number.of.Tickers,element:300118.n,element:300119.msg.counter,element:300120.msg.length,element:300121.buffer.start,element:1942.value,element:1996.value,element:4968.value,element:9908.output cluster,cluster:6709.value" outputs="output cluster:6804.output cluster" uid="300123" uid_parent="6730"/>
+          <Tunnel _id="Out1" inputs="value:6804.output cluster" uid="6684" uid_parent="6730"/>
+        </CaseFrame>
+        <Tunnel _id="Out1" outputs="value:6680.value" uid="6680" uid_parent="6669"/>
+      </Structure>
+      <Tunnel _id="Out1" inputs="value:6680.value" uid="6515" uid_parent="6490"/>
+      <Tunnel _id="Out2" inputs="value:3940.value" uid="6521" uid_parent="6490"/>
+    </CaseFrame>
+    <Tunnel _id="Out1" outputs="value:3751.value" uid="3751" uid_parent="2889"/>
+    <Tunnel _id="Out2" cond="true" outputs="value:5802.value" uid="5802" uid_parent="2889"/>
+  </Structure>
+  <Node _name="Unbundle" inputs="cluster:3751.value" outputs="element:300124.BATS.Parser.States,element:300125.Saved.BATS.Parser.State,element:300126.Hdr Length (U16),element:300127.MessageLength (U8),element:300128.MessageType (U8),element:300129.Time (U32),element:300130.Total Counter (U16),element:300131.Message Counter (U8),element:300132.i,element:300133.Number.of.Tickers,element:300134.n,element:300135.msg.counter,element:300136.msg.length,element:300137.buffer.start,element:300138.buffer.length,element:300139.buffer,element:300140.Next.Seq.No,element:300141.debug" uid="300142" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:300141.debug" outputs="element:,element:300144.data" uid="300145" uid_parent="root"/>
+  <Node _name="Bundle" inputs="element:6477.value,element:300144.data,cluster:300141.debug" outputs="output cluster:300143.debug" uid="300146" uid_parent="root"/>
+  <Node _name="Bundle" inputs="element:300124.BATS.Parser.States,element:300125.Saved.BATS.Parser.State,element:300126.Hdr Length (U16),element:300127.MessageLength (U8),element:300128.MessageType (U8),element:300129.Time (U32),element:300130.Total Counter (U16),element:300131.Message Counter (U8),element:300132.i,element:300133.Number.of.Tickers,element:300134.n,element:300135.msg.counter,element:300136.msg.length,element:300137.buffer.start,element:300138.buffer.length,element:300139.buffer,element:300140.Next.Seq.No,element:300143.debug,cluster:3751.value" outputs="output cluster:4033.next value" uid="300147" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:3751.value" outputs="element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:,element:300148.debug" uid="300149" uid_parent="root"/>
+  <Node _name="Unbundle" inputs="cluster:300148.debug" outputs="element:10607.debug.write,element:10607.debug.data" uid="300150" uid_parent="root"/>
+  <Constant _name="FIFO Name" outputs="value:155320.value" type="string" uid="155320" uid_parent="root" value="TS-Debug"/>
+          <Constant _name="Data Type" outputs="value:155321.value" type="string" uid="155321" uid_parent="root" value="array of U64 (4 words\2C the DEBUG trace record)"/>
+          <Node _name="To Variant" inputs="anything:10607.debug.data" outputs="Variant:155322.Variant" uid="155322" uid_parent="root"/>
+          <Call inputs="FIFO In:,FIFO Name:155320.value,Data Type:155321.value,Element:155322.Variant,Input Valid:10607.debug.write" outputs="FIFO Out:,Ready for Input:" target="FIFO.WRITE.vi" uid="6532" uid_parent="root"/>
+  <Indicator _name="Ready.for.Udp.Input" conIdx="2" connection="recommended" inputs="value:5802.value" type="bool" uid="5698" uid_parent="root" value="false"/>
+</VI>

@@ -1,7 +1,7 @@
-<VI _name="ModifyOrder.vi" description="Cboe PITCH Modify Order (0x27 long, 0x28 short) -> orderbook.command: type ModifyOrder, orderId, new quantity, new price, nanoseconds, Edit. Short price keeps 2 implied decimals (as AddOrder short does).">
+<VI _name="ModifyOrder.generated.vi" description="Cboe PITCH Modify Order (0x27 long, 0x28 short) -> orderbook.command: type ModifyOrder, orderId, new quantity, new price (short price x100 so all prices have 4 implied decimals), nanoseconds, Edit.">
   <Control _name="buffer.in" conIdx="11" connection="recommended" outputs="value:1101.value" type="array{uint64.Numeric}" uid="1101" uid_parent="root" value="[0,0,0,0,0,0,0,0,0]"/>
-  <Constant _name="OrderBook.Command" outputs="value:1102.value" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1102" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
-  <Constant _name="OrderBook Command" outputs="value:1103.value" type="uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}" uid="1103" uid_parent="root" value="5"/>
+  <Constant _name="OrderBook.Command" outputs="value:1102.value" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top,Trade,Unsupported}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1102" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+  <Constant _name="OrderBook Command" outputs="value:1103.value" type="uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top,Trade,Unsupported}" uid="1103" uid_parent="root" value="5"/>
   <Constant _name="Edit" outputs="value:1104.value" type="bool" uid="1104" uid_parent="root" value="true"/>
   <Constant _name="Start.Idx" outputs="value:1105.value" type="uint8" uid="1105" uid_parent="root" value="1"/>
   <Constant _name="Length" outputs="value:1106.value" type="uint8" uid="1106" uid_parent="root" value="1"/>
@@ -43,13 +43,22 @@
   <Constant _name="Length" outputs="value:1141.value" type="uint8" uid="1141" uid_parent="1132" value="2"/>
   <Call inputs="buffer (U64):1134.value,Start.Idx:1140.value,Length:1141.value,Big.Endian?:" outputs="Out.Value U64:1142.Out.Value U64" target="LVMCP Stub a1799e0563.vi" uid="1142" uid_parent="1132"/>
   <Node _name="To Unsigned Word Integer" inputs="number:1142.Out.Value U64" outputs="unsigned 16bit integer:1143.unsigned 16bit integer" uid="1143" uid_parent="1132"/>
-  <Node _name="To Unsigned Quad Integer" inputs="number:1143.unsigned 16bit integer" outputs="unsigned 64bit integer:1144.unsigned 64bit integer" uid="1144" uid_parent="1132"/>
-      <Tunnel _id="Out1" inputs="value:1139.unsigned 32bit integer" uid="1145" uid_parent="1132"/>
-      <Tunnel _id="Out2" inputs="value:1144.unsigned 64bit integer" uid="1146" uid_parent="1132"/>
+  <Node _name="To Unsigned Long Integer" inputs="number:1143.unsigned 16bit integer" outputs="unsigned 32bit integer:1144.unsigned 32bit integer" uid="1144" uid_parent="1132"/>
+  <Constant _name="shift" outputs="value:1145.value" type="int16" uid="1145" uid_parent="1132" value="6"/>
+  <Node _name="Logical Shift" comment="price &lt;&lt; 6" inputs="y:1145.value,x:1144.unsigned 32bit integer" outputs="x &lt;&lt; y:1146.sh6" uid="1146" uid_parent="1132"/>
+  <Constant _name="shift" outputs="value:1147.value" type="int16" uid="1147" uid_parent="1132" value="5"/>
+  <Node _name="Logical Shift" comment="price &lt;&lt; 5" inputs="y:1147.value,x:1144.unsigned 32bit integer" outputs="x &lt;&lt; y:1148.sh5" uid="1148" uid_parent="1132"/>
+  <Constant _name="shift" outputs="value:1149.value" type="int16" uid="1149" uid_parent="1132" value="2"/>
+  <Node _name="Logical Shift" comment="price &lt;&lt; 2" inputs="y:1149.value,x:1144.unsigned 32bit integer" outputs="x &lt;&lt; y:1150.sh2" uid="1150" uid_parent="1132"/>
+  <Node _name="Add" comment="p*64 + p*32" inputs="x:1146.sh6,y:1148.sh5" outputs="x+y:1151.x+y" uid="1151" uid_parent="1132"/>
+  <Node _name="Add" comment="+ p*4 = p*100 (2 -> 4 implied decimals)" inputs="x:1151.x+y,y:1150.sh2" outputs="x+y:1152.x+y" uid="1152" uid_parent="1132"/>
+  <Node _name="To Unsigned Quad Integer" inputs="number:1152.x+y" outputs="unsigned 64bit integer:1153.unsigned 64bit integer" uid="1153" uid_parent="1132"/>
+      <Tunnel _id="Out1" inputs="value:1139.unsigned 32bit integer" uid="1154" uid_parent="1132"/>
+      <Tunnel _id="Out2" inputs="value:1153.unsigned 64bit integer" uid="1155" uid_parent="1132"/>
     </CaseFrame>
-    <Tunnel _id="Out1" outputs="value:1147.value" uid="1147" uid_parent="1117"/>
-    <Tunnel _id="Out2" outputs="value:1148.value" uid="1148" uid_parent="1117"/>
+    <Tunnel _id="Out1" outputs="value:1156.value" uid="1156" uid_parent="1117"/>
+    <Tunnel _id="Out2" outputs="value:1157.value" uid="1157" uid_parent="1117"/>
   </Structure>
-  <Node _name="Bundle By Name" fields="type,orderId,quantity,price,nanoseconds,Edit" inputs="type:1103.value,orderId :1116.unsigned 64bit integer,quantity:1147.value,price:1148.value,nanoseconds:1112.unsigned 64bit integer,Edit:1104.value,input cluster:1102.value" outputs="output cluster:1149.output cluster" uid="1149" uid_parent="root"/>
-  <Indicator _name="OrderBook.Command" conIdx="3" connection="recommended" inputs="value:1149.output cluster" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1150" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
+  <Node _name="Bundle By Name" fields="type,orderId,quantity,price,nanoseconds,Edit" inputs="type:1103.value,orderId :1116.unsigned 64bit integer,quantity:1156.value,price:1157.value,nanoseconds:1112.unsigned 64bit integer,Edit:1104.value,input cluster:1102.value" outputs="output cluster:1158.output cluster" uid="1158" uid_parent="root"/>
+  <Indicator _name="OrderBook.Command" conIdx="3" connection="recommended" inputs="value:1158.output cluster" type="cluster{uint8{Time,AddOrder,OrderExecuted,OrderExecutedAtPrice,ReduceSize,ModifyOrder,DeleteOrder,Get.Everything,Get.All.Orders,Get.Top,Trade,Unsupported}.type,uint8.side,uint64.orderId ,uint32.quantity,uint64.symbol,uint64.price,uint32.executed.qty,uint32.canceled.qty,uint32.remaining.qty,uint64.seconds,uint64.nanoseconds,bool.Add,bool.Edit,bool.Remove,uint32.seq no,uint64.recv.time,uint64.parse.time}" uid="1159" uid_parent="root" value="[0,0,0,0,0,0,0,0,0,0,0,false,false,false,0,0,0]"/>
 </VI>

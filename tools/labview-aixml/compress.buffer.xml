@@ -1,0 +1,112 @@
+<VI _name="compress.buffer.generated.vi" description="Drop start.idx bytes from the front of buffer and move the remaining buffer.length - start.idx bytes to the top of buffer.out (byte 0 in the MSB of word 0). Rebuilds output words 0..2 (remainders up to 24 bytes) and masks every byte at or beyond the new length, so a remainder longer than one word after an already-complete message is preserved. Replaces compress.buffer.vi, which rebuilt word 0 only.">
+  <Control _name="buffer" conIdx="11" connection="recommended" outputs="value:67.value" type="array{uint64.Numeric}" uid="67" uid_parent="root" value="[4822678189205111,0,0,0,0,0,0,0,0]"/>
+  <Control _name="buffer.length" conIdx="10" connection="recommended" outputs="value:467.value" type="uint8" uid="467" uid_parent="root" value="8"/>
+  <Control _name="start.idx" conIdx="9" connection="recommended" outputs="value:520.value" type="uint8" uid="520" uid_parent="root" value="0"/>
+  <Constant _name="y" outputs="value:100.value" type="uint8" uid="100" uid_parent="root" value="7"/>
+  <Constant _name="y" outputs="value:101.value" type="int16" uid="101" uid_parent="root" value="-3"/>
+  <Constant _name="buffer.out 2" outputs="value:102.value" type="array{uint64.Numeric}" uid="102" uid_parent="root" value="[0,0,0,0,0,0,0,0,0]"/>
+  <Constant _name="all ones" outputs="value:190.value" type="uint64" uid="190" uid_parent="root" value="18446744073709551615"/>
+  <Constant _name="y" outputs="value:191.value" type="int16" uid="191" uid_parent="root" value="3"/>
+  <Constant _name="zero" outputs="value:192.value" type="uint64" uid="192" uid_parent="root" value="0"/>
+  <Constant _name="index" outputs="value:193.value" type="int32" uid="193" uid_parent="root" value="1"/>
+  <Constant _name="index" outputs="value:194.value" type="int32" uid="194" uid_parent="root" value="2"/>
+  <FreeLabel comment="diff = buffer.length - start.idx = bytes left after the consumed message\0As = start.idx AND 7 = byte offset of the first remaining byte inside its word\0Awidx = start.idx &gt;&gt; 3 = index of the word holding the first remaining byte\0Aw0..w3 = buffer[widx .. widx+3]  (an index past the end of the array reads as 0)" uid="105" uid_parent="root"/>
+  <Node _name="Subtract" comment="diff" inputs="x:467.value,y:520.value" outputs="x-y:110.diff" uid="110" uid_parent="root"/>
+  <Node _name="And" comment="s" inputs="x:520.value,y:100.value" outputs="x .and. y?:111.s" uid="111" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="widx" inputs="y:101.value,x:520.value" outputs="x &lt;&lt; y:112.widx" uid="112" uid_parent="root"/>
+  <Node _name="Equal To 0?" comment="remainder starts on a word boundary?" inputs="x:111.s" outputs="x = 0?:113.aligned" uid="113" uid_parent="root"/>
+  <Node _name="Index Array" comment="w0 w1 w2 w3" inputs="array:67.value,index:112.widx,index:,index:,index:" outputs="element:114.w0,element:114.w1,element:114.w2,element:114.w3" uid="114" uid_parent="root"/>
+  <Indicator _name="Remainder.idx" inputs="value:111.s" type="uint8" uid="120" uid_parent="root" value="0"/>
+  <Indicator _name="Word" inputs="value:112.widx" type="uint8" uid="121" uid_parent="root" value="0"/>
+  <Structure _name="Case Structure" selectin="113.aligned" uid="200" uid_parent="root">
+    <Tunnel _id="In1" inputs="value:114.w0" uid="201" uid_parent="200"/>
+    <Tunnel _id="In2" inputs="value:114.w1" uid="202" uid_parent="200"/>
+    <Tunnel _id="In3" inputs="value:114.w2" uid="203" uid_parent="200"/>
+    <Tunnel _id="In4" inputs="value:114.w3" uid="204" uid_parent="200"/>
+    <Tunnel _id="In5" inputs="value:111.s" uid="205" uid_parent="200"/>
+    <CaseFrame selector="False" selectout="" uid="210" uid_parent="200">
+      <FreeLabel comment="Remainder not word-aligned (s = 1..7):\0Araw_k = (w_k &lt;&lt; 8s) OR (w_k+1 &gt;&gt; 8(8-s))  for k = 0 1 2\0Athe same two shifts the old VI did for w0/w1 only\2C repeated for w1/w2 and w2/w3" uid="216" uid_parent="210"/>
+      <Tunnel _id="In1" outputs="value:211.value" uid="211" uid_parent="210"/>
+      <Tunnel _id="In2" outputs="value:212.value" uid="212" uid_parent="210"/>
+      <Tunnel _id="In3" outputs="value:213.value" uid="213" uid_parent="210"/>
+      <Tunnel _id="In4" outputs="value:214.value" uid="214" uid_parent="210"/>
+      <Tunnel _id="In5" outputs="value:215.value" uid="215" uid_parent="210"/>
+      <Constant _name="y" outputs="value:220.value" type="int16" uid="220" uid_parent="210" value="3"/>
+      <Constant _name="x" outputs="value:221.value" type="uint8" uid="221" uid_parent="210" value="8"/>
+      <Constant _name="y" outputs="value:222.value" type="int16" uid="222" uid_parent="210" value="3"/>
+      <Node _name="Logical Shift" comment="8*s" inputs="y:220.value,x:215.value" outputs="x &lt;&lt; y:230.s8" uid="230" uid_parent="210"/>
+      <Node _name="To Word Integer" comment="shift left amount" inputs="number:230.s8" outputs="16bit integer:231.shl" uid="231" uid_parent="210"/>
+      <Node _name="Subtract" comment="8-s" inputs="x:221.value,y:215.value" outputs="x-y:232.ems" uid="232" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="8*(8-s)" inputs="y:222.value,x:232.ems" outputs="x &lt;&lt; y:233.ems8" uid="233" uid_parent="210"/>
+      <Node _name="To Word Integer" inputs="number:233.ems8" outputs="16bit integer:234.ems16" uid="234" uid_parent="210"/>
+      <Node _name="Negate" comment="shift right amount" inputs="x:234.ems16" outputs="-x:235.shr" uid="235" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="w0 &lt;&lt; 8s" inputs="y:231.shl,x:211.value" outputs="x &lt;&lt; y:240.hi" uid="240" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="w1 &gt;&gt; 8(8-s)" inputs="y:235.shr,x:212.value" outputs="x &lt;&lt; y:241.lo" uid="241" uid_parent="210"/>
+      <Node _name="Or" comment="raw0" inputs="x:240.hi,y:241.lo" outputs="x .or. y?:242.raw" uid="242" uid_parent="210"/>
+      <Tunnel _id="Out1" inputs="value:242.raw" uid="250" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="w1 &lt;&lt; 8s" inputs="y:231.shl,x:212.value" outputs="x &lt;&lt; y:243.hi" uid="243" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="w2 &gt;&gt; 8(8-s)" inputs="y:235.shr,x:213.value" outputs="x &lt;&lt; y:244.lo" uid="244" uid_parent="210"/>
+      <Node _name="Or" comment="raw1" inputs="x:243.hi,y:244.lo" outputs="x .or. y?:245.raw" uid="245" uid_parent="210"/>
+      <Tunnel _id="Out2" inputs="value:245.raw" uid="251" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="w2 &lt;&lt; 8s" inputs="y:231.shl,x:213.value" outputs="x &lt;&lt; y:246.hi" uid="246" uid_parent="210"/>
+      <Node _name="Logical Shift" comment="w3 &gt;&gt; 8(8-s)" inputs="y:235.shr,x:214.value" outputs="x &lt;&lt; y:247.lo" uid="247" uid_parent="210"/>
+      <Node _name="Or" comment="raw2" inputs="x:246.hi,y:247.lo" outputs="x .or. y?:248.raw" uid="248" uid_parent="210"/>
+      <Tunnel _id="Out3" inputs="value:248.raw" uid="252" uid_parent="210"/>
+    </CaseFrame>
+    <CaseFrame selector="True" selectout="" uid="260" uid_parent="200">
+      <FreeLabel comment="Remainder starts on a word boundary (s = 0):\0Araw_k = w_k" uid="266" uid_parent="260"/>
+      <Tunnel _id="In1" outputs="value:261.value" uid="261" uid_parent="260"/>
+      <Tunnel _id="In2" outputs="value:262.value" uid="262" uid_parent="260"/>
+      <Tunnel _id="In3" outputs="value:263.value" uid="263" uid_parent="260"/>
+      <Tunnel _id="In4" outputs="value:" uid="264" uid_parent="260"/>
+      <Tunnel _id="In5" outputs="value:" uid="265" uid_parent="260"/>
+      <Tunnel _id="Out1" inputs="value:261.value" uid="270" uid_parent="260"/>
+      <Tunnel _id="Out2" inputs="value:262.value" uid="271" uid_parent="260"/>
+      <Tunnel _id="Out3" inputs="value:263.value" uid="272" uid_parent="260"/>
+    </CaseFrame>
+    <Tunnel _id="Out1" outputs="value:280.raw" uid="280" uid_parent="200"/>
+    <Tunnel _id="Out2" outputs="value:281.raw" uid="281" uid_parent="200"/>
+    <Tunnel _id="Out3" outputs="value:282.raw" uid="282" uid_parent="200"/>
+  </Structure>
+  <FreeLabel comment="Byte j of the output is valid only while j &lt; diff. For output word k (k = 0 1 2):\0A  diff &gt;= 8(k+1)  -&gt; keep the whole word (mask all ones)\0A  diff &lt;= 8k      -&gt; nothing left for this word (mask 0)\0A  otherwise        -&gt; keep the top (diff - 8k) bytes: all ones &lt;&lt; 8*(8(k+1) - diff)\0AThe old VI sized this mask with buffer.length AND 7\2C which only works while diff &lt;= 8." uid="299" uid_parent="root"/>
+  <Constant _name="y" outputs="value:301.value" type="uint8" uid="301" uid_parent="root" value="8"/>
+  <Node _name="Greater Or Equal?" comment="diff &gt;= 8: whole word 0 valid" inputs="x:110.diff,y:301.value" outputs="x &gt;= y?:302.full" uid="302" uid_parent="root"/>
+  <Node _name="Equal To 0?" comment="diff = 0: nothing left" inputs="x:110.diff" outputs="x = 0?:303.none" uid="303" uid_parent="root"/>
+  <Node _name="Subtract" comment="8 - diff" inputs="x:301.value,y:110.diff" outputs="x-y:304.rem" uid="304" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="*8" inputs="y:191.value,x:304.rem" outputs="x &lt;&lt; y:305.rem8" uid="305" uid_parent="root"/>
+  <Node _name="To Word Integer" inputs="number:305.rem8" outputs="16bit integer:306.sh" uid="306" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="top (diff-0) bytes" inputs="y:306.sh,x:190.value" outputs="x &lt;&lt; y:307.mid" uid="307" uid_parent="root"/>
+  <Node _name="Select" inputs="t:192.value,s:303.none,f:307.mid" outputs="s? t\3Af:308.m1" uid="308" uid_parent="root"/>
+  <Node _name="Select" inputs="t:190.value,s:302.full,f:308.m1" outputs="s? t\3Af:309.mask" uid="309" uid_parent="root"/>
+  <Node _name="And" comment="buffer.out[0]" inputs="x:280.raw,y:309.mask" outputs="x .and. y?:310.out" uid="310" uid_parent="root"/>
+  <Indicator _name="Mask 0" inputs="value:309.mask" type="uint64" uid="312" uid_parent="root" value="0"/>
+  <Constant _name="y" outputs="value:321.value" type="uint8" uid="321" uid_parent="root" value="16"/>
+  <Node _name="Greater Or Equal?" comment="diff &gt;= 16: whole word 1 valid" inputs="x:110.diff,y:321.value" outputs="x &gt;= y?:322.full" uid="322" uid_parent="root"/>
+  <Constant _name="y" outputs="value:331.value" type="uint8" uid="331" uid_parent="root" value="8"/>
+  <Node _name="Less Or Equal?" comment="diff &lt;= 8: nothing left for word 1" inputs="x:110.diff,y:331.value" outputs="x &lt;= y?:323.none" uid="323" uid_parent="root"/>
+  <Node _name="Subtract" comment="16 - diff" inputs="x:321.value,y:110.diff" outputs="x-y:324.rem" uid="324" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="*8" inputs="y:191.value,x:324.rem" outputs="x &lt;&lt; y:325.rem8" uid="325" uid_parent="root"/>
+  <Node _name="To Word Integer" inputs="number:325.rem8" outputs="16bit integer:326.sh" uid="326" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="top (diff-8) bytes" inputs="y:326.sh,x:190.value" outputs="x &lt;&lt; y:327.mid" uid="327" uid_parent="root"/>
+  <Node _name="Select" inputs="t:192.value,s:323.none,f:327.mid" outputs="s? t\3Af:328.m1" uid="328" uid_parent="root"/>
+  <Node _name="Select" inputs="t:190.value,s:322.full,f:328.m1" outputs="s? t\3Af:329.mask" uid="329" uid_parent="root"/>
+  <Node _name="And" comment="buffer.out[1]" inputs="x:281.raw,y:329.mask" outputs="x .and. y?:330.out" uid="330" uid_parent="root"/>
+  <Indicator _name="Mask 1" inputs="value:329.mask" type="uint64" uid="332" uid_parent="root" value="0"/>
+  <Constant _name="y" outputs="value:341.value" type="uint8" uid="341" uid_parent="root" value="24"/>
+  <Node _name="Greater Or Equal?" comment="diff &gt;= 24: whole word 2 valid" inputs="x:110.diff,y:341.value" outputs="x &gt;= y?:342.full" uid="342" uid_parent="root"/>
+  <Constant _name="y" outputs="value:351.value" type="uint8" uid="351" uid_parent="root" value="16"/>
+  <Node _name="Less Or Equal?" comment="diff &lt;= 16: nothing left for word 2" inputs="x:110.diff,y:351.value" outputs="x &lt;= y?:343.none" uid="343" uid_parent="root"/>
+  <Node _name="Subtract" comment="24 - diff" inputs="x:341.value,y:110.diff" outputs="x-y:344.rem" uid="344" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="*8" inputs="y:191.value,x:344.rem" outputs="x &lt;&lt; y:345.rem8" uid="345" uid_parent="root"/>
+  <Node _name="To Word Integer" inputs="number:345.rem8" outputs="16bit integer:346.sh" uid="346" uid_parent="root"/>
+  <Node _name="Logical Shift" comment="top (diff-16) bytes" inputs="y:346.sh,x:190.value" outputs="x &lt;&lt; y:347.mid" uid="347" uid_parent="root"/>
+  <Node _name="Select" inputs="t:192.value,s:343.none,f:347.mid" outputs="s? t\3Af:348.m1" uid="348" uid_parent="root"/>
+  <Node _name="Select" inputs="t:190.value,s:342.full,f:348.m1" outputs="s? t\3Af:349.mask" uid="349" uid_parent="root"/>
+  <Node _name="And" comment="buffer.out[2]" inputs="x:282.raw,y:349.mask" outputs="x .and. y?:350.out" uid="350" uid_parent="root"/>
+  <Indicator _name="Mask 2" inputs="value:349.mask" type="uint64" uid="352" uid_parent="root" value="0"/>
+  <Node _name="Replace Array Subset" comment="word 0" inputs="array:102.value,index:,new element/subarray:310.out" outputs="output array:400.arr" uid="400" uid_parent="root"/>
+  <Node _name="Replace Array Subset" comment="word 1" inputs="array:400.arr,index:193.value,new element/subarray:330.out" outputs="output array:401.arr" uid="401" uid_parent="root"/>
+  <Node _name="Replace Array Subset" comment="word 2" inputs="array:401.arr,index:194.value,new element/subarray:350.out" outputs="output array:402.arr" uid="402" uid_parent="root"/>
+  <Indicator _name="buffer.out" conIdx="3" connection="recommended" inputs="value:402.arr" type="array{uint64.Numeric}" uid="573" uid_parent="root" value="[0,0,0,0,0,0,0,0,0]"/>
+  <Indicator _name="buffer.length.out" conIdx="2" connection="recommended" inputs="value:110.diff" type="uint8" uid="706" uid_parent="root" value="0"/>
+</VI>

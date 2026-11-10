@@ -1,0 +1,15 @@
+<VI _name="FIFO.READ.vi" description="Stand-in for an FPGA FIFO Read node with the handshake interface (FIFO In\2C Ready for Output -&gt; Element\2C Output Valid\2C FIFO Out) so that a VI using it can be round-tripped through AIXML. The FIFO's configuration is given as constants on the diagram\3A FIFO Name (the FIFO item in the LabVIEW project) and Data Type (the element type); Element is a Variant (convert with Variant To Data in the caller). On My Computer it passes FIFO In to FIFO Out and reports Output Valid = FALSE with an empty Element. In the FPGA VI\2C replace each call with the real FIFO Method Node for FIFO Name and delete the constants.">
+  <FreeLabel comment="Stand-in for FPGA FIFO Read (handshake). Configuration is the FIFO Name / Data Type constants wired by the caller." uid="9001" uid_parent="root"/>
+  <Control _name="FIFO In" conIdx="0" connection="recommended" outputs="value:10.value" type="string" uid="10" uid_parent="root" value=""/>
+  <Control _name="FIFO Name" conIdx="5" connection="recommended" outputs="value:11.value" type="string" uid="11" uid_parent="root" value=""/>
+  <Control _name="Data Type" conIdx="7" connection="recommended" outputs="value:12.value" type="string" uid="12" uid_parent="root" value=""/>
+  <Control _name="Ready for Output" conIdx="9" connection="recommended" outputs="value:13.value" type="bool" uid="13" uid_parent="root" value="false"/>
+  <Constant _name="nothing to read" outputs="value:20.value" type="bool" uid="20" uid_parent="root" value="false"/>
+  <Constant _name="empty element" outputs="value:21.value" type="variant" uid="21" uid_parent="root" value=""/>
+  <Indicator _name="FIFO Out" conIdx="4" connection="recommended" inputs="value:10.value" type="string" uid="30" uid_parent="root" value=""/>
+  <Indicator _name="Element" conIdx="6" connection="recommended" inputs="value:21.value" type="variant" uid="31" uid_parent="root" value=""/>
+  <Indicator _name="Output Valid" conIdx="8" connection="recommended" inputs="value:20.value" type="bool" uid="32" uid_parent="root" value="false"/>
+  <Indicator _name="Ready for Output (last)" inputs="value:13.value" type="bool" uid="33" uid_parent="root" value="false"/>
+  <Indicator _name="FIFO Name (cfg)" inputs="value:11.value" type="string" uid="34" uid_parent="root" value=""/>
+  <Indicator _name="Data Type (cfg)" inputs="value:12.value" type="string" uid="35" uid_parent="root" value=""/>
+</VI>
