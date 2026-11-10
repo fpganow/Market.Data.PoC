@@ -26,6 +26,26 @@ module tb;
     wire [7:0] dbg_tkeep, cmd_tkeep, mdbg_tkeep;
     wire [63:0] dbg_tdata, cmd_tdata, mdbg_tdata;
 
+`ifdef RTL_DUT
+    // hand-written Verilog implementation (poc_v/), same ports as the LabVIEW wrapper
+    mktdata_parser_rtl dut (
+        .reset(reset), .enable_in(enable_in), .enable_out(enable_out), .enable_clr(enable_clr),
+        .ctrlind_00_DEBUG_TREADY(1'b1),
+        .ctrlind_01_DEBUG_TVALID(dbg_tvalid), .ctrlind_02_DEBUG_TLAST(dbg_tlast),
+        .ctrlind_03_DEBUG_TKEEP(dbg_tkeep),   .ctrlind_04_DEBUG_TDATA(dbg_tdata),
+        .ctrlind_05_CMD_TREADY(1'b1),
+        .ctrlind_06_CMD_TVALID(cmd_tvalid),   .ctrlind_07_CMD_TLAST(cmd_tlast),
+        .ctrlind_08_CMD_TKEEP(cmd_tkeep),     .ctrlind_09_CMD_TDATA(cmd_tdata),
+        .ctrlind_10_MDEBUG_TREADY(1'b1),
+        .ctrlind_11_MDEBUG_TVALID(mdbg_tvalid), .ctrlind_12_MDEBUG_TLAST(mdbg_tlast),
+        .ctrlind_13_MDEBUG_TKEEP(mdbg_tkeep),   .ctrlind_14_MDEBUG_TDATA(mdbg_tdata),
+        .ctrlind_15_TUSER(in_tuser), .ctrlind_16_TLAST(in_tlast), .ctrlind_17_TVALID(in_tvalid),
+        .ctrlind_18_TKEEP(in_tkeep), .ctrlind_19_TDATA(in_tdata),
+        .ctrlind_20_ip_reset(ip_reset),
+        .Clk40MhzDerived5x2B00MHz(clk100),
+        .Clk40MhzDerived168x43B56_28MHz(clk156)
+    );
+`else
     NiFpgaAG_poc_ip_kria dut (
         .tDiagramEnableOut(1'b1),
         .reset(reset), .enable_in(enable_in), .enable_out(enable_out), .enable_clr(enable_clr),
@@ -44,6 +64,7 @@ module tb;
         .Clk40MhzDerived5x2B00MHz(clk100),
         .Clk40MhzDerived168x43B56_28MHz(clk156)
     );
+`endif
 
     // ---- output monitors (sampled on the 100 MHz output clock) -------------
     integer dbg_n = 0, cmd_n = 0, mdbg_n = 0;

@@ -12,7 +12,7 @@ PKG      := $(BUILD)/$(APP_NAME)
 
 PETALINUX_SETTINGS ?= /tools/Xilinx/PetaLinux/2024.1/settings.sh
 
-.PHONY: all package clean stage list-staged list-apps unload-app deploy-staged load-app reload-app
+.PHONY: all package clean stage list-staged list-apps unload-app deploy-staged load-app reload-app package-variant deploy-variant
 
 all: package
 
@@ -116,3 +116,26 @@ deploy-staged:
 	    sudo rm -rf $(FW_DIR)/$(APP_NAME); \
 	    sudo cp -r ~/$(APP_NAME) $(FW_DIR)/; \
 	    echo "  installed:"; sudo ls -l $(FW_DIR)/$(APP_NAME)'
+
+# -- Variants: the same package under another app name ------------------------
+# Installs a saved build beside the default app so several bitstreams (e.g. the
+# LabVIEW netlist and the poc_v/ RTL parser) can be switched with `xmutil
+# loadapp <name>`. The dtso's firmware-name is rewritten to the new name; the
+# bit.bin is taken as is (already bootgen-processed, e.g. from builds/*/kria_build/).
+#   make -C kria_app package-variant NAME=mktdata_poc_rtl BIT_BIN=../builds/rtl_2026-10-20/kria_build/mktdata_poc.bit.bin
+#   make -C kria_app deploy-variant  NAME=mktdata_poc_rtl
+package-variant:
+	@test -n "$(NAME)" -a -n "$(BIT_BIN)" || { echo "usage: make package-variant NAME=<app> BIT_BIN=<file.bit.bin>"; exit 1; }
+	rm -rf $(BUILD)/$(NAME); mkdir -p $(BUILD)/$(NAME)
+	sed 's#firmware-name = "[^"]*"#firmware-name = "$(NAME)/$(NAME).bit.bin"#' $(DTSO) > $(BUILD)/$(NAME).dtso
+	. $(PETALINUX_SETTINGS) && \
+		dtc -@ -O dtb -I dts -o $(BUILD)/$(NAME)/$(NAME).dtbo $(BUILD)/$(NAME).dtso
+	cp $(BIT_BIN) $(BUILD)/$(NAME)/$(NAME).bit.bin
+	cp $(SHELL_J) $(BUILD)/$(NAME)/shell.json
+	@ls -l $(BUILD)/$(NAME)
+
+# Install a packaged variant into the board's firmware dir (same mechanism as deploy-staged).
+deploy-variant:
+	@test -n "$(NAME)" || { echo "usage: make deploy-variant NAME=<app>"; exit 1; }
+	scp -r $(BUILD)/$(NAME) $(HOST):~/
+	ssh $(HOST) 'sudo rm -rf $(FW_DIR)/$(NAME) && sudo cp -r ~/$(NAME) $(FW_DIR)/ && sudo ls -l $(FW_DIR)/$(NAME)'

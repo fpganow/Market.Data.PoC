@@ -20,11 +20,21 @@ Formats (fpga/poc.ip.kria.vi, bats.parser.vi, 2026-09-15):
 """
 import re, sys
 
-TICK_NS = 10
+TICK_NS = 6.4   # the tick counter runs in the 156.25 MHz input loop of poc.ip.kria.vi (verified in sim 2026-10-11), not at 100 MHz
 CMD_NAMES = ["type", "side", "orderId", "qty", "symbol", "price", "exec.qty", "cancel.qty",
              "remain.qty", "seconds", "nanos", "flags", "seq", "recv.time", "parse.time", "reserved"]
 MSG_TYPES = {0x20: "Time", 0x21: "AddOrder(long)", 0x22: "AddOrder(short)", 0x23: "OrderExecuted",
-             0x24: "OrderExecutedAtPriceSize", 0x2F: "AddOrder(expanded)"}
+             0x24: "OrderExecutedAtPriceSize", 0x25: "ReduceSize(long)", 0x26: "ReduceSize(short)",
+             0x27: "ModifyOrder(long)", 0x28: "ModifyOrder(short)", 0x29: "DeleteOrder",
+             0x2A: "Trade(long)", 0x2B: "Trade(short)", 0x2F: "AddOrder(expanded)",
+             0x30: "Trade(expanded)"}
+# CMD word 0 = orderbook.command.type (submodules/Market.Data.Common/fpga/orderbook.command.type.ctl)
+CMD_TYPE_NAMES = ["Time", "AddOrder", "OrderExecuted", "OrderExecutedAtPrice", "ReduceSize",
+                  "ModifyOrder", "DeleteOrder", "Get.Everything", "Get.All.Orders", "Get.Top",
+                  "Trade", "Unsupported"]
+
+def cmd_type_name(t):
+    return CMD_TYPE_NAMES[t] if 0 <= t < len(CMD_TYPE_NAMES) else f"?{t}"
 
 def s8(v):
     b = v.to_bytes(8, "little")
@@ -80,7 +90,7 @@ def main():
         ticks = d["parse.time"] - d["recv.time"]
         lat.append(ticks)
         side = chr(d["side"]) if 0x20 <= d["side"] < 0x7F else str(d["side"])
-        print(f"  seq {d['seq']:3d}  type {d['type']}  side {side}  orderId {s8(d['orderId'])!r:12} qty {d['qty']:5d}  "
+        print(f"  seq {d['seq']:3d}  type {d['type']:2d} {cmd_type_name(d['type']):13s} side {side}  orderId {s8(d['orderId'])!r:12} qty {d['qty']:5d}  "
               f"symbol {s8(d['symbol'])!r:10} price {d['price']:8d}  sec {d['seconds']} ns {d['nanos']}  "
               f"flags {d['flags']:#x}  recv 0x{d['recv.time']:x} parse 0x{d['parse.time']:x} "
               f"-> {ticks} ticks = {ticks * TICK_NS} ns  reserved {d['reserved']:#x}")

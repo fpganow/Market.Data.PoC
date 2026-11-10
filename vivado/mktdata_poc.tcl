@@ -60,6 +60,23 @@ proc checkRequiredFiles { origin_dir} {
 # Set the reference directory for source file relative paths (by default the value is script directory path)
 set origin_dir "."
 
+# Parser implementation inside the block design (same ports either way):
+#   labview (default) - the LabVIEW IP Export netlist ip/NiFpgaAG_poc_ip_kria.v + its VHDL wrapper
+#   rtl               - the hand-written Verilog in ../poc_v/*.v (module mktdata_parser_rtl)
+# Select with the PARSER_IMPL environment variable: PARSER_IMPL=rtl make xsa-clean xsa
+set parser_impl "labview"
+if { [info exists ::env(PARSER_IMPL)] && $::env(PARSER_IMPL) ne "" } { set parser_impl $::env(PARSER_IMPL) }
+if { $parser_impl ne "labview" && $parser_impl ne "rtl" } { error "PARSER_IMPL must be labview or rtl, got $parser_impl" }
+puts "PARSER_IMPL = $parser_impl"
+if { $parser_impl eq "rtl" } {
+  set parser_block "mktdata_parser_rtl"
+  # the RTL lives beside vivado/ in the repo: resolve it from this script's location
+  set parser_files [lsort [glob "[file dirname [file normalize [info script]]]/../poc_v/*.v"]]
+} else {
+  set parser_block "NiFpgaIPWrapper_poc_ip_kria"
+  set parser_files [list "${origin_dir}/ip/NiFpgaAG_poc_ip_kria.v" "${origin_dir}/ip/NiFpgaIPWrapper_poc_ip_kria.vhd"]
+}
+
 # Use origin directory path location variable, if specified in the tcl shell
 if { [info exists ::origin_dir_loc] } {
   set origin_dir $::origin_dir_loc
@@ -186,18 +203,19 @@ set files [list \
  [file normalize "${origin_dir}/ip/my_state.v" ]\
  [file normalize "${origin_dir}/ip/simple_fifo.v" ]\
  [file normalize "${origin_dir}/ip/kr260_starter_kit_wrapper.v"]\
- [file normalize "${origin_dir}/ip/NiFpgaAG_poc_ip_kria.v" ]\
- [file normalize "${origin_dir}/ip/NiFpgaIPWrapper_poc_ip_kria.vhd" ]\
 ]
+foreach f $parser_files { lappend files [file normalize $f] }
 set imported_files ""
 foreach f $files {
   lappend imported_files [import_files -fileset sources_1 $f]
 }
 
 # Set 'sources_1' fileset file properties for local files
-set file "NiFpgaIPWrapper_poc_ip_kria.vhd"
-set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
-set_property -name "file_type" -value "VHDL" -objects $file_obj
+if { $parser_impl eq "labview" } {
+  set file "NiFpgaIPWrapper_poc_ip_kria.vhd"
+  set file_obj [get_files -of_objects [get_filesets sources_1] [list "*$file"]]
+  set_property -name "file_type" -value "VHDL" -objects $file_obj
+}
 
 
 # Set 'sources_1' fileset file properties for local files
@@ -267,11 +285,10 @@ if { [get_files [list xgmii_includes.vh]] == "" } {
 if { [get_files [list xgmii2axis.v]] == "" } {
   import_files -quiet -fileset sources_1 [file normalize "${origin_dir}/ip/xgmii2axis.v"]
 }
-if { [get_files [list NiFpgaAG_poc_ip_kria.v]] == "" } {
-  import_files -quiet -fileset sources_1 [file normalize "${origin_dir}/ip/NiFpgaAG_poc_ip_kria.v"]
-}
-if { [get_files [list NiFpgaIPWrapper_poc_ip_kria.vhd]] == "" } {
-  import_files -quiet -fileset sources_1 [file normalize "${origin_dir}/ip/NiFpgaIPWrapper_poc_ip_kria.vhd"]
+foreach f $parser_files {
+  if { [get_files [list [file tail $f]]] == "" } {
+    import_files -quiet -fileset sources_1 [file normalize $f]
+  }
 }
 if { [get_files [list my_state.v]] == "" } {
   import_files -quiet -fileset sources_1 [file normalize "${origin_dir}/ip/my_state.v"]
@@ -339,7 +356,7 @@ proc cr_bd_kr260_starter_kit { parentCell } {
      set list_check_mods "\ 
   axis2xgmii\
   xgmii2axis\
-  NiFpgaIPWrapper_poc_ip_kria\
+  $::parser_block\
   my_state\
   "
 
@@ -1654,7 +1671,8 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: NiFpgaIPWrapper_poc_0, and set properties
-  set block_name NiFpgaIPWrapper_poc_ip_kria
+  # (the parser: NiFpgaIPWrapper_poc_ip_kria or mktdata_parser_rtl, see PARSER_IMPL above)
+  set block_name $::parser_block
   set block_cell_name NiFpgaIPWrapper_poc_0
   if { [catch {set NiFpgaIPWrapper_poc_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}

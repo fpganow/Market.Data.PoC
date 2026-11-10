@@ -3,6 +3,9 @@ PROJ_NAME  = mktdata_poc
 XPR        = $(PROJ_NAME)/$(PROJ_NAME).xpr
 XSA        = $(PROJ_NAME).xsa
 JOBS      ?= 4
+# parser inside the BD: labview (NI IP Export netlist) | rtl (../poc_v/*.v)
+PARSER_IMPL ?= labview
+export PARSER_IMPL
 
 .PHONY: xsa xsa-clean help
 
@@ -14,6 +17,8 @@ help:
 	@echo "Variables:"
 	@echo "  JOBS=N    - Number of parallel jobs for synthesis/implementation (default: 4)"
 	@echo "  VIVADO=   - Path to Vivado executable (default: $(VIVADO))"
+	@echo "  PARSER_IMPL=labview|rtl - parser inside the BD: LabVIEW netlist or ../poc_v/*.v (default: labview)"
+	@echo "            switching needs xsa-clean first (the project imports its own copy of the sources)"
 
 xsa: $(XSA)
 

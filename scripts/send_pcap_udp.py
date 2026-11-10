@@ -17,7 +17,10 @@ def payloads(path):
         ts, tu, incl, orig = struct.unpack(fmt, d[off:off + 16])
         frame = d[off + 16:off + 16 + incl]; off += 16 + incl
         ihl = (frame[14] & 0xF) * 4
-        yield frame[14 + ihl + 8:]          # after Ethernet + IPv4 + UDP headers
+        udp = 14 + ihl
+        ulen = struct.unpack(">H", frame[udp + 4:udp + 6])[0]
+        yield frame[udp + 8:udp + ulen]      # the UDP payload only: a 60-byte minimum frame carries
+                                              # Ethernet pad bytes after it (heartbeats), which must not be sent
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
