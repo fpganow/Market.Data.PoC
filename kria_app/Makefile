@@ -1,7 +1,9 @@
 SHELL           := /bin/bash
-APP_NAME := mktdata_poc
-XSA      := ../vivado/mktdata_poc.xsa
-XSA_BIT  := mktdata_poc.bit
+# Override for the pure-RTL bitstream: make APP_NAME=mktdata_rtl XSA_DIR=../vivado_rtl <target>
+APP_NAME ?= mktdata_poc
+XSA_DIR  ?= ../vivado
+XSA      ?= $(XSA_DIR)/$(APP_NAME).xsa
+XSA_BIT  := $(APP_NAME).bit
 BUILD    := build
 BIT      := $(BUILD)/$(APP_NAME).bit
 BIT_BIN  := $(BUILD)/$(APP_NAME).bit.bin

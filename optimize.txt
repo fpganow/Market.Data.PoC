@@ -1,0 +1,166 @@
+optimize.txt -- how fast the LabVIEW parser IP is, how fast Cboe is, and how to close the gap
+Written 2026-11-08 from the axis_mon sink sweep (see CLAUDE.md, "2026-11-08: axis_mon") and
+Cboe's published feed statistics. Sources at the end.
+
+====================================================================================================
+1. What the IP does today (measured on hardware, 2026-09-23 export + axis_mon, bit.bin d39fc071)
+====================================================================================================
+
+Sink-mode sweep, tests/data/generated_2026_09_17_multi.pcap x 20 = 400 frames / 13180 messages per
+rate. Every frame reached the parser at every rate (rx_frames == sent, rx_bad 0, stall 0), so the
+numbers are the NI IP's own ceiling, not the host readout.
+
+  offered        msg/s     records   seq gaps   lat max   verdict
+  1 Mbit/s..1.5 Gbit/s  <= 6.0 M   13180   0   2..16 us   100 %
+  2 Gbit/s       8.0 M     12496     2287       18 us     desync (numbered 14783 for 13180 sent)
+  3 Gbit/s      12.0 M      9425     5017       18 us     desync
+  4 Gbit/s      16.0 M      8416     4762       13 us     36 % numbered but never output
+
+The pcap averages 29.9 payload bytes / 31.2 wire bytes per message (659 msgs, 20566 wire bytes,
+33 msgs per ~1028 B frame), so 1.5 Gbit/s = 6.0 M msg/s passed and 2 Gbit/s = 8.0 M msg/s failed.
+The true edge is somewhere between; rates 1600..1900 Mbit/s were not tested.
+
+"Desync" = the parser numbered MORE messages than were sent. It lost bytes mid-frame, read a wrong
+length byte, and carved garbage messages until the next frame start reset it (the 2026-09-22
+frame-start clear is why it recovers per frame). "Dropped inside the NI IP" (4 Gbit/s) = framing
+still right, but numbered messages never came out of the CMD stream.
+
+Where the limit is
+------------------
+* CMD record = 16 x U64 per message, one word per 100 MHz cycle = 160 ns per message
+  = 6.25 M msg/s maximum output rate. The ceiling (6.0 ok, 8.0 broken) sits exactly there.
+* TH-Command.out (Market.Data.PoC.lvproj): U64 FIFO, NumberOfElements=1023, ElementsPerWrite=16
+  -> holds only 63 messages. When it fills the parser blocks, its input FIFO from the 156.25 MHz
+  filter domain overflows, bytes are lost mid-frame -> desync.
+* The parser loop itself (parse.time deltas, word 14) runs 6..9 cycles per message
+  = 11..16 M msg/s. It is NOT the first limit; the record width is.
+* Fabric (report_utilization -hierarchical on the routed design):
+    NiFpgaIPWrapper_poc_0   11.3k LUTs (9.6 % of 117k)   4.3k FFs   92 of 144 RAMB36 (64 %)
+    whole design            44.2k LUTs (37.7 %)          46.4k FFs  130.5 of 144 BRAM (90.6 %)
+  The IP's 92 block RAMs are its FIFOs: TH-DEBUG (1023 x U64, 4/write), TH-MDEBUG (same),
+  HT-RAW_ETH (4107 x U64), the 4096-element target-scoped orderbook.command cluster FIFO,
+  TH-Command.out (1023 x U64). Harness slack: tx_data_fifo uses 16 RAMB36 for the PCS-loopback
+  injector path, which the real 10G cable made unnecessary.
+
+Line-rate budget (10 Gbit/s)
+----------------------------
+  this pcap (31 B/msg wire):      40 M msg/s  -> 2.5 cycles per message at 100 MHz
+  Cboe real mix (37..43 B/msg):   29..34 M msg/s -> 3.0..3.5 cycles per message
+  one 64-bit word per 156.25 MHz cycle arrives from the MAC = 8 B/cycle; a 31 B message is ~4 of
+  those cycles = 6.25 cycles at 100 MHz.
+
+====================================================================================================
+2. What Cboe actually sends (Cboe connectivity manual, "Historical Highs", statistics as of 10/01/2026)
+====================================================================================================
+
+Whole-exchange Multicast PITCH depth feed, all 35 symbol units together:
+
+  exchange        1 ms burst              10 ms burst             1 s peak                 60 s peak
+  BZX Equities    21.9 M msg/s 6485 Mb/s  19.8 M msg/s 5854 Mb/s  836 k msg/s   286 Mb/s   192 k msg/s 67 Mb/s
+  EDGX Equities   26.1 M msg/s 7719 Mb/s  23.1 M msg/s 6846 Mb/s  2.14 M msg/s  635 Mb/s   117 k msg/s 41 Mb/s
+  BYX Equities    18.2 M msg/s 5395 Mb/s  11.2 M msg/s 3315 Mb/s  216 k msg/s    68 Mb/s    57 k msg/s 20 Mb/s
+  EDGA Equities   20.6 M msg/s 6106 Mb/s  12.1 M msg/s 3584 Mb/s  209 k msg/s    65 Mb/s    48 k msg/s 16 Mb/s
+
+  -> 37..43 wire bytes per message. Cboe: "Cboe data will have microbursts within the one-second
+     interval above, and these microbursts will exceed the peak rates at the one-second interval."
+
+Shaping (PITCH spec, "Limitations/Configurations" and "Bandwidth Recommendation"):
+  * Equities depth feeds are Gig-shaped (head end throttles to 1 Gb/s) or WAN-shaped (100 Mb/s;
+    Equities WAN-shaped C/D/E feeds require 500 Mbps effective 12/14/26). Cboe uses 90 % of the
+    shaped bandwidth for PITCH.
+  * 5G- and 8G-shaped feeds exist for OPTIONS only and require 10 Gb/s of connectivity.
+  * UDP datagrams up to 1500 bytes (MTU 1500); messages are packed into one frame where possible.
+  * 35 units for equities (symbol ranges; units 32-35 for Cboe-listed ETPs), each its own
+    multicast group / sequence-number space.
+  * Open orders: ~400,000 across all equities units (~12,500 per unit); options > 3.2 M.
+  * OPRA (options, different feed): Cboe cites a 44.8 M msg/s one-second peak for Q3 2024.
+
+Consequence: a Gig-shaped equities feed can deliver at most ~1 Gb/s / 37 B = 3.4 M msg/s, below
+the 6 M msg/s the IP already passes. The IP is short only for the "10G line rate" goal and for the
+5G/8G options feeds (up to ~27 M msg/s in a 1 ms burst).
+
+====================================================================================================
+3. How to speed up the LabVIEW side (ordered by payoff per effort)
+====================================================================================================
+
+3.1 Pack the CMD record (first wall, cheapest)
+    The 128-byte record spends a whole 64-bit word each on type, side, flags, seq no, recv.time,
+    parse.time and the 0xDEADBEEF magic. Pack type|side|flags|quantity|executed|canceled|remaining
+    into one word; keep orderId, symbol, price as words; drop the timestamps and the magic in a
+    production build (keep them behind a debug constant).
+      16 words -> 6.25 M msg/s (today)
+       4 words -> 25 M msg/s
+       2 words -> 50 M msg/s
+    Nothing in the parser state machine changes. Also deepen TH-Command.out so a whole 1500-byte
+    frame of short messages fits (>= ~64 messages x words per record).
+    Harness follow-up (not LabVIEW): axis_mon.v (words 0/12/13/14/15), poc_server, decode_capture.py,
+    eval_sim.py, rate_sweep.py all read fixed word positions and must follow the new layout.
+
+3.2 Then the parser loop (6..9 cycles per message -> 11..16 M msg/s)
+    Line rate needs 2.5 (this pcap) to 3.5 (Cboe mix) cycles per message in a single parser. That
+    needs a different design (find two message boundaries per 64-bit word in one cycle). Realistic
+    in LabVIEW: trim Read.Msg so a message already complete in the buffer is consumed in one cycle
+    instead of stepping header -> length -> body; roughly halves the count.
+    Measure first: the MDEBUG stream logs every parser cycle [time, msg len, msg type]; xsim on the
+    20-frame file (ip_export/netlist_sim/run.sh) gives cycles per message by type.
+
+3.3 Multiple loops: yes, at FRAME granularity, not inside a frame
+    Messages inside a frame are a length-prefixed chain -> cannot be split across parsers cheaply.
+    Frames are independent: every frame starts with a Sequenced Unit Header (spec) and the parser
+    clears its buffer at frame start (2026-09-22 fix). So:
+      * K copies of bats.parser.vi, each in its own 100 MHz SCTL with its own input FIFO; a
+        dispatcher in the 156.25 MHz filter loop sends whole frames; outputs merged.
+      * Key the dispatch on UDP destination port / multicast group (= Cboe unit): a unit always
+        lands on the same parser, so per-unit sequence order is preserved, no reorder logic.
+        Round-robin also works if the consumer tolerates frames out of order across units.
+      * 4 copies at 6..9 cycles/message = 44..67 M msg/s = line rate for this traffic, PROVIDED
+        3.1 is done so each copy's output drains.
+      * Constraint is block RAM, not logic: one more IP copy needs ~92 RAMB36 and only 13.5 are
+        free. Remove TH-DEBUG, TH-MDEBUG and HT-RAW_ETH from the export build (or shrink them
+        hard) and shrink the 4096-deep cluster FIFO; each copy then costs a handful of BRAMs.
+        Harness side can give back tx_data_fifo's 16.
+      * Timing gets harder: the single parser closes 100 MHz only with
+        Performance_ExplorePostRoutePhysOpt (+0.13 ns). Replicated identical loops usually place
+        fine; expect iteration.
+
+3.4 Do not chase clock rate
+    156.25 MHz would give 1.56x but the loop has ~0 slack at 100 MHz. Pipeline first, then clock,
+    and only after 3.1-3.3.
+
+3.5 Verification loop for every step (no LabVIEW needed on this box)
+    copy the new NiFpgaAG_poc_ip_kria.v (+ wrapper .vhd) from the Windows PC into ip_export/
+    make ip-install-poc_ip_kria && make xsa-clean && make xsa JOBS=8      (~12 min)
+    make kria-build kria-stage kria-deploy-staged kria-reload-app
+    make -C apps/poc_inject deploy
+    python3 scripts/rate_sweep.py tests/data/generated_2026_09_17_multi.pcap --sink \
+        --mbps 1000 1500 1600 1700 1800 1900 2000 3000 4000 --loop 20
+    Watch for the first seq gap / desync verdict. The Python sender tops out ~4.4 Gbit/s; above
+    that use several senders or pktgen (the monitor's expected counts just add up).
+
+====================================================================================================
+4. Done 2026-11-08: all of section 3 implemented in Verilog as bitstream 3 (vivado_rtl/)
+====================================================================================================
+vivado_rtl/mktdata_rtl.tcl forks the vivado/ harness and swaps the LabVIEW netlist for
+vivado_rtl/ip/pitch_rtl_top.v: 156.25 MHz throughout, one 64-bit word in and one message out per
+clock, one 1024-bit record beat per message, same 16-word record layout / addresses / host tools.
+xsim: 659/659 on the 20-frame pcap. Hardware (app mktdata_rtl, WNS +0.58 ns, 2.3k LUTs / 0 BRAM for
+the parser): 100 % with 0 gaps and 0.81 us max latency at every rate up to the sender's 4.75 Gbit/s,
+and a 160 000-frame burst at 10G line rate (host NIC confirmed) with 5 272 000 records, 0 gaps,
+0 drops, 0.81 us max latency. Details: CLAUDE.md "2026-11-08 (later)" entry.
+Use it as the reference for porting back: 3.1 = the record width, 3.2 = pitch_extract.v's
+one-word-per-cycle structure (acc + registered placement shift + precomputed "fits" bits),
+3.4 = running in the RX clock. 3.3 (parallel copies) turned out unnecessary in RTL.
+
+====================================================================================================
+Sources
+====================================================================================================
+Cboe U.S. Equities/Options Connectivity Manual (Market Data Feeds, Historical Highs table, 10/01/2026):
+  https://www.cboe.com/document/tech-spec/document/technical-specifications/cboe-titanium-u.s.-equitiesoptions-connectivity-manual
+Cboe U.S. Equities/Options Multicast PITCH Specification (shaping, MTU, units, bandwidth):
+  https://cdn.cboe.com/resources/techspec/technical-specifications-cboe-titanium-u-s-equitiesoptions-multicast-pitch-specification.pdf
+Cboe notice, 5G/8G-shaped options depth feeds (2024):
+  https://cdn.cboe.com/resources/release_notes/2024/Update_Cboe-BZX-C2-and-EDGX-Options-Exchanges-Introduce-Market-Data-Enhancements-for-Depth-of-Book-Feeds_062124.pdf
+Cboe on OPRA peak message volume:
+  https://www.cboe.com/insights/posts/the-necessity-of-real-time-options-data-for-retail-participants
+Local: CLAUDE.md "2026-11-08: axis_mon", scripts/rate_sweep.py, vivado/ip/axis_mon.v,
+  Market.Data.PoC.lvproj (FIFO configString), vivado/mktdata_poc/mktdata_poc.runs/impl_1/*utilization*.rpt

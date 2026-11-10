@@ -71,6 +71,15 @@ help-vivado:
 	@echo "Vivado:"
 	@echo "  make xsa               Build Vivado project and export XSA with bitstream"
 	@echo "  make xsa-clean         Remove Vivado build artifacts"
+	@echo "  make vivado-project    Recreate vivado/mktdata_poc (LabVIEW IP bitstream) without building"
+	@echo "  make vivado-gui        ... and open it in the Vivado GUI"
+	@echo "Pure-RTL parser bitstream (vivado_rtl/, project mktdata_rtl, Kria app mktdata_rtl):"
+	@echo "  make rtl-sim           xsim the RTL parser on the 20-frame pcap and score it with eval_sim.py"
+	@echo "  make rtl-xsa           Build the pure-RTL XSA (vivado_rtl/mktdata_rtl.xsa)"
+	@echo "  make rtl-xsa-clean     Remove its build artifacts"
+	@echo "  make rtl-vivado-project / rtl-vivado-gui   Recreate / open the RTL project"
+	@echo "  make rtl-kria-build rtl-kria-stage rtl-kria-deploy-staged rtl-kria-load-app rtl-kria-reload-app"
+	@echo "                         Package / stage / install / load the mktdata_rtl Kria app"
 
 help-bare-metal:
 	@echo "Bare-metal (JTAG):"
@@ -169,6 +178,49 @@ xsa:
 
 xsa-clean:
 	$(MAKE) -C vivado xsa-clean
+
+vivado-project:
+	$(MAKE) -C vivado project
+
+vivado-gui:
+	$(MAKE) -C vivado gui
+
+# -- Pure-RTL parser bitstream (vivado_rtl/) ----------------------------------
+
+RTL_KRIA = $(MAKE) -C kria_app APP_NAME=mktdata_rtl XSA_DIR=../vivado_rtl
+
+rtl-sim:
+	vivado_rtl/sim/run.sh
+
+rtl-xsa:
+	$(MAKE) -C vivado_rtl xsa
+
+rtl-xsa-clean:
+	$(MAKE) -C vivado_rtl xsa-clean
+
+rtl-vivado-project:
+	$(MAKE) -C vivado_rtl project
+
+rtl-vivado-gui:
+	$(MAKE) -C vivado_rtl gui
+
+rtl-kria-build:
+	$(RTL_KRIA) package
+
+rtl-kria-stage:
+	$(RTL_KRIA) stage
+
+rtl-kria-deploy-staged:
+	$(RTL_KRIA) deploy-staged
+
+rtl-kria-load-app:
+	$(RTL_KRIA) load-app
+
+rtl-kria-reload-app:
+	$(RTL_KRIA) reload-app
+
+rtl-kria-list-staged:
+	$(RTL_KRIA) list-staged
 
 # -- Bare-metal app (Vitis Classic, standalone, JTAG) --------------------------
 

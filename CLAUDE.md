@@ -83,13 +83,21 @@ The functional VIs live in the submodules — `Market.Data.Bats.Parser/fpga/bats
 `Market.Data.Common/fpga/` (`orderbook.command.ctl` is the normalized message type crossing the
 parser→filter→host boundary).
 
-## Two paths to hardware
+## Three paths to hardware
 
 1. **Pure LabVIEW bitfile** — compile the `poc.ip.kria` build spec, run `Test.Runner.kria.bats.parser.vi`.
 2. **Netlist export into Vivado** (what the KR260 design actually does) — export the LabVIEW IP to a
    netlist, convert the `.dcp` to Verilog, and instantiate it in the Vivado block design alongside the
    XXV Ethernet core, the FIFOs, and `vivado/ip/{axis2xgmii.v,xgmii2axis.v}`. A Vitis app reads the
    parsed messages off AXI DMA. See `ip_export/README.md`.
+3. **Pure-RTL parser in the same harness** (`vivado_rtl/`, since 2026-11-08) -- `mktdata_rtl.tcl`
+   sources `vivado/mktdata_poc.tcl` and swaps the LabVIEW netlist for the hand-written
+   `vivado_rtl/ip/pitch_rtl_top.v` (156.25 MHz, one message per clock, one 1024-bit record beat).
+   Same PS address map, same Kria packaging (`make rtl-kria-*`, app `mktdata_rtl`), same host
+   tools. It is the testbed for the speed-ups in `optimize.txt`; ideas proven there are ported
+   back into LabVIEW by hand. `vivado_rtl/README.md` has the layout; `make -C vivado project` /
+   `make -C vivado_rtl project` (or `gui`) recreate either Vivado project for inspection, on
+   Windows `source mktdata_poc.tcl` / `source mktdata_rtl.tcl` from their directories.
 
 The current Vivado flow lives in `vivado/` (brought over from the `mktdata_poc` repo): Vivado 2024.1
 recreates the project via `vivado/mktdata_poc.tcl` and builds/exports the XSA via `vivado/build.tcl`
@@ -192,6 +200,15 @@ says "unresolved" and a later one says "FIXED", the later one wins. **Current st
   and switches the FPGA target's execution mode to simulation with simulated I/O — check before
   compiling a bitfile).
 - Open parser bugs: bug 2 (root cause in `compress.buffer.vi`) and bug 4 (6-char symbols) below.
+- **2026-11-08 (later): pure-RTL parser bitstream `vivado_rtl/`** -- see the last dated entry and
+  `optimize.txt`; xsim scores 659/659 on the 20-frame pcap, hardware results in that entry.
+- **2026-11-08: in-fabric counters (`axis_mon`) deployed; the NI parser holds 1.5 Gbit/s and
+  desyncs from 2 Gbit/s** (`scripts/rate_sweep.py --sink`; dated entry at the end). The board's
+  `mktdata_poc` app now runs the committed 2026-09-23 export (content score 136/659); the
+  2d297a51 parser is still loadable as the `mktdata_poc_rtl` app. `make xsa` needs `Performance_ExplorePostRoutePhysOpt` (default now).
+- **2026-11-06: first real-cable hardware run from Linux passed** (see the dated entry at the end
+  of this file): 659/659 records, every field correct, with the bitstream already on the board.
+  `eval_sim.py` now knows the full type enum and all per-type fields (`--short-price-scale 100`).
 
 ### Build / deploy facts (hardware-proven 2026-09-15)
 - `make xsa` from Claude Code must run **detached** (`setsid nohup bash -c "make xsa JOBS=2 …" &`)
@@ -203,8 +220,8 @@ says "unresolved" and a later one says "FIXED", the later one wins. **Current st
 - **`xmutil loadapp` fails after a power cycle / redeploy** with "remove from slot 0 returns: -1"
   when the factory `k26-starter-kits_image_1` overlay is still in configfs but dfx-mgr thinks
   nothing is loaded (kernel: "Region already has overlay applied"). Fix on the board:
-  `sudo rmdir /sys/kernel/config/device-tree/overlays/k26-starter-kits_image_1 && sudo systemctl
-  restart dfx-mgr && sudo xmutil loadapp mktdata_poc`. Success = the PL UIO devices appear
+  `sudo rmdir /sys/kernel/config/device-tree/overlays/<whatever ls shows: k26-starter-kits_image_1
+  or mktdata_poc_image_1> && sudo systemctl restart dfx-mgr && sudo xmutil loadapp mktdata_poc`. Success = the PL UIO devices appear
   (13 with the old dtso, 15 with the new one: + axi_dma_0, xxv_ethernet_0).
 - Apps: `make server-build server-deploy poc-build poc-deploy board-setup` (needs
   `g++-aarch64-linux-gnu`; installed here 2026-09-15; the board has no compiler). Over one ssh
@@ -441,3 +458,204 @@ neighbors "Ethernet 3" 10.0.1.14 00-0a-35-18-3c-1f`; in WSL `sudo ip neigh repla
 Then senders can run from WSL too (plain UDP sockets; no raw L2). `player`'s default `--mac` is
 00-0A-35-18-3C-**0F** but the IP filter/pcaps use …3C-**1F** — pass `--mac` explicitly. The old
 raw_run pcaps came from 10.0.1.10 with a Mellanox MAC (a different NIC).
+
+### 2026-11-06: real 10G cable run from the MS-02 Ultra (first hardware run from Linux)
+The Linux box is now a MINISFORUM MS-02 Ultra (hostname still `asus`); the KR260's SFP+ cage is
+on a 3 m passive DAC into its Intel E810-XXV port `eno2np1` (10GBASE-CR, autoneg off, no FEC),
+and its USB JTAG/UART is attached too. The recipe lives in the workspace `../CLAUDE.md` ("10G
+path from this machine"): `make kria-reload-app` (link up within 1 s), `ip addr replace
+10.0.1.10/24 dev eno2np1`, permanent neighbour 10.0.1.14 → 00:0a:35:18:3c:1f, `poc_server poll`
++ `reset` on the board, `scripts/send_pcap_udp.py tests/data/generated_2026_09_17_multi.pcap`.
+- **Result:** 20/20 Sequenced Unit Headers with the right length, 659/659 CMD records,
+  **659/659 content matches** on type, side, orderId, quantity, symbol, price, executed /
+  canceled / remaining quantity; recv→parse latency 100–920 ns. No PCS loopback involved.
+- **Bitstream provenance:** the package on the board (`/lib/firmware/xilinx/mktdata_poc`, files
+  dated 2026-10-20 18:17, `mktdata_poc.bit.bin` md5 `2d297a51…`) is **not** any build this file
+  records by md5 (810ab582 / 84f3e78d / …). It implements the ten-item enum (0x24→3, 0x25/26→4,
+  0x27/28→5, 0x29→6, 0x2A/2B/30→10) and multiplies short-variant prices by 100 in the FPGA,
+  i.e. it is the 2026-10-11 19:37 export or a sibling — the one `todo.txt` item 18 says fails
+  timing (WNS −4.616 ns). It parsed this pcap perfectly anyway; treat that as luck, not closure.
+  **Correction 2026-11-08 evening:** the board also holds `/lib/firmware/xilinx/mktdata_poc_rtl`
+  (bit.bin md5 `2d297a51…`, the same file) and `mktdata_poc_labview` (md5 `a6b4460c…`), both
+  installed 2026-10-21 with the pre-axis_mon address map. So the 2d297a51 bitstream is the
+  user's **`mktdata_poc_rtl`** build (the "Claude IP export" whose changes get ported into the
+  LabVIEW design by hand), not a LabVIEW export; its sources are not in this clone. The
+  three-bitstream picture is in `vivado_rtl/README.md`.
+- **Scorer:** `ip_export/netlist_sim/eval_sim.py` was still the 2026-09-23 version (enum knew only
+  Add=1 / Executed=2, everything else expected 0) and reported 325/659 on this capture. It now
+  carries the full `ENUM` (unknown types → 11), checks every field in
+  `rest.of.order.types.txt` per type (word map: side 1, orderId 2, qty 3, symbol 4, price 5,
+  executed 6, canceled 7, remaining 8), prints an ok/total per PITCH type, and takes
+  `--short-price-scale N` (100 for this bitstream; the default 1 flags exactly the 170 short
+  AddOrder/ModifyOrder/Trade records). The Windows PC's copy of `eval_sim.py` may be a
+  different extension of the same file — diff before overwriting either.
+
+### 2026-11-06: rate sweep over the cable — the PS readout is the ceiling, not the parser
+Tools (all in this commit): `scripts/send_pcap_udp.py` now paces with a busy-wait clock and
+takes `--gap-ms` (old behaviour, default 5), `--pps N`, `--mbps M` (wire bits incl. 42 B
+headers), `--speed X` (follow the pcap's own timestamps X times faster; this pcap spans
+9 ms = ~18 Mbit/s at X=1), `--topspeed`, `--loop N`, and prints the achieved rate (a Python
+socket reaches ~400k pps / 3.4 Gbit/s unpaced, so the sender is never the limit here).
+`scripts/rate_sweep.py <pcap> --mbps … --loop N` runs one capture per rate (`poc_server poll
+cmd` + IP reset + `xxv_stats` tick on the board, send, wait for the capture to stop growing,
+fetch) and aligns the records with the pcap's message order to report records, parser
+seq gaps, frames lost whole, frames truncated, messages lost, latency p50/max.
+`apps/poc_inject/xxv_stats` (tick + read XXV STAT_RX/TX_TOTAL/RX_GOOD) was added for a
+MAC-level frame count, but those registers read 0 on this bitstream although
+`INCLUDE_STATISTICS_COUNTERS` is set — unresolved; the sweep ignores a 0.
+- **Result (generated_2026_09_17_multi, 10–20 passes):** 100 % of records up to **3 Mbit/s**
+  (~370 frames/s, ~12k msg/s); at 4 Mbit/s 12 % of messages are lost, at 6 Mbit/s 33 %, and
+  from 50 Mbit/s up only ~1.6k of 13k records come back whatever the rate. Parser seq numbers
+  stay contiguous at every rate (the CMD capture path never drops a record it was given) and
+  `poc_server` drains a steady **7–10k records/s** (~1 MB/s: 32 UIO reads + a hex dump per
+  128-byte record). Loss shows up as **truncated frames**: the CMD FIFO fills, TREADY stalls
+  the NI IP, its filter→parser stream drops the tail of frames, and parse.time − recv.time
+  climbs to a median of 50–160 ms (queueing in rx_data_fifo + the NI IP's internal buffer,
+  ~1200 records deep). At 3 Mbit/s the max latency already reaches 65 ms — the knee.
+- **So the current harness measures the PS readout, not the parser.** The parser's own limit
+  (xsim says ~half of 10G for dense AddOrder frames) can only be measured once records stop
+  going through AXI-Lite. Options, cheapest first, all outside the LabVIEW datapath:
+  1. **Counters in the block design** (hand-written Verilog is fine in the harness): a small
+     AXI-Stream monitor on the CMD stream that always asserts TREADY, counts records (TLAST)
+     and seq discontinuities, and a frame counter on the xgmii2axis→NI IP stream; expose both
+     through AXI GPIO/registers. The sweep then compares frames-in / records-out against the
+     sender with no data moved. Needs `make xsa` (Vivado is on this box now) + kria-build.
+  2. **DMA sink:** route CMD into `axi_dma_0` S2MM (cyclic SG ring in DDR) instead of
+     `axi_fifo_cmd`. ~1 GB/s, but CMD is 128 B per ~35-byte message (3.7× the wire rate), so
+     it still cannot keep up with 10G — fine up to ~2 Gbit/s of PITCH.
+  3. **LabVIEW side** (Windows PC): make the CMD write non-blocking with a drop counter,
+     add parsed-message / dropped-frame counters as registers, or a count-only mode.
+
+### 2026-11-08: axis_mon — in-fabric counters; the parser itself holds 1.5 Gbit/s
+Option 1 from the 2026-11-06 entry, built and deployed. Everything lives in the harness, so
+the LabVIEW → IP Export → `make ip-install-NAME && make xsa-clean && make xsa` workflow is
+unchanged; a new export just needs the same `ctrlind_NN_CMD_*` / `ctrlind_NN_T*` port names.
+- **`vivado/ip/axis_mon.v`** (module reference `axis_mon_0` in the BD): zero-latency
+  pass-through between `NiFpgaIPWrapper_poc_0` CMD and `axis_dw_cmd`, plus taps on the
+  `xgmii2axis` → NI IP `lv_*` stream (156.25 MHz). Counters: records, beats, stall cycles
+  (TVALID & !TREADY), seq gaps (word 12), bad-length records, signed lat max/min
+  (word 14 − word 13), unsupported (type 11), bad magic, forwarded records, rx frames /
+  bad / beats, first/last seq. **Sink mode** holds TREADY high and drops the records so
+  `poc_server` is out of the loop. RX-domain counters cross via toggle handshakes
+  (ASYNC_REG), bounded by the existing `set_max_delay` pair in `constraints.xdc`.
+  Controlled through **`axi_gpio_mon` @ 0x80120000** (dual: ch1 out = ctrl, ch2 in =
+  selected counter; register map in the Verilog header). Id register reads `MON2`
+  (0x4D4F4E32).
+- **Board tool `apps/poc_inject/poc_mon`** (`id | sink on|off | clear | snap | show |
+  start [sink] | stop`; `make -C apps/poc_inject deploy`). dtso node `axi_gpio_mon@80120000`.
+- **`scripts/rate_sweep.py --sink`**: per rate `poc_server reset`, `poc_mon start sink`,
+  send `--loop N`, `poc_mon stop`; compares rx_frames with datagrams sent and records with
+  messages sent, no capture at all.
+- **Build:** the 2026-09-23 export only had +0.035 ns at 100 MHz; with axis_mon added the
+  default strategy failed (WNS −0.281 ns, 80 endpoints, all inside the NI FIFO→FIFO parser
+  paths, none in axis_mon). `Performance_ExplorePostRoutePhysOpt` closes it (+0.134 /
+  +0.142 ns) and is now the default in `build.tcl` (`make xsa STRATEGY=…` overrides;
+  `vivado/reimpl.tcl` re-runs impl only). Full `make xsa JOBS=8` on the MS-02 Ultra: ~12 min,
+  5.8 GB peak. `vivado/Makefile` now passes `-log/-journal` **before** `-tclargs` — after
+  `-tclargs` Vivado hands them to the script as `$argv`. The first `kria-build` on this box
+  (bootgen + dtc from PetaLinux 2024.1) worked unchanged.
+- **Deployed:** bit.bin md5 `d39fc071…` = committed 2026-09-23 export + axis_mon. `xmutil
+  loadapp` failed after the first redeploy exactly as documented ("remove from slot 0
+  returns: -1", kernel "Region already has overlay applied"); the stale overlay was
+  `mktdata_poc_image_1`, so the rmdir must target whatever `/sys/kernel/config/device-tree/
+  overlays/` lists, not only `k26-starter-kits_image_1`. The previous `mktdata_poc` package
+  (md5 `2d297a51…`) is backed up at `/home/john/work/fpganow/board_backup/2026-11-08_2d297a51/
+  mktdata_poc/` -- redundantly, it turned out: the board's `mktdata_poc_rtl` app is the same
+  bit.bin, so `sudo xmutil unloadapp; sudo xmutil loadapp mktdata_poc_rtl` brings that parser
+  back (without the monitor; `poc_mon` needs the axi_gpio_mon node, which only the two
+  2026-11-08 apps have).
+  Consequence: the board now runs the older parser — `eval_sim.py` scores headers 20/20,
+  records 659/659, seq 1..659 contiguous, but only **136/659 on content** (this export emits
+  the three-value enum 0x20→0, 0x21/0x22/0x2F→1, 0x23/0x24→2, rest 0; six-character symbols;
+  unscaled short prices). To get the 2d297a51 parser back **with** the monitor, copy that
+  export's `NiFpgaAG_poc_ip_kria.v` from the Windows PC and run the normal
+  ip-install / xsa-clean / xsa / kria-build flow.
+- **Result (sink mode, generated_2026_09_17_multi × 20 = 400 frames / 13180 messages per
+  rate, 10 ns ticks):**
+
+  | offered     | rx_frames | records | seq gaps | lat max | verdict |
+  |-------------|-----------|---------|----------|---------|---------|
+  | 1 Mbit/s – 1.5 Gbit/s | 400 | 13180 | 0 | 2.1 µs (≤100 Mbit/s) → 16 µs (1 Gbit/s) | **100 %** |
+  | 2 Gbit/s    | 400 | 12496 | 2287 | 18 µs | parser desync: numbered 14783 for 13180 sent |
+  | 3 Gbit/s    | 400 | 9425  | 5017 | 18 µs | desync, numbered 14442 |
+  | 4 Gbit/s    | 400 | 8416  | 4762 | 13 µs | 36 % numbered but never output (internal drop) |
+
+  Every frame reaches the parser at every rate (rx_frames = sent, rx_bad 0) and nothing is
+  back-pressured (stall 0), so this is the NI IP's own ceiling: **flawless to 1.5 Gbit/s,
+  broken from 2 Gbit/s**. In messages: the pcap averages 29.9 B of payload / 31.2 B of wire
+  per message (659 msgs, 20566 wire bytes), so 1.5 Gbit/s = **6.0 M msg/s** passed and
+  2 Gbit/s = 8.0 M msg/s failed. The CMD stream serialises 16 × U64 per message at 100 MHz
+  (160 ns → **6.25 M msg/s**), and parse.time deltas show the parser loop itself at 6–9
+  cycles/message (11–16 M msg/s), so the ceiling sits exactly where the 16-word record
+  output saturates: the record width, not the parser state machine, is the first limit
+  (packing the record to ≤ 4 words would lift it to ≥ 25 M msg/s). Utilisation of the
+  routed design (report_utilization -hierarchical): NI IP 11.3k LUTs (9.6 %) but **92 of 144
+  RAMB36 (64 %)** — its DMA/target FIFOs; device total 130.5/144 BRAM, 37.7 % LUTs. A second
+  parser instance only fits after the IP's FIFOs are shrunk (drop/shorten TH-DEBUG,
+  TH-MDEBUG, HT-RAW_ETH); `tx_data_fifo` (16 RAMB36, injector path) is the harness's own
+  slack. `lat_min` is −1 to −3 ticks: the parser
+  stamps parse.time before recv.time when it is not stalled (hence the signed counters;
+  MON1 read 0xFFFFFFFF). With `poc_server poll` running instead (non-sink), the same
+  1.7 Mbit/s single pass shows **stall_cycles ≈ 3.5–4 M** — the readout back-pressure of the
+  2026-11-06 entry, now directly visible.
+- **Sender ceiling:** `send_pcap_udp.py` reaches ~4.4 Gbit/s with these ~1 kB frames and
+  falls back to ~3 Gbit/s when asked for 8+ (the busy-wait pacing loop); testing the
+  parser at true line rate needs a faster source (several sender processes, a C sender,
+  or pktgen/trafgen; the monitor's expected counts just add up).
+
+### 2026-11-08 (later): `vivado_rtl/` -- a third bitstream with the parser in plain Verilog
+Asked for after the rate sweep: keep bitstream 1 (LabVIEW bitfile) and 2 (LabVIEW IP export in
+the Vivado harness) untouched, and add a pure-RTL fork where the `optimize.txt` recommendations
+can be tried and then ported back into LabVIEW by hand. Layout and commands: `vivado_rtl/README.md`.
+- **Fork mechanism:** `vivado_rtl/mktdata_rtl.tcl` sets `::origin_dir_loc ../vivado` and
+  `::user_project_name mktdata_rtl`, sources `vivado/mktdata_poc.tcl` (whole harness BD built as
+  for bitstream 2), then deletes `NiFpgaIPWrapper_poc_0` + `axis_mon_0`, adds module references
+  `pitch_rtl_0` / `axis_mon_w_0`, three async `axis_data_fifo`s (RX clock -> pl_clk0) in front of
+  the existing width converters, widens `axis_dw_cmd` to 1024 -> 32, removes the NI sources. The
+  RTL files are referenced, not imported. Address map unchanged, so `kria_app/mktdata_rtl.dtso`
+  differs from the poc one only in `firmware-name`; `kria_app/Makefile` takes
+  `APP_NAME=mktdata_rtl XSA_DIR=../vivado_rtl` (root `make rtl-kria-*`).
+- **What the RTL does differently (the optimize.txt list):** (1) one 1024-bit beat per message
+  instead of 16 x 64-bit beats -- the output can never be the limit; (2) the extractor consumes
+  one 64-bit word per clock and emits one message per clock (an extra cycle only when two
+  messages end in the same word, i.e. a Time message), instead of 6-9 cycles per message;
+  (3) everything in the 156.25 MHz RX domain, no 100 MHz loop, no CDC FIFO between filter and
+  parser; (4) no parallel copies needed -- a single instance is at line rate. The filter bounds
+  the payload by the IPv4 total length and clears at every frame, so the 2026-09-18 frame-tail
+  bug class cannot occur. Record layout = the LabVIEW 16-word layout (word 11 also carries the
+  raw type / length / unit / PITCH sequence), short prices scaled x100 in fabric
+  (`eval_sim.py --short-price-scale 100`). DEBUG keeps the `[0xAAAB,0,1,2]` reset and
+  `[0xDE<<32|len, len, SUH, 0]` header records; MDEBUG is `[parse.time, len, type, pitch seq]`
+  per message; both drop when busy instead of stalling.
+- **Monitor:** `axis_mon_w.v` = MON2's ctrl/status protocol and sel 0..16, id `MON3`
+  (0x4D4F4E33), sel 17..24 = frames_pass / filtered / trunc / dropped_full, hdr_records,
+  msg_trunc, dbg_dropped, pitch_seq_gaps. `poc_mon` accepts MON2 or MON3 and reads status until
+  two reads agree (MON3 refreshes it through a clock-domain handshake).
+- **xsim (`make rtl-sim`, `vivado_rtl/sim/run.sh`):** 20-frame pcap 20/20 headers, 659/659
+  records, 659/659 content; `frame_boundary_repro.pcap` 203/203; `generated_2025_05_02.pcap`
+  10/10; unchanged with `GAP=1 READY=2` (minimum inter-frame gap, random CMD back-pressure).
+  Latency first message 20-40 ns, last ~800 ns after the frame's first byte (the 1012-byte frame
+  needs 810 ns to arrive). Gotcha: xsim's `string.atohex()` truncates to 32 bits -- the
+  testbench parses the 64-bit words with `$sscanf("%h")`.
+- **Build:** `make rtl-xsa` (JOBS=8) ~12 min; routed **WNS +0.865 ns** (worst path xgmii2axis
+  TKEEP -> `eth_rx_filter` fits bits, 16 levels, 5.5 ns of 6.4). Utilisation: `pitch_rtl_0`
+  2.3k LUTs / 2.1k FFs / **0 BRAM** (the NI IP: 11.3k LUTs, 92 BRAM); whole design 36.8k LUTs
+  (31 %), 38.5 BRAM (27 %). First build's monitor read id 0: the status ping-pong waited for the
+  RX side to answer a request the PL side never sent; fixed (PL side initiates) and covered by
+  `vivado_rtl/sim/tb_mon.sv`.
+- **Hardware, first load (bit.bin md5 `5af10218…`, monitor still broken):** over the cable with
+  `poc_server poll`, `send_pcap_udp.py --gap-ms 5`: **20/20 headers, 659/659 records, 659/659
+  content** on the 20-frame pcap, all 14 message types right, first run. `xmutil loadapp
+  mktdata_rtl` needed the stale-overlay fix once (overlay name `mktdata_rtl_image_1`).
+- **Hardware with the fixed monitor (bit.bin md5 `af88aab3…`, WNS +0.578 ns, loaded as app
+  `mktdata_rtl`, 2026-11-08 23:10):** `rate_sweep.py --sink --mbps 1 100 1000 1500 2000 3000
+  4000 5000 --loop 20`: **400/400 frames, 13180/13180 records, 0 seq gaps, 0 stall, lat_max
+  0.81 µs at every rate** up to the sender's 4.75 Gbit/s ceiling (the LabVIEW IP desyncs at
+  2 Gbit/s). Line-rate burst: four `send_pcap_udp.py --topspeed --loop 2000` in parallel =
+  160 000 frames / 164.5 MB, host NIC counters confirm 160 000 packets left in 0.159 s wall
+  (8.3 Gbit/s including process start-up, i.e. the wire was at 10G for the burst):
+  **rx_frames 160 000, records 5 272 000, seq 1..5 272 000 contiguous, 0 gaps, 0 stall,
+  0 frames dropped, 0 truncated, lat_max 0.81 µs, lat_min 0.01 µs**. `dbg_dropped` 5.4 M is
+  the DEBUG/MDEBUG traces being discarded by design when nobody drains them. The 0.81 µs max is
+  the time a 1012-byte frame takes to arrive -- the parser adds no queueing at all.
+  Sustained (seconds-long) 10G has not been generated yet; that needs pktgen or a C sender.

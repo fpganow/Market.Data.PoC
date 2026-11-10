@@ -36,3 +36,24 @@ ip_export/netlist_sim/*.pb
 ip_export/netlist_sim/sim_*.txt
 ip_export/netlist_sim/frames*.txt
 scripts/__pycache__/
+
+# --- 2026-11-08: detached-build stdout, cross-compiled board tools ---
+vivado/*.out
+apps/poc_inject/xxv_stats
+apps/poc_inject/poc_mon
+
+# --- vivado_rtl (pure-RTL bitstream): generated project, XSA, logs, xsim products ---
+vivado_rtl/mktdata_rtl/
+vivado_rtl/*.xsa
+vivado_rtl/*.log
+vivado_rtl/*.jou
+vivado_rtl/*.out
+vivado_rtl/sim/xsim.dir/
+vivado_rtl/sim/*.log
+vivado_rtl/sim/*.jou
+vivado_rtl/sim/*.pb
+vivado_rtl/sim/*.wdb
+vivado_rtl/sim/beats.txt
+vivado_rtl/sim/sim_out.txt
+vivado/build.pid
+vivado_rtl/build.pid
