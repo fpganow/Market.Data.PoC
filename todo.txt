@@ -8,21 +8,52 @@ log in CLAUDE.md "Work in progress". Item numbers are kept so CLAUDE.md and
 docs/kr260/timing_2026-10-12_fail.txt references stay valid.
 
 SUMMARY (state of the 2026-10-11 19:37 IP export, dcp md5 7e039484, simulated here)
-   🔴⚪ 18  TIMING FAILS with the 19:37 netlist (clean build 2026-10-12): WNS -4.616 ns, 722
+   🟢🟢 18  TIMING (CLOSED 2026-10-20, board-confirmed - delete at the next trim): all LabVIEW edits DONE (Fix B b1 stall 2026-10-19; Fix A as a0 = x100 by
+            shift-add, no DSP, 2026-10-19 evening; compress.buffer.vi swapped back at both
+            sites). Export 2026-10-20 09:20 (dcp 3d922117, 4.3 MB, .v 16.1 MB vs 22.7 MB)
+            SIM OK: 203/203, 659/659, 659/659, 662/662, 0 mismatches (score WITH
+            --short-price-scale 100, the x100 stays in the FPGA). BUILD 2026-10-20 09:56-10:12:
+            **timing MET, WNS +0.007 ns, TNS 0, 0 failing of 126226 endpoints, hold +0.010 ns**
+            (vivado/mktdata_poc.xsa 10:12). Worst paths are now input CDC FIFO read -> DEBUG
+            FIFO write data (19-20 levels, 9.2-9.3 ns) - no margin for anything else in the
+            parser cycle; a3 (register the bundle) is the lever if a future edit fails.
+            Original finding: WNS -4.616 ns, 722
             failing endpoints, all in the 100 MHz parser loop. Two causes (x100 multiply in
             the decode path, 6-shifter compress.buffer). vivado/mktdata_poc.xsa (15:38) IS
             that failing build: do NOT kria-build/deploy it.
    🟡⚪ 10  Timestamps: tick is 6.4 ns, the Register read must stay; the only decision left is
             the frame-start latch (reference VI fpga/poc.ip.kria.generated.vi).
+   🟡⚪ 19  recv.time = 0 on messages emitted in a STALLED parser cycle (3 of 659 in the multi
+            pcap, seq 101/284/378, all Time msgs) - hold the last recv.time in poc.ip.kria.vi,
+            see item 19. Content is right; only the latency table is off (9.7..20 us).
+            Board-confirmed 2026-10-20. Already SOLVED in the Verilog version (poc_v/, per-word
+            timestamp queue, 0 zero stamps) - this item is the LabVIEW VI only.
    🟡➖ 13  Duplicates: only the old compress.buffer.vi is left (project + disk, used by
             fpga/tests/*); untracked *.generated copies in the repo clone to delete afterwards.
    ⚪⚪  8  Edge case: two 6-byte messages ending a frame while one message behind (parked).
-   RESULT of the 19:37 export: 203/203, 659/659, 659/659, 662/662 records, 100 % content match
-   on all four pcaps (frame_boundary_repro, generated_2026_09_17_multi, heartbeat_repro,
-   unsupported_repro), all headers present.
-   NEXT  LabVIEW: fix item 18 (remove the x100 multiply from the parser cycle AND cut the
-         compress.buffer cost), re-export, netlist sim (all four pcaps), then
-         `make xsa-clean && make xsa JOBS=2` detached. xsa-clean IS needed after every
+   RESULT of the 2026-10-20 09:20 export (and of the 19:37 / 21:43 ones before it): 203/203,
+   659/659, 659/659, 662/662 records, 100 % content match on all four pcaps
+   (frame_boundary_repro, generated_2026_09_17_multi, heartbeat_repro, unsupported_repro),
+   all headers present. The same four scores are reached by the hand-written Verilog parser
+   in poc_v/ (second implementation, 2026-10-20, `DUT=rtl ./sim_all.sh`, see poc_v/README.md).
+   BOARD 2026-10-20 12:50 (bit.bin md5 a6b4460c, loadapp needed the stale-overlay fix):
+         loopback 10/10 records = sim ground truth (6.4..326 ns); 10G cable
+         (send_pcap_udp.py --gap-ms 5): 203/203, 659/659, 659/659, 662/662, 20/20 + 26/26
+         headers, 0 mismatches -> items 2, 3, 4, 7, 9, 18 are HARDWARE-CONFIRMED. Latency on
+         hardware: first message 13-96 ns, last of a ~33-message frame 1.27-1.36 us, median
+         107 ticks (685 ns); the three stalled records (seq 101, 284, 378) carry recv.time 0
+         on hardware exactly as in the sim (item 19 confirmed). Two test-tool fixes made:
+         scripts/send_pcap_udp.py sent the Ethernet pad bytes of 60-byte heartbeat frames as
+         UDP payload (6 bogus Unsupported records) - now cuts at the UDP length;
+         eval_sim.py resyncs on a first record numbered 0 as well as 1 (the loopback capture
+         started at seq 0). Captures: builds/labview_2026-10-20/captures/ (capture_loopback.txt, capture_cable_<pcap>.txt; untracked).
+   RTL   the Verilog version (poc_v/, PARSER_IMPL=rtl) was built and run on the board the same
+         evening: WNS +1.852 ns, 100 % on all four pcaps over the cable, last message ~580 ns
+         (LabVIEW ~1.3 us), 0 zero recv.time. Artefacts: builds/rtl_2026-10-20/.
+   NEXT  item 19 in LabVIEW (margin is +0.007 ns: expect to need a3 with it), then item 10/13.
+   NOTE  robustness observation (no item yet): a UDP payload longer than the Sequenced Unit
+         (e.g. zero bytes after an 8-byte heartbeat) makes the parser emit one type-11 record
+         for the zero length byte; valid PITCH never does this. xsa-clean IS needed after every
          ip-install even when the port numbering is unchanged: mktdata_poc.tcl uses
          import_files, so the project keeps its own copy of the netlist. Then
          kria-build/stage/deploy/load and a cable or loopback run scored with
@@ -70,6 +101,20 @@ A. Blocking the next board run
             (bits of the 9-word buffer) or the CMD/DEBUG FIFO write data. Worst -1.954 ns,
             24-26 levels. This is the item 3 COST (6 variable 64-bit shifters instead of 2)
             landing on a path that only had +0.035 ns of margin. Fixing A alone leaves ~-2 ns.
+    STATUS  2026-10-19: b1 wired (bats.parser.vi: Ready.for.Udp.Input computed in the header
+            and Read.Msg consumed frames = NOT(next L > 0 AND next len > 0 AND next L >= next
+            len [AND next state = Read.Msg]); poc.ip.kria.vi: Feedback Node (init TRUE) from
+            that output to the input CDC FIFO read's Ready for Output, and And(Output Valid,
+            feedback) as the Select's selector). Export 21:43 simulated: all four pcaps 100 %,
+            the three two-messages-in-one-word cases now take one extra parser cycle each.
+            Fix A done the same evening as a0, NOT a1: AddOrder.vi frame 34, ModifyOrder.vi
+            frame 40, Trade.vi frame 43 now compute (p<<6)+(p<<5)+(p<<2) on U32 (lvkit on
+            the OneDrive VIs saved 21:49-21:54), so prices stay x100 and eval_sim.py keeps
+            --short-price-scale 100. compress swap-back done (bats.parser.vi saved 21:23
+            calls compress.buffer.vi twice, no *.generated). Export 2026-10-20 09:20
+            (ip-export-copy-1 on the LabVIEW PC, local-gen here): all four pcaps 100 %, dcp
+            4.3 MB / .v 16.1 MB (DSP cascade gone). Side effect found by the sim: item 19
+            (still present: 3 zero recv.time records per run).
     FIX A   (pick one; the first is the smallest LabVIEW edit)
             a0. (REFERENCE VIs BUILT 2026-10-14) AddOrder/ModifyOrder/Trade.generated.vi beside
                 the originals in message.types/ (repo + OneDrive) show the x100 done as
@@ -115,6 +160,29 @@ A. Blocking the next board run
 
 C. Normalized format / correctness
 ----------------------------------
+🟡⚪ 19. recv.time is 0 on a message emitted in a stalled parser cycle (found 2026-10-19 in the
+   netlist sim of the 21:43 export, a consequence of item 18 b1)
+   WHERE   fpga/poc.ip.kria.vi, 100 MHz loop: the Select between the input CDC FIFO read's
+           Element (T) and the my.network.data.stream default constant (F) that feeds
+           bats.parser.vi's data.stream.
+   NOW     When the stall holds Ready for Output low, the Select outputs the F constant: data
+           valid FALSE (correct), eof FALSE (correct), recv.time 0 (wrong). bats.parser.vi's
+           Read.Msg frame stamps the message it consumes in that cycle with
+           data.stream.recv.time, so the CMD record carries recv.time 0. Sim: seq 101, 284,
+           378 of generated_2026_09_17_multi (Time messages completed by the same word as the
+           message before them); eval_sim.py's latency table shows 9.7 / 16.5 / 20.0 us for
+           frames 4 / 9 / 12. Content, order and parse.time are right.
+   CHANGE  Three nodes beside the Select: a Feedback Node on the Select's OUTPUT cluster
+           (initializer = the same default constant), Unbundle By Name -> recv.time, Bundle By
+           Name that value into the default constant's recv.time, and wire the bundle to the
+           Select's F input instead of the bare constant. A stalled cycle then carries the
+           recv.time of the last popped word - the word that completed the stalled message.
+           Works unchanged with item 10 option A (frame-start latch) because the latched value
+           arrives inside the element and is simply held.
+   CHECK   Netlist sim of the next export: no CMD record with word 13 == 0 (quick test:
+           grep the sim_out for the three sequence numbers), latency table has no frame above
+           ~1.4 us last-message latency; eval content still 100 %.
+
 🟡⚪ 10. recv.time / parse.time: tick is 6.4 ns, the Register read stays, decide the latch
    REWRITTEN 2026-10-11 22:00 after exporting poc.ip.kria.vi to AIXML (which shows which Timed
    Loop each node is in) and measuring the counter in the 19:37 netlist sim. The earlier text

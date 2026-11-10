@@ -21,18 +21,41 @@ or edited with text tools — only with the LabVIEW IDE. Do not attempt to "fix"
 but editing them by hand risks corrupting the project.
 
 **Reading VIs: `lvkit`** (read-only parser — `lvkit describe <vi>`, `lvkit render`, `lvkit diff`;
-`--search-path` resolves sub-VIs). It is how every "via lvkit" fact below was obtained. The source
-checkout is `~/work/lvkit`; as of 2026-10-05 it is not installed on PATH in this WSL — install it
-into a venv (`pip install -e ~/work/lvkit`) before relying on it.
+`--search-path` resolves sub-VIs; `--format lvnet` shows wiring). It is how every "via lvkit" fact
+below was obtained. The checkout is the sibling workspace dir `../lvkit`
+(`/mnt/c/work/fpganow/lvkit`); it is not on PATH and there is no `pip`/`uv` outside a venv, so set
+it up per session: `python3 -m venv $SCRATCH/lvkit-venv && $SCRATCH/lvkit-venv/bin/pip install
+../lvkit`. Limits: FPGA register/FIFO/clock nodes show only as opaque `xNode`, so FIFO item names
+and their wiring cannot be confirmed with it.
 
 **Writing VIs** is only possible through LabVIEW itself. `tools/labview-aixml/` holds the one
 scripted route that has worked: AIXML sources + `gen_message_vi.py`, turned into VIs by the
 labview-mcp plugin driving LabVIEW 2026 and saved back to LV2020 with `SaveForPrevious` (recipe and
 pitfalls in its README).
 
+`*.generated.vi` / `*.generated.ctl` files beside an original are AIXML-built replacements from
+`tools/labview-aixml/`; whether the parser already calls the generated one is tracked per item in
+`todo.txt` (as of 2026-10-11 all are wired in except that the old `compress.buffer.vi` still exists
+for `fpga/tests/*`). `bats.parser.vi`, `poc.ip.kria.vi` and `filter.filter.other.vi` cannot be
+regenerated that way (their FPGA FIFO nodes are dropped by the AIXML round trip) — those are hand
+edits in the IDE, written up step by step in `todo.txt`.
+
 Text-editable parts: Python (`ip_export/`, `s_parse.py`, `udp_send.py`, `cboe_pitch/`),
-Makefiles, TCL (`vivado/`, `ip_export/gen.tcl`), SystemVerilog/Verilog testbenches and HDL, and the
-C sources under `apps/*/main.c`.
+Makefiles, TCL (`vivado/`, `ip_export/gen.tcl`), SystemVerilog/Verilog testbenches and HDL
+(including `poc_v/`, the hand-written Verilog parser that can replace the LabVIEW netlist, see
+below), and the C sources under `apps/*/main.c`.
+
+**Where things are written down** (read in this order when resuming):
+
+| File | Holds |
+|------|-------|
+| `CLAUDE.md` § Work in progress | Current state, hardware-proven constraints, dated results log |
+| `todo.txt` | Live manual to-do list: LabVIEW IDE hand steps with 🟢/🟡/⚪ status, export results |
+| `docs/kr260/design-decisions.txt` | Closed KR260 block-design decision log (25 items) — read before changing the BD |
+| `rest.of.order.types.txt` | PITCH message field map used to build the message-type VIs |
+| `tools/labview-aixml/README.md` | The scripted VI-generation recipe and its pitfalls |
+| `ip_export/netlist_sim/README.md` | xsim testbench of the exported netlist, stream formats |
+| `docs/kr260/mktdata_poc.CLAUDE.md`, `advice*.txt`, `recommendations.txt` | Hardware architecture, PS address map, timing-closure playbook |
 
 **One submodule remains** — `cboe_pitch/` at the repo root (tracks branch `dev`). Fresh clones need:
 
@@ -91,6 +114,14 @@ parser→filter→host boundary).
    XXV Ethernet core, the FIFOs, and `vivado/ip/{axis2xgmii.v,xgmii2axis.v}`. A Vitis app reads the
    parsed messages off AXI DMA. See `ip_export/README.md`.
 
+**Two parser implementations, one block design (since 2026-10-20).** The BD cell
+`NiFpgaIPWrapper_poc_0` is either the LabVIEW netlist wrapper (default) or
+`poc_v/mktdata_parser_rtl.v`, a hand-written Verilog parser with the identical port list and
+CMD/DEBUG/MDEBUG formats: `PARSER_IMPL=rtl make xsa-clean xsa` builds with the RTL,
+`DUT=rtl ./run.sh` / `DUT=rtl ./sim_all.sh` simulate it (outputs `sim_out_rtl_*.txt`,
+`eval_rtl_*.txt`). Always `xsa-clean` when switching. Design notes, differences and scores:
+`poc_v/README.md`. Keep both in step when the stream formats change.
+
 The current Vivado flow lives in `vivado/` (brought over from the `mktdata_poc` repo): Vivado 2024.1
 recreates the project via `vivado/mktdata_poc.tcl` and builds/exports the XSA via `vivado/build.tcl`
 (see `vivado/Makefile`); tracked sources are the TCL, `constraints.xdc`, and the RTL + LabVIEW netlist
@@ -105,7 +136,7 @@ that broadcasts frames as NDJSON over TCP — wire-compatible with `scripts/fifo
 Python implementation of the same server — and the NI IP `reset`), `kria_app/` (xmutil-loadable
 package), `scripts/` (board-side helpers, plus `fifo_server.py`/`fifo_subscribe.py` — the Python
 server and its client, which also works against `poc_server serve`). Only ONE FIFO consumer may
-run at a time (`poc_server` poll/serve or `fifo_server.py`) — they pop the same FIFOs, and `todo.txt` (the KR260 design-decision log — read it before changing the
+run at a time (`poc_server` poll/serve or `fifo_server.py`) — they pop the same FIFOs, and `docs/kr260/design-decisions.txt` (the KR260 design-decision log, formerly todo.txt — read it before changing the
 BD). `docs/kr260/` holds the ported knowledge base: `mktdata_poc.CLAUDE.md` (hardware architecture,
 PS address map, 32-bit PIO constraints, JTAG quirks — paths in it refer to the old repo layout) and
 the timing-closure playbook (`advice*.txt`, `recommendations.txt`, Verilog extracts, PDFs).
@@ -122,14 +153,46 @@ via `MK_DIR` and fails with guidance when no matching `.dcp` is present). Paths 
 Vivado 2021.1 at `C:\NIFPGA\programs\Vivado2021_1` (invoked via `powershell.exe`) for Verilog generation, and `/tools/Xilinx/Vivado/2024.1` for Linux-side
 simulation. `make help` / `make help2` list targets. After `local-gen-poc_ip_kria`, `make
 ip-install-poc_ip_kria` copies the `.v` + wrapper `.vhd` into `vivado/ip/`; then `make xsa-clean &&
-make xsa` (xsa does not track the netlist).
+make xsa` — always with the clean: `mktdata_poc.tcl` adds the netlist with `import_files`, so the
+generated project holds its own copy and a plain `make xsa` (or an existing XSA) rebuilds the old one.
 
 ```bash
 make ip-export-list          # list LabVIEW compilations under /mnt/c/NIFPGA/compilation
 make ip-export-copy-<N>      # copy .dcp/.vhd from compilation #N into ip_export/
 make local-list              # show locally copied exports and whether .v has been generated
 make local-gen-<vi-name>     # run gen.tcl to write Verilog from that export's .dcp
+make ip-install-<vi-name>    # copy the .v + wrapper .vhd into vivado/ip/
 ```
+
+**End-to-end: new LabVIEW export → simulated → on the board → scored.** Every step is runnable
+from here except the LabVIEW export itself (done on the other PC, lands in `C:\NIFPGA\compilation`).
+
+```bash
+make ip-export-list && make ip-export-copy-<N> && make local-gen-poc_ip_kria && make ip-install-poc_ip_kria
+# port numbering changes between exports and the wrapper .vhd can be stale — always run:
+python3 ip_export/netlist_sim/ports_from_dcp.py ip_export/NiFpgaAG_poc_ip_kria.dcp \
+    ip_export/netlist_sim/tb.sv vivado/mktdata_poc.tcl --check vivado/ip/NiFpgaIPWrapper_poc_ip_kria.vhd
+# netlist simulation (xsim 2024.1, ~1 min/pcap, no LabVIEW needed) and scoring; DUT=rtl ./run.sh simulates poc_v/ instead
+cd ip_export/netlist_sim && python3 gen_frames.py frames.txt ../../tests/data/generated_2026_09_17_multi.pcap && ./run.sh
+python3 eval_sim.py sim_out.txt ../../tests/data/generated_2026_09_17_multi.pcap --short-price-scale 100; cd -
+# Vivado build: MUST be detached (the harness kills background tasks; ~20 min; JOBS=8 peaks ~15 GB)
+setsid nohup bash -c "make xsa-clean && make xsa JOBS=2" > xsa.log 2>&1 &   # always clean: the project IMPORTS (copies) the netlist
+#   PARSER_IMPL=rtl in front of that command builds the same BD with poc_v/*.v instead of the LabVIEW netlist
+make kria-build kria-stage kria-deploy-staged kria-reload-app   # board = ssh host kr260u
+make server-build server-deploy poc-deploy && make -C apps/poc_inject deploy
+# traffic: PCS-loopback injection (apps/poc_inject) or the 10G cable from WSL eth1:
+python3 scripts/send_pcap_udp.py tests/data/generated_2026_09_17_multi.pcap --gap-ms 5
+# capture with `poc_server poll` on the board (see Resume procedure below), then score it:
+python3 ip_export/netlist_sim/eval_sim.py capture.txt tests/data/generated_2026_09_17_multi.pcap --short-price-scale 100
+python3 apps/poc_inject/decode_capture.py capture.txt           # human-readable DEBUG trace + CMD records
+```
+
+Test pcaps in `tests/data/`: `generated_2025_05_02.pcap` (1 frame, 10 msgs), `frame_boundary_repro.pcap`
+(6 frames, 203 msgs), `generated_2026_09_17_multi.pcap` (20 frames, 659 msgs, 14 types; built by
+`scripts/gen_pitch_pcap.py`), `heartbeat_repro.pcap` (the multi pcap with 6 heartbeats inserted by
+`scripts/make_heartbeat_pcap.py`), `unsupported_repro.pcap` (the multi pcap with three undecoded PITCH
+types spliced into frame 10, 662 msgs; `scripts/make_unsupported_pcap.py`). Expected scores for the
+current export: all headers, all messages, 0 content mismatches (sim-verified on all four, 2026-10-12).
 
 Simulation (pysv bridges the SystemVerilog testbench to Python so it can replay pcap traffic):
 
@@ -143,17 +206,19 @@ make clean
 ```
 
 Python message generation / capture tooling (`cboe_pitch/`, installed with
-`pip install -e .`, needs Python ≥3.8; console scripts `generator`, `parser`, `player`, `receiver`):
+`pip install -e .`, needs Python ≥3.8; console scripts `generator`, `parser`, `player`, `receiver`).
+Its `make test` expects a `venv_wsl/` with `python3.11`, neither of which exists in this WSL
+(system Python is 3.12 without `pip`), so use a scratch venv:
 
 ```bash
-cd cboe_pitch && make test                                 # full suite via venv_wsl
-python3.11 -m pytest tests/test_add_order.py               # single file
-python3.11 -m pytest tests/test_add_order.py::TestAddOrder # single test
+python3 -m venv $SCRATCH/venv && $SCRATCH/venv/bin/pip install -e cboe_pitch numpy pyyaml scapy prettytable ruamel.yaml
+$SCRATCH/venv/bin/python -m pytest cboe_pitch/tests                              # full suite
+$SCRATCH/venv/bin/python -m pytest cboe_pitch/tests/test_add_order.py::TestAddOrder   # single test
 ```
 
-The parser and filter submodules each carry their own `Makefile` with the same
-`py_codegen / compile / elaborate / simulate / waveform` flow for simulating that block in isolation
-(`make py_test` runs their Python testbench tests).
+`submodules/Market.Data.Bats.Parser/Makefile` carries the same
+`py_codegen / compile / elaborate / simulate / waveform` flow for simulating the parser block in
+isolation (`make py_test` runs its Python testbench tests); the Filter submodule has no Makefile.
 
 LabVIEW-side tests are VIs, run from the IDE, not the shell: `*/fpga/tests/*runFpgaTests.vi` and
 `*/host/tests/`, `*/host/*runHostToFpgaTests.vi` (the host→FPGA tests need a bitfile on real hardware).
@@ -170,28 +235,103 @@ addresses and input paths.
 - `make gen-verilog` reads `.dcp_file`/`.v_file` dotfiles that are not in the repo (the old import flow
   wrote them); `make local-gen-<name>` is the working replacement.
 - `MESSAGE ==` on line 10 of `udp_send.py` is a comparison, not an assignment — intentional-looking dead code.
+- Stale statements elsewhere: `README.md`'s layout table still calls `todo.txt` the design-decision
+  log (that moved to `docs/kr260/design-decisions.txt`; `todo.txt` is now the manual to-do list), and
+  `ip_export/netlist_sim/README.md` still says one `time` tick is 10 ns (it is 6.4 ns, see Stream
+  formats below). `host/Test.Runner.kria.vi` in the README is now `Test.Runner.kria.bats.parser.vi`.
+- Only one consumer may pop the capture FIFOs at a time (`poc_server poll`/`serve` or
+  `scripts/fifo_server.py`), and the NI IP reset does not clear them — stale records come out first.
 
 ## Work in progress (read this first when resuming)
 
-The dated subsections below are a chronological log (2026-09-15 … 09-23); where an earlier one
-says "unresolved" and a later one says "FIXED", the later one wins. **Current state (2026-10-05):**
+The dated subsections below are a chronological log (2026-09-15 … 10-11); where an earlier one
+says "unresolved" and a later one says "FIXED", the later one wins. Durable facts (build/deploy,
+stream formats, netlist sim, injection, 10G path) are in the `###` sections; the rest is history.
+
+**Current state (2026-10-20):** the LabVIEW fixes for the timing failure below are all in
+(todo item 18: Fix B b1 parser-stall handshake, Fix A as a shift-add ×100 instead of the DSP
+multiply, `compress.buffer.vi` swapped back). The **2026-10-20 09:20 export** (dcp md5
+3d922117, `.v` 16.1 MB vs 22.7 MB before) is installed in `vivado/ip/`, port numbering
+unchanged, and the netlist sim scores **100 % on all four pcaps** (203/203, 659/659, 659/659,
+662/662, scored with `--short-price-scale 100`). Clean `make xsa JOBS=2` of it (09:56–10:12):
+**timing met, WNS +0.007 ns, hold +0.010 ns, 0 failing endpoints** — `vivado/mktdata_poc.xsa`
+of 10:12 is a good build (the worst paths are input CDC FIFO read → DEBUG FIFO data, 9.3 ns of
+10, so the parser cycle has no slack left for further logic). **Deployed and run on the board
+the same day** (bit.bin md5 a6b4460c…, `xmutil loadapp` needed the stale-overlay fix below):
+loopback injection = the sim's 10 records; over the 10G cable all four pcaps score 100 %
+(203/203, 659/659, 659/659, 662/662), first message 13–96 ns, last of a frame ≈ 1.3 µs. Test
+tools fixed on the way: `scripts/send_pcap_udp.py` now sends only the UDP length (it used to
+include the Ethernet pad of 60-byte heartbeat frames, which produced bogus Unsupported
+records on hardware), `eval_sim.py` resyncs on seq 0 or 1. Still open: todo item 19 (three
+records per run carry recv.time 0 after a stalled parser cycle), items 10, 13, 8.
+**Second implementation:** `poc_v/` holds a hand-written Verilog parser (`mktdata_parser_rtl`,
+same ports and stream formats as the LabVIEW IP) that scores the same 100 % on the four pcaps
+(`DUT=rtl ./sim_all.sh`) and closes timing standalone (out-of-context P&R: WNS +2.18 ns at
+100 MHz, +1.40 ns at 156.25 MHz; 5.0 k LUTs, 3.5 k FFs, 37.5 BRAM36, 0 DSP). Select it with
+`PARSER_IMPL=rtl make xsa-clean xsa`. **Built and run on the board 2026-10-20 evening:** WNS
++1.852 ns, all four pcaps 100 % over the cable, last message of a frame ≈ 580 ns vs ≈ 1.3 µs for
+the LabVIEW bitstream, no zero recv.time. Both builds' XSA/bit.bin/timing reports are saved under
+`builds/{labview,rtl}_2026-10-20/` (untracked, 2.3–2.7 MB each) because `xsa-clean` deletes the
+previous one. Both implementations are to be maintained — see `poc_v/README.md`. After an app
+reload the static ARP entry on eth1 can vanish (link flap): re-add it before a cable run.
+**Web page "Run on Hardware" (2026-10-21):** `tools/hwrun/hwrun_server.py` (README there)
+runs any of the five test pcaps on the board with either implementation on request from
+the fpganow.com WordPress page (plugin `fpganow-hwrun` in `~/work/shigsoft/websites`,
+page `/run-on-hardware/`): loads `mktdata_poc_labview` / `mktdata_poc_rtl` (both installed
+on the board via `make -C kria_app package-variant/deploy-variant` from `builds/*`), replays
+the pcap, scores with eval_sim.py, returns per-message latencies, CSV and a chart.
+`make hwrun` starts it. Verified end to end through the page on 2026-10-21 (LabVIEW
+203/203, RTL 659/659, same latencies as the day before).
+
+**State 2026-10-12:** the 19:37 export below **fails timing in Vivado: WNS -4.616 ns, 722
+failing endpoints**, all in the 100 MHz parser loop (clean build 2026-10-12, `vivado/mktdata_poc.xsa`
+of 15:38 is that failing build — do not package or deploy it). Two causes: the U64×100 short-price
+multiply (item 9) put a DSP multiplier cascade in series with the decode (128 paths, -4.6 ns), and
+the 6-shifter `compress.buffer.generated.vi` (item 3) costs ~2 ns on 594 more paths that had
++0.035 ns before. Fix options and the path listing: `todo.txt` item 18,
+`docs/kr260/timing_2026-10-12_fail.txt`. Also done 2026-10-12: `todo.txt` item 2 confirmed in sim with
+`tests/data/unsupported_repro.pcap` (three undecoded PITCH types → three type-11 records, 662/662).
+
+**State 2026-10-11 evening:** the 19:37 IP export (dcp md5 7e039484) is installed in
+`vivado/ip/` and simulated here with **100 % content match**: repro 203/203, 20-frame 659/659,
+`tests/data/heartbeat_repro.pcap` (new, 6 heartbeats) 659/659, all headers present, Trades typed 10,
+prices ×100 for short variants (`eval_sim.py --short-price-scale 100`), DEBUG stream one record per
+message. The 14:22 export earlier that day still had Trades typed 9 because the target-scoped FPGA
+FIFO `TS-Filter.Command` kept a private copy of the element type with the old 10-item enum (FIFO
+data types do not follow typedef edits; re-pick the typedef in the FIFO properties). Not yet done:
+`make xsa` (detached) and the board run with this netlist. **This export renumbered the IP's `ctrlind_NN` ports**
+(TREADYs first, then DEBUG/CMD/MDEBUG, ip_reset 15, input stream 16–20; the names are only readable
+in `NiFpgaIPWrapper_poc_ip_kria.vhd`, the `.v` is encrypted). `ip_export/netlist_sim/tb.sv` and
+`vivado/mktdata_poc.tcl` were remapped — and the 19:37 export of the same day went **back** to the
+original numbering while LabVIEW left the 14:22 wrapper `.vhd` in place (so the wrapper is not a
+reliable source). The reliable source is the `.dcp` (a zip holding `*_stub.v`):
+`python3 ip_export/netlist_sim/ports_from_dcp.py ip_export/NiFpgaAG_poc_ip_kria.dcp
+ip_export/netlist_sim/tb.sv vivado/mktdata_poc.tcl --check vivado/ip/NiFpgaIPWrapper_poc_ip_kria.vhd`
+remaps both files by port name and exits 1 on a stale wrapper. Run it after every `ip-install`.
+When the numbering differs from the last `make xsa`, build with `make xsa-clean && make xsa`
+(detached); the 19:37 export has the numbering the existing project was built with. `eval_sim.py` now needs `--short-price-scale 100` (short prices
+are ×100 in the parser), checks every symbol, reads the UDP length, and groups latency by pcap frame
+(recv.time is per record since the frame-start latch was removed, todo item 10).
+`apps/poc_inject/decode_capture.py` names CMD types 0–11. Open items: `todo.txt` summary block.
+
+**State 2026-10-05 (superseded above):**
 
 - Fixed and hardware-verified: 10G TX reset polarity, 32-bit capture-FIFO readout, the
   frame-boundary bug (parser bug 1). Everything through commit a1fde2d is committed.
-- **Active task: the remaining PITCH message types** (ReduceSize, ModifyOrder, DeleteOrder, Trade,
-  OrderExecutedAtPriceSize). The plan, per-message field map, and status are in
-  `rest.of.order.types.txt` (untracked — read it before touching the parser). Generated LV2020 VIs
-  `ModifyOrder.vi`, `DeleteOrder.vi`, `Trade.vi`, `OrderExecuted.generated.vi`,
-  `ReduceSize.generated.vi` sit untracked in `submodules/Market.Data.Bats.Parser/fpga/message.types/`
-  beside the hand-made `OrderExecuted.vi` / `ReduceSize.vi` (the latter is still a copy of
-  OrderExecuted). Still to do in the IDE: append `Trade = 10`, `Unsupported = 11` to
-  `orderbook.command.type.ctl`; add the parser case frames; then export, simulate
-  (`netlist_sim`), extend `eval_sim.py`'s expectations, rebuild (timing margin is only +0.035 ns).
-- Uncommitted LabVIEW edits in progress: `bats.parser.vi`, `OrderExecuted.vi`, `openFpga.vi`,
-  `Test.Runner.kria.bats.parser.vi`, and the `.lvproj` (adds a `bats.parser` folder to the target
-  and switches the FPGA target's execution mode to simulation with simulated I/O — check before
-  compiling a bitfile).
-- Open parser bugs: bug 2 (root cause in `compress.buffer.vi`) and bug 4 (6-char symbols) below.
+- **Remaining PITCH message types: DONE in LabVIEW, exported 2026-10-05, simulated 2026-10-06.**
+  `bats.parser.vi` now has frames "37, 38" → `ReduceSize.generated.vi`, "39, 40" → `ModifyOrder.vi`,
+  "41" → `DeleteOrder.vi`, "42, 43, 48" → `Trade.vi`, and `OrderExecuted.vi` handles 0x24 itself
+  (commit 00553be). Netlist sim of that export: repro pcap 203/203 messages, 20-frame pcap
+  659/659, every field right **except** that all Trades report type 9 — `orderbook.command.type.ctl`
+  still ends at `Get.Top = 9`, so Trade.vi's value 10 is clamped by the typedef coercion.
+  `eval_sim.py` checks the new types. **The hand-work that remains is in `todo.txt`** (the live
+  manual to-do list; the old KR260 design-decision log moved to `docs/kr260/design-decisions.txt`).
+  Field map and build recipe stay in `rest.of.order.types.txt` and `tools/labview-aixml/`.
+  Not yet done after this export: `make xsa-clean && make xsa` (margin was +0.035 ns before the
+  netlist grew from 15.7 to 16.2 MB) and the board run.
+- Parser bugs 2 (`compress.buffer.vi` remainder) and 4 (6-char symbols) were fixed in LabVIEW on
+  2026-10-07..09 via `compress.buffer.generated.vi` / `AddOrder.generated.vi` and are sim-confirmed
+  in the 2026-10-11 export (`todo.txt` items 3 and 4); hardware confirmation is still pending.
 
 ### Build / deploy facts (hardware-proven 2026-09-15)
 - `make xsa` from Claude Code must run **detached** (`setsid nohup bash -c "make xsa JOBS=2 …" &`)
@@ -219,8 +359,12 @@ says "unresolved" and a later one says "FIXED", the later one wins. **Current st
   flags, 12 seq no, **13 recv.time, 14 parse.time**, 15 0xDEADBEEF (reserved for filter time).
   recv.time = parser `time` at the frame's first valid word (OneDrive edit: `frame.start` in
   `my.network.data.stream` is now a U64 set via a Select); parse.time = `time` when emitted.
-  `time` ticks once per 100 MHz parser-loop cycle (**10 ns**; the parser loop `n_Timed_Loop_4241`
-  is clk_pl_0, the MAC/IP/UDP filter loop `n_Timed_Loop_3470` is the 156.25 MHz rx clock).
+  `time` is a counter in the **156.25 MHz** MAC/IP/UDP loop (`n_Timed_Loop_3470`, rx clock), so one
+  tick = **6.4 ns** (corrected 2026-10-11; earlier notes said 10 ns - every latency figure quoted
+  before that date is 1.56x too large). The parser loop `n_Timed_Loop_4241` is clk_pl_0 (100 MHz)
+  and reads the counter through a Register (the clock-domain crossing, 1-3 ticks late).
+  `decode_capture.py` / `eval_sim.py` use 6.4 ns. Since the 2026-10-11 01:20 edit recv.time is a
+  per-word stamp (frame-start latch removed) - see `todo.txt` item 10 for the choice.
 - **DEBUG** = 4 × U64 parser trace: `[0xAAAB,0,1,2]` on ip_reset; `[0xDE<<32|len,len,first8B,0]`
   on Sequenced Unit Header; `[8 msg bytes,0,0,0x99]` per message; 0xAAAA/0xBBBB = waiting.
 - **MDEBUG** = 4 × U64 per parser cycle `[time, msg len, msg type, …]`.
@@ -238,15 +382,21 @@ ties `tDiagramEnableOut` high). `enable_out` never rises for this free-running V
 it. Output `sim_out.txt`: `<cyc100> CMD|DEBUG|MDEBUG w<n> 0x<word> [LAST]`. README there has the
 formats.
 
-### Board readout problem (unresolved — affects every hardware CMD/DEBUG capture)
+### Board readout problem (FIXED 2026-09-17, see below — kept for the devmem warning)
 Hardware `poc_server poll` returned `[0xAAAB,1,2,2]` for the reset record the IP demonstrably
 emits as `[0xAAAB,0,1,2]` (same netlist in sim). Pattern = each 32-bit half of the 64-bit RDFD
-load pops its own beat, contradicting todo.txt #23. Until fixed, CMD timestamps read on hardware
+load pops its own beat, contradicting design-decisions.txt #23. Until fixed, CMD timestamps read on hardware
 are not trustworthy; consider a 64→32 `axis_dwidth_converter` + 32-bit capture FIFOs (rebuild).
 **Never `devmem` the axi_fifo data port (+0x1000/+0x1004) by hand** — a 32-bit read at +0x1004
 after RDFO read 0 hung the AXI bus and the whole PS (2026-09-15); JTAG/UART USB is *not* visible
-from this WSL VM (no Xilinx USB device → `make jtag-reboot` finds no targets), so it needs a
-power cycle.
+from this WSL VM (no Xilinx USB device), but since 2026-10-23 both work through Windows:
+`make hw-server-win` (Vivado 2025.1 hw_server on 127.0.0.1:3121, which `make jtag-targets` /
+`make jtag-reboot` / `make board-reset` connect to via HW_SERVER_URL) and `make uart-win
+CMD='...'` (scripts/kr260_uart.ps1 on COM6). Verified: xsct lists the PSU/APU chain, the UART
+shows the login prompt. Gotchas from that day: a board reset while hw_server is attached left two
+A53 cores in "Reset Catch" (boot stalled, ssh dead) -- `make board-reset` + `make hw-server-win-stop`
+recovered it; and any keystroke on the console during U-Boot's countdown stops autoboot
+(`make uart-listen` watches without sending, `make uart-win CMD=boot` continues).
 
 ### 2026-09-16 evening results (both injection paths now work)
 - **BD bug fixed in `vivado/mktdata_poc.tcl`:** `axis2xgmii_0/rst` (active-HIGH) was driven by
@@ -277,7 +427,7 @@ FIFOs, whose `C_S_AXI4_DATA_WIDTH` is now 32; `poc_server` and `scripts/fifo_ser
 32-bit RDFD words per stream beat (LSW first). Rebuilt (WNS **+0.364 ns**), deployed (bit.bin md5
 081d8afa…), loopback run: DEBUG trace identical to the sim (`[0xAAAB,0,1,2]`, header 265 B,
 per-message 0x99 records), 10 complete CMD records with recv.time = 0x6d3 for all and parse.time
-0x6d5…0x707 → **20 ns (Time msg) / 120 ns (1st AddOrder) … 520 ns (10th message)**. todo.txt
+0x6d5…0x707 → **20 ns (Time msg) / 120 ns (1st AddOrder) … 520 ns (10th message)**. design-decisions.txt
 items 24 (TX reset) and 25 (readout) record both BD changes. `decode_capture.py` decodes it all.
 Oddity to look at in LabVIEW: the CMD `symbol` field comes out byte-reversed ('    TFSM') for
 most AddOrders but forward ('MSFT    ') for ORID0004 — probably type-dependent packing.
@@ -292,6 +442,8 @@ pyyaml scapy prettytable ruamel.yaml`. **Generator trap:** order-size ranges mus
 25 shares (sizes are min + k·25) or `getNextMsg()` loops forever on a Modify.
 
 ### LabVIEW parser bugs found with the multi-frame pcap (2026-09-17, hardware + xsim agree)
+Status 2026-10-11: bug 1 fixed on hardware (09-23); bugs 2, 3, 4 fixed in LabVIEW and confirmed by
+netlist sim of the 10-11 export, board run pending. Kept in full for the mechanisms and tooling.
 1. **Frame-boundary corruption — root cause (2026-09-18): NI's IPv4/UDP stream VIs mangle the
    tail of any frame whose LAST AXI BEAT has 7 or 8 valid bytes** (frame length ≡ 7 or 0 mod 8 ⇔
    UDP payload ≡ 5 or 6 mod 8). After the real last payload word (whose byte 4 arrives stale) they
@@ -384,16 +536,16 @@ pyyaml scapy prettytable ruamel.yaml`. **Generator trap:** order-size ranges mus
    the packet ends, so we can align the last data with End of Good Frame". A last input word with
    bytes 6–7 valid (7 or 8 valid) needs a second flush that the single Purge cycle does not give,
    so EOF lands one cycle off the last data and the IPv4 cache re-emits the tail → the extra word.
-2. **OrderExecuted right after a 6-byte Time message that starts at byte 1 of a word** gets byte 2
+2. **[FIXED in sim 2026-10-11 by `compress.buffer.generated.vi`]** **OrderExecuted right after a 6-byte Time message that starts at byte 1 of a word** gets byte 2
    of its orderId zeroed (`'OR\x00D0204'`, frame 9 msg 24). All other Add/Exec alignments were
    correct (300+ checked). **Root cause (model-reproduced, 2026-09-25): `compress.buffer.vi`**, not
    `OrderExecuted.vi`/`new.uxx.be.vi` — it only rebuilds word 0 of the remainder, so when a message
    was already complete in the buffer before the new word was added the 9–15-byte remainder loses
    everything from byte 8 on. Fix: build `buffer.out[1]` (and `[2]`) with the same shift logic on
    words widx+1/widx+2 (`rest.of.order.types.txt` §4).
-3. ReduceSize/Modify/Delete/Trade unsupported (type 0, which collides with Time) — the active
-   task above. 0x24 OrderExecutedAtPriceSize is decoded with the 0x23 layout.
-4. 6-char symbols land byte-reversed vs 8-char ones: `new.uxx.be.vi`'s Length = 6 little-endian
+3. **[FIXED, commit 00553be + 10-11 export]** ReduceSize/Modify/Delete/Trade unsupported (type 0, which collides with Time).
+   0x24 OrderExecutedAtPriceSize is decoded with the 0x23 layout.
+4. **[FIXED in sim 2026-10-11 by `AddOrder.generated.vi`]** 6-char symbols land byte-reversed vs 8-char ones: `new.uxx.be.vi`'s Length = 6 little-endian
    frame lacks the Swap Bytes/Words of the Length = 8 frame. Cheapest fix: read the symbol with
    Length 8 in `AddOrder.vi`, AND 0x0000FFFFFFFFFFFF, OR 0x2020000000000000.
 Measured on clean frames (363 msgs, ~30 msgs/frame): first message 10–140 ns after the frame's
@@ -441,3 +593,70 @@ neighbors "Ethernet 3" 10.0.1.14 00-0a-35-18-3c-1f`; in WSL `sudo ip neigh repla
 Then senders can run from WSL too (plain UDP sockets; no raw L2). `player`'s default `--mac` is
 00-0A-35-18-3C-**0F** but the IP filter/pcaps use …3C-**1F** — pass `--mac` explicitly. The old
 raw_run pcaps came from 10.0.1.10 with a Mellanox MAC (a different NIC).
+
+### 2026-10-27/28: production "Run on Hardware" page verified end to end (resume point)
+
+**State:** the public page https://fpganow.com/index.php/run-on-hardware/ (WordPress plugin
+`fpganow-hwrun`, source in `~/work/shigsoft/websites/fpganow/wp-content/plugins/fpganow-hwrun/`,
+still untracked there) talks through shigsoft's cron-kept SSH tunnel (172.17.0.1:8301 →
+bayside:2222 → this PC 172.17.0.1:8300) to `tools/hwrun/hwrun_server.py`, which runs here as
+the *system* unit `hwrun.service` (auto-starts, `Restart=always`; stop it with
+`fuser -k 8300/tcp`, never `pkill -f`). Verified 2026-10-28 from a real browser
+(`tools/hwrun/pagecheck/`, see its README): LabVIEW 203/203 median 684.8 ns, RTL 203/203 median
+332.8 ns on `frame_boundary_repro`; CSV, chart, report toggle, 20 s cooldown (429 from the proxy),
+shareable `?hwrun=<id>` link and phone layout all OK. Run records: `tools/hwrun/runs/20261028-*`.
+
+**Changes made, uncommitted:** `hwrun_server.py` finds the QNAP adapter by MAC
+`24:5e:be:8b:b1:94` (`host_mac` in the board catalog) because WSL renumbers ethN after the
+adapter re-enumerates; `ip_export/netlist_sim/eval_sim.py` per-frame latency block now skips
+records with recv.time 0 (same rule as the service's JSON summary) — before, the scorer report
+shown on the page printed ~5e8 ns for frames 1/3/5 of the LabVIEW build. New dir
+`tools/hwrun/pagecheck/` (API + puppeteer page tests). Workspace `CLAUDE.md` refreshed.
+
+**Incident:** 2026-10-27 ~22:45 hot-plugging the QNAP Thunderbolt adapter froze Windows (WSL
+rebooted, board unaffected). Re-plugging on 2026-10-28 did not. Prefer plugging it in before boot.
+
+**Open before announcing the page:** (1) site-wide broken header logo — the DB still references
+`http://localhost:8200/wp-content/uploads/...rect10-9.png` from the dev stack (42 hits in
+`fpganow_wrd.sql`); fix on shigsoft with `wp search-replace 'http://localhost:8200'
+'https://fpganow.com' --all-tables`; (2) the page is not in the site menu; (3) commit the plugin
+in the websites repo and `tools/hwrun/` + the eval_sim fix here; (4) LabVIEW build still emits 3
+records without recv.time (todo item 19) — shown as a warning card on the page.
+
+**Resume commands:** `ip -br link | grep 24:5e:be:8b:b1:94` (want LOWER_UP), `systemctl status
+hwrun`, `ssh kr260u uptime`, then `python3 -I tools/hwrun/pagecheck/prodrun.py frame_boundary_repro labview`
+(wait 20 s between runs) or the browser test in `tools/hwrun/pagecheck/README.md`.
+
+### 2026-11-02: latency statistics table; development moving to a Linux machine (resume point)
+
+**Done today:** the page got a "Latency statistics" table (count / min / mean / median / p95 /
+p99 / max for recv→parse latency and for time since the frame's first message; computed in
+`assets/app.js` over matched, stamped messages) and `hwrun_server.py` returns the same numbers in
+the JSON summary (`latency_ns`, `since_frame_start_ns`, `lat_stats()`); plugin 1.0.0 → 1.1.0.
+Verified on the local dev stack with the stored 2026-10-28 runs (`tools/hwrun/pagecheck/stats.js`);
+no fresh hardware run because the board was powered off. **Production still runs 1.0.0:** the two
+files are staged on shigsoft in `~/fpganow-hwrun-update/`; install needs sudo there (command in
+`docs/HANDOFF_2026-11-02.md` §2).
+
+**Machine move:** this PC (ASUS15, Windows + WSL2) stops being the lab PC. Everything needed to
+continue on a Linux-only machine — what to copy, what is uncommitted in the three working trees,
+how to rebuild the hwrun service / inbound tunnel / 10G path / JTAG / dcp→Verilog step without
+Windows, the proposed LabVIEW-PC → Linux transfer workflow, and the first-session checklist — is
+in **`docs/HANDOFF_2026-11-02.md`** (also at `/mnt/c/work/fpganow/handoff_2026-11-02/` with the
+Claude memory files, the systemd unit, the sshd snippet and the tunnel key). Read it first.
+
+### 2026-11-10: branch `asus15-local-work` = everything this PC (ASUS15) had uncommitted
+
+All 2026-10-07..11-02 work from this PC was committed on branch `asus15-local-work` (from
+`bca72d1`) and pushed on 2026-11-10; `main` here was then cleaned and fast-forwarded to the
+Linux-side `aa7bcf5`. The branch is **not merged**. It carries: the netlist conversion of the
+2026-10-20 IP export (`vivado/ip/NiFpgaAG_poc_ip_kria.v`, 16.1 MB — `main` still has an older
+conversion), `poc_v/` (the `mktdata_poc_rtl` bitstream's sources, `DUT=rtl` sim hooks,
+`PARSER_IMPL=rtl` in `vivado/`), `tools/hwrun/`, the AIXML tooling, the 2026-10-20 builds and
+board captures under `builds/` (bit/bit.bin/xsa via LFS), and the October notes in this file
+and `todo.txt`. When merging into `main`, re-apply on top of the Linux-side versions:
+`send_pcap_udp.py` must cut at the UDP length (heartbeat Ethernet pad fix), `eval_sim.py` /
+`decode_capture.py` use a **6.4 ns** tick (sim-verified 2026-10-11; `main` went back to 10 ns),
+and `vivado/mktdata_poc.tcl` must keep `axis_mon` when the `PARSER_IMPL` switch is merged in.
+Local-only variants replaced by the owner's resaves on 2026-11-09 are archived outside the repo
+in `/mnt/c/work/fpganow/old/reconcile_2026-11-09/`.

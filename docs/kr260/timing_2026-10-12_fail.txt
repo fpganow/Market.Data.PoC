@@ -1,0 +1,875 @@
+Timing failure of the 2026-10-11 19:37 LabVIEW export (dcp md5 7e039484), clean Vivado 2024.1 build 2026-10-12
+WNS -4.616 ns, TNS -792 ns, 722 failing endpoints, all clk_pl_0 (100 MHz parser loop); hold clean (WHS +0.010).
+128 failing paths go through the DSP48E2 multiplier (U64 x 100 short-price scale, todo item 9): worst -4.616 ns.
+594 do not (compress.buffer/add.data.to.buffer shifter logic into the parser state Feedback Node and the CMD/DEBUG FIFOs): worst -1.954 ns.
+Source of every failing path: the input CDC FIFO read (FPGAwFIFOn4). Previous builds: +0.863 (Jul) +0.127 (Sep-11) +0.031 +0.364 (Sep-17) +0.035 (Sep-23).
+Cell names below are shortened: IP/ = IP/, PARSER/ = IP/n_Timed_Loop_4241_Diagram/n_SubVI_bats_parser_vi_19295/, FIFOnX/ stands for the whole BuiltinFifoIP/.../sngfifo36e2 chain.
+===== worst 4 paths (all through the multiplier) =====
+Slack (VIOLATED) :        -4.616ns  (required time - arrival time)
+  Source:                 IP/FPGAwFIFOn4//RDCLK
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            IP/FPGAwFIFOn1//DINP[7]
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_pl_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_pl_0 rise@10.000ns - clk_pl_0 rise@0.000ns)
+  Data Path Delay:        13.881ns  (logic 8.380ns (60.369%)  route 5.501ns (39.631%))
+  Logic Levels:           31  (CARRY8=8 DSP_A_B_DATA=1 DSP_ALU=4 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=4 DSP_PREADD_DATA=1 LUT2=3 LUT5=2 LUT6=6)
+  Clock Path Skew:        -0.195ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.903ns = ( 12.903 - 10.000 ) 
+    Source Clock Delay      (SCD):    3.284ns
+    Clock Pessimism Removal (CPR):    0.186ns
+  Clock Uncertainty:      0.160ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.312ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      3.017ns (routing 1.570ns, distribution 1.447ns)
+  Clock Net Delay (Destination): 2.687ns (routing 1.435ns, distribution 1.252ns)
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                      0.000     0.000 r  
+    PS8_X0Y0             PS8                          0.000     0.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.229     0.229    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.038     0.267 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       3.017     3.284    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_clk
+    RAMB36_X0Y23         FIFO36E2                                     r  IP/FPGAwFIFOn4//RDCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X0Y23         FIFO36E2 (Prop_FIFO36E2_FIFO36_RDCLK_DOUTP[2])
+                                                      1.203     4.487 r  IP/FPGAwFIFOn4//DOUTP[2]
+                         net (fo=1, routed)           0.332     4.819    IP/res00000061_wo[67]
+    SLICE_X29Y120        LUT2 (Prop_A6LUT_SLICEM_I0_O)
+                                                      0.058     4.877 r  IP/i__i_11__0/O
+                         net (fo=40, routed)          0.132     5.009    IP/n_Timed_Loop_4241_Diagram/s_s_ques_t_colon_f_840_2
+    SLICE_X31Y119        LUT2 (Prop_E6LUT_SLICEM_I1_O)
+                                                      0.138     5.147 r  IP/cInOneLoc_inferred_i_103__0/O
+                         net (fo=1, routed)           0.240     5.387    IP/cInOneLoc_inferred_i_103__0_n_0
+    SLICE_X34Y119        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.138     5.525 r  IP/cInOneLoc_inferred_i_61__0/O
+                         net (fo=2, routed)           0.127     5.652    IP/cInOneLoc_inferred_i_61__0_n_0
+    SLICE_X35Y119        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.138     5.790 r  IP/cInOneLoc_inferred_i_42__0/O
+                         net (fo=8, routed)           0.193     5.983    IP/cInOneLoc_inferred_i_42__0_n_0
+    SLICE_X36Y119        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     6.136 r  IP/BuiltinFifoIP_i_998/CO[2]
+                         net (fo=8, routed)           0.256     6.393    IP/BuiltinFifoIP_i_998_n_5
+    SLICE_X37Y119        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.550 r  IP/BuiltinFifoIP_i_987/CO[2]
+                         net (fo=15, routed)          0.247     6.797    IP/BuiltinFifoIP_i_987_n_5
+    SLICE_X38Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.954 r  IP/BuiltinFifoIP_i_976/CO[2]
+                         net (fo=8, routed)           0.319     7.272    IP/BuiltinFifoIP_i_976_n_5
+    SLICE_X40Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     7.429 r  IP/BuiltinFifoIP_i_965/CO[2]
+                         net (fo=8, routed)           0.252     7.681    IP/BuiltinFifoIP_i_965_n_5
+    SLICE_X39Y120        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     7.834 r  IP/cInOneLoc_inferred_i_137/CO[2]
+                         net (fo=8, routed)           0.242     8.077    IP/cInOneLoc_inferred_i_137_n_5
+    SLICE_X39Y118        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     8.230 r  IP/cInOneLoc_inferred_i_84/CO[2]
+                         net (fo=14, routed)          0.302     8.531    IP/cInOneLoc_inferred_i_84_n_5
+    SLICE_X38Y122        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.083     8.614 r  IP/cInOneLoc_inferred_i_111__0/O
+                         net (fo=1, routed)           0.107     8.721    IP/cInOneLoc_inferred_i_111__0_n_0
+    SLICE_X38Y122        LUT6 (Prop_D6LUT_SLICEM_I0_O)
+                                                      0.151     8.872 r  IP/cInOneLoc_inferred_i_80/O
+                         net (fo=2, routed)           0.106     8.978    IP/cInOneLoc_inferred_i_80_n_0
+    SLICE_X38Y122        LUT5 (Prop_C6LUT_SLICEM_I0_O)
+                                                      0.135     9.113 f  IP/cInOneLoc_inferred_i_50__0/O
+                         net (fo=8, routed)           0.452     9.566    IP/cInOneLoc_inferred_i_50__0_n_0
+    SLICE_X44Y122        LUT6 (Prop_B6LUT_SLICEL_I5_O)
+                                                      0.083     9.649 r  IP/cInOneLoc_inferred_i_24/O
+                         net (fo=2, routed)           0.053     9.701    IP/cInOneLoc_inferred_i_24_n_0
+    SLICE_X44Y122        LUT6 (Prop_F6LUT_SLICEL_I3_O)
+                                                      0.056     9.757 f  IP/cInOneLoc_inferred_i_4/O
+                         net (fo=17, routed)          0.632    10.389    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/A[12]
+    DSP48E2_X12Y48       DSP_A_B_DATA (Prop_DSP_A_B_DATA_DSP48E2_A[12]_A2_DATA[12])
+                                                      0.258    10.647 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA_INST/A2_DATA[12]
+                         net (fo=1, routed)           0.000    10.647    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA.A2_DATA<12>
+    DSP48E2_X12Y48       DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_DSP48E2_A2_DATA[12]_A2A1[12])
+                                                      0.114    10.761 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA_INST/A2A1[12]
+                         net (fo=1, routed)           0.000    10.761    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA.A2A1<12>
+    DSP48E2_X12Y48       DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_DSP48E2_A2A1[12]_U[33])
+                                                      0.700    11.461 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER_INST/U[33]
+                         net (fo=1, routed)           0.000    11.461    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER.U<33>
+    DSP48E2_X12Y48       DSP_M_DATA (Prop_DSP_M_DATA_DSP48E2_U[33]_U_DATA[33])
+                                                      0.067    11.528 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA_INST/U_DATA[33]
+                         net (fo=1, routed)           0.000    11.528    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA.U_DATA<33>
+    DSP48E2_X12Y48       DSP_ALU (Prop_DSP_ALU_DSP48E2_U_DATA[33]_ALU_OUT[47])
+                                                      0.727    12.255 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    12.255    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X12Y48       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    12.422 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    12.436    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__12/PCIN[47]
+    DSP48E2_X12Y49       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    13.175 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    13.175    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X12Y49       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    13.342 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.038    13.380    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__13/PCIN[47]
+    DSP48E2_X12Y50       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    14.119 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    14.119    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X12Y50       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    14.286 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    14.300    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__14/PCIN[47]
+    DSP48E2_X12Y51       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[2])
+                                                      0.739    15.039 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU_INST/ALU_OUT[2]
+                         net (fo=1, routed)           0.000    15.039    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU.ALU_OUT<2>
+    DSP48E2_X12Y51       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[2]_P[2])
+                                                      0.146    15.185 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_OUTPUT_INST/P[2]
+                         net (fo=2, routed)           0.356    15.541    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/multOp__14_n_103
+    SLICE_X53Y126        LUT2 (Prop_D6LUT_SLICEM_I0_O)
+                                                      0.056    15.597 r  IP/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_169/O
+                         net (fo=1, routed)           0.032    15.629    IP/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_169_n_0
+    SLICE_X53Y126        CARRY8 (Prop_CARRY8_SLICEM_S[3]_CO[7])
+                                                      0.232    15.861 r  IP/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_12/CO[7]
+                         net (fo=1, routed)           0.030    15.891    IP/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_12_n_0
+    SLICE_X53Y127        CARRY8 (Prop_CARRY8_SLICEM_CI_O[3])
+                                                      0.114    16.005 r  IP/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_11/O[3]
+                         net (fo=2, routed)           0.860    16.865    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0005_Diagram/n_SubVI_ModifyOrder_vi_3559/n_NiFpgaAG_0000053e_CaseStructureFrame_0001_Diagram/n_Multiply_557/GenFixed.NiLvFxpMultiplyx/cMultResult[44]
+    SLICE_X28Y132        LUT5 (Prop_F6LUT_SLICEM_I2_O)
+                                                      0.135    17.000 r  IP/BuiltinFifoIP_i_192__0_comp_1/O
+                         net (fo=1, routed)           0.165    17.165    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[6].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/din[71]
+    RAMB36_X0Y26         FIFO36E2                                     r  IP/FPGAwFIFOn1//DINP[7]
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                     10.000    10.000 r  
+    PS8_X0Y0             PS8                          0.000    10.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.181    10.181    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.035    10.216 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       2.687    12.903    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[6].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/rd_clk
+    RAMB36_X0Y26         FIFO36E2                                     r  IP/FPGAwFIFOn1//WRCLK
+                         clock pessimism              0.186    13.089    
+                         clock uncertainty           -0.160    12.929    
+    RAMB36_X0Y26         FIFO36E2 (Setup_FIFO36E2_FIFO36_WRCLK_DINP[7])
+                                                     -0.380    12.549    IP/FPGAwFIFOn1/
+  -------------------------------------------------------------------
+                         required time                         12.549    
+                         arrival time                         -17.165    
+  -------------------------------------------------------------------
+                         slack                                 -4.616    
+Slack (VIOLATED) :        -4.611ns  (required time - arrival time)
+  Source:                 IP/FPGAwFIFOn4//RDCLK
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            IP/FPGAwFIFOn1/__0/DIN[13]
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_pl_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_pl_0 rise@10.000ns - clk_pl_0 rise@0.000ns)
+  Data Path Delay:        14.089ns  (logic 8.683ns (61.628%)  route 5.406ns (38.372%))
+  Logic Levels:           34  (CARRY8=8 DSP_A_B_DATA=1 DSP_ALU=4 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=4 DSP_PREADD_DATA=1 LUT2=2 LUT3=3 LUT4=2 LUT5=1 LUT6=6)
+  Clock Path Skew:        0.048ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    3.146ns = ( 13.146 - 10.000 ) 
+    Source Clock Delay      (SCD):    3.284ns
+    Clock Pessimism Removal (CPR):    0.186ns
+  Clock Uncertainty:      0.160ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.312ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      3.017ns (routing 1.570ns, distribution 1.447ns)
+  Clock Net Delay (Destination): 2.930ns (routing 1.435ns, distribution 1.495ns)
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                      0.000     0.000 r  
+    PS8_X0Y0             PS8                          0.000     0.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.229     0.229    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.038     0.267 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       3.017     3.284    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_clk
+    RAMB36_X0Y23         FIFO36E2                                     r  IP/FPGAwFIFOn4//RDCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X0Y23         FIFO36E2 (Prop_FIFO36E2_FIFO36_RDCLK_DOUTP[2])
+                                                      1.203     4.487 r  IP/FPGAwFIFOn4//DOUTP[2]
+                         net (fo=1, routed)           0.332     4.819    IP/res00000061_wo[67]
+    SLICE_X29Y120        LUT2 (Prop_A6LUT_SLICEM_I0_O)
+                                                      0.058     4.877 r  IP/i__i_11__0/O
+                         net (fo=40, routed)          0.132     5.009    IP/n_Timed_Loop_4241_Diagram/s_s_ques_t_colon_f_840_2
+    SLICE_X31Y119        LUT2 (Prop_E6LUT_SLICEM_I1_O)
+                                                      0.138     5.147 r  IP/cInOneLoc_inferred_i_103__0/O
+                         net (fo=1, routed)           0.240     5.387    IP/cInOneLoc_inferred_i_103__0_n_0
+    SLICE_X34Y119        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.138     5.525 r  IP/cInOneLoc_inferred_i_61__0/O
+                         net (fo=2, routed)           0.127     5.652    IP/cInOneLoc_inferred_i_61__0_n_0
+    SLICE_X35Y119        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.138     5.790 r  IP/cInOneLoc_inferred_i_42__0/O
+                         net (fo=8, routed)           0.193     5.983    IP/cInOneLoc_inferred_i_42__0_n_0
+    SLICE_X36Y119        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     6.136 r  IP/BuiltinFifoIP_i_998/CO[2]
+                         net (fo=8, routed)           0.256     6.393    IP/BuiltinFifoIP_i_998_n_5
+    SLICE_X37Y119        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.550 r  IP/BuiltinFifoIP_i_987/CO[2]
+                         net (fo=15, routed)          0.247     6.797    IP/BuiltinFifoIP_i_987_n_5
+    SLICE_X38Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.954 r  IP/BuiltinFifoIP_i_976/CO[2]
+                         net (fo=8, routed)           0.319     7.272    IP/BuiltinFifoIP_i_976_n_5
+    SLICE_X40Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     7.429 r  IP/BuiltinFifoIP_i_965/CO[2]
+                         net (fo=8, routed)           0.252     7.681    IP/BuiltinFifoIP_i_965_n_5
+    SLICE_X39Y120        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     7.834 r  IP/cInOneLoc_inferred_i_137/CO[2]
+                         net (fo=8, routed)           0.242     8.077    IP/cInOneLoc_inferred_i_137_n_5
+    SLICE_X39Y118        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     8.230 r  IP/cInOneLoc_inferred_i_84/CO[2]
+                         net (fo=14, routed)          0.197     8.426    IP/cInOneLoc_inferred_i_84_n_5
+    SLICE_X40Y118        LUT3 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.149     8.575 f  IP/cInOneLoc_inferred_i_47/O
+                         net (fo=23, routed)          0.115     8.691    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_SubVI_add_data_to_buffer_vi_6575/n_NiFpgaAG_0000011b_CaseStructureFrame_0001_Diagram/s_u64_be_726[5]
+    SLICE_X40Y119        LUT6 (Prop_E6LUT_SLICEM_I5_O)
+                                                      0.057     8.748 f  IP/cInOneLoc_inferred_i_149/O
+                         net (fo=2, routed)           0.177     8.925    IP/cInOneLoc_inferred_i_149_n_0
+    SLICE_X41Y119        LUT4 (Prop_G6LUT_SLICEM_I0_O)
+                                                      0.137     9.062 f  IP/cInOneLoc_inferred_i_95/O
+                         net (fo=8, routed)           0.118     9.180    IP/cInOneLoc_inferred_i_95_n_0
+    SLICE_X41Y121        LUT6 (Prop_D6LUT_SLICEM_I5_O)
+                                                      0.134     9.314 r  IP/cInOneLoc_inferred_i_48/O
+                         net (fo=2, routed)           0.106     9.420    IP/cInOneLoc_inferred_i_48_n_0
+    SLICE_X41Y123        LUT6 (Prop_E6LUT_SLICEM_I3_O)
+                                                      0.057     9.477 f  IP/cInOneLoc_inferred_i_11__0/O
+                         net (fo=15, routed)          0.424     9.901    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/A[5]
+    DSP48E2_X11Y52       DSP_A_B_DATA (Prop_DSP_A_B_DATA_DSP48E2_A[5]_A2_DATA[5])
+                                                      0.258    10.159 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA_INST/A2_DATA[5]
+                         net (fo=1, routed)           0.000    10.159    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA.A2_DATA<5>
+    DSP48E2_X11Y52       DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_DSP48E2_A2_DATA[5]_A2A1[5])
+                                                      0.114    10.273 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA_INST/A2A1[5]
+                         net (fo=1, routed)           0.000    10.273    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA.A2A1<5>
+    DSP48E2_X11Y52       DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_DSP48E2_A2A1[5]_U[26])
+                                                      0.700    10.973 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER_INST/U[26]
+                         net (fo=1, routed)           0.000    10.973    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER.U<26>
+    DSP48E2_X11Y52       DSP_M_DATA (Prop_DSP_M_DATA_DSP48E2_U[26]_U_DATA[26])
+                                                      0.067    11.040 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA_INST/U_DATA[26]
+                         net (fo=1, routed)           0.000    11.040    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA.U_DATA<26>
+    DSP48E2_X11Y52       DSP_ALU (Prop_DSP_ALU_DSP48E2_U_DATA[26]_ALU_OUT[47])
+                                                      0.727    11.767 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    11.767    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y52       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    11.934 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    11.948    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/PCIN[47]
+    DSP48E2_X11Y53       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    12.687 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    12.687    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y53       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    12.854 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.038    12.892    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/PCIN[47]
+    DSP48E2_X11Y54       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    13.631 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    13.631    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y54       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    13.798 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    13.812    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/PCIN[47]
+    DSP48E2_X11Y55       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[20])
+                                                      0.739    14.551 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU_INST/ALU_OUT[20]
+                         net (fo=1, routed)           0.000    14.551    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU.ALU_OUT<20>
+    DSP48E2_X11Y55       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[20]_P[20])
+                                                      0.146    14.697 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_OUTPUT_INST/P[20]
+                         net (fo=2, routed)           0.242    14.939    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14_n_85
+    SLICE_X40Y135        LUT3 (Prop_F5LUT_SLICEM_I1_O)
+                                                      0.200    15.139 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_133/O
+                         net (fo=2, routed)           0.286    15.426    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_133_n_0
+    SLICE_X40Y135        LUT4 (Prop_G6LUT_SLICEM_I3_O)
+                                                      0.137    15.563 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_138/O
+                         net (fo=1, routed)           0.021    15.584    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_138_n_0
+    SLICE_X40Y135        CARRY8 (Prop_CARRY8_SLICEM_S[6]_CO[7])
+                                                      0.175    15.759 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_10/CO[7]
+                         net (fo=1, routed)           0.030    15.789    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_10_n_0
+    SLICE_X40Y136        CARRY8 (Prop_CARRY8_SLICEM_CI_O[1])
+                                                      0.106    15.895 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_9/O[1]
+                         net (fo=1, routed)           0.676    16.571    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult[58]
+    SLICE_X51Y136        LUT5 (Prop_C6LUT_SLICEL_I4_O)
+                                                      0.056    16.627 r  IP/GenWriteHS.iCacheReg[445]_i_8/O
+                         net (fo=1, routed)           0.149    16.776    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/subdiag00000002_out00000025_t00000001_58
+    SLICE_X51Y133        LUT3 (Prop_H6LUT_SLICEL_I2_O)
+                                                      0.058    16.834 r  IP/GenWriteHS.iCacheReg[445]_i_4/O
+                         net (fo=2, routed)           0.332    17.165    IP/GenWriteHS.iCacheReg[445]_i_4_n_0
+    SLICE_X52Y129        LUT6 (Prop_G6LUT_SLICEL_I3_O)
+                                                      0.082    17.247 r  IP/BuiltinFifoIP_i_178__0_comp_1/O
+                         net (fo=1, routed)           0.126    17.373    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[7].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/din[13]
+    RAMB36_X2Y25         FIFO36E2                                     r  IP/FPGAwFIFOn1/__0/DIN[13]
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                     10.000    10.000 r  
+    PS8_X0Y0             PS8                          0.000    10.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.181    10.181    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.035    10.216 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       2.930    13.146    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[7].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/rd_clk
+    RAMB36_X2Y25         FIFO36E2                                     r  IP/FPGAwFIFOn1/__0/WRCLK
+                         clock pessimism              0.186    13.332    
+                         clock uncertainty           -0.160    13.172    
+    RAMB36_X2Y25         FIFO36E2 (Setup_FIFO36E2_FIFO36_WRCLK_DIN[13])
+                                                     -0.409    12.763    IP/FPGAwFIFOn1/__0
+  -------------------------------------------------------------------
+                         required time                         12.763    
+                         arrival time                         -17.373    
+  -------------------------------------------------------------------
+                         slack                                 -4.611    
+Slack (VIOLATED) :        -4.608ns  (required time - arrival time)
+  Source:                 IP/FPGAwFIFOn4//RDCLK
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            IP/FPGAwFIFOn1/__0/DIN[17]
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_pl_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_pl_0 rise@10.000ns - clk_pl_0 rise@0.000ns)
+  Data Path Delay:        14.038ns  (logic 8.764ns (62.432%)  route 5.274ns (37.568%))
+  Logic Levels:           34  (CARRY8=8 DSP_A_B_DATA=1 DSP_ALU=4 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=4 DSP_PREADD_DATA=1 LUT2=2 LUT3=3 LUT4=2 LUT5=1 LUT6=6)
+  Clock Path Skew:        0.048ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    3.146ns = ( 13.146 - 10.000 ) 
+    Source Clock Delay      (SCD):    3.284ns
+    Clock Pessimism Removal (CPR):    0.186ns
+  Clock Uncertainty:      0.160ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.312ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      3.017ns (routing 1.570ns, distribution 1.447ns)
+  Clock Net Delay (Destination): 2.930ns (routing 1.435ns, distribution 1.495ns)
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                      0.000     0.000 r  
+    PS8_X0Y0             PS8                          0.000     0.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.229     0.229    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.038     0.267 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       3.017     3.284    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_clk
+    RAMB36_X0Y23         FIFO36E2                                     r  IP/FPGAwFIFOn4//RDCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X0Y23         FIFO36E2 (Prop_FIFO36E2_FIFO36_RDCLK_DOUTP[2])
+                                                      1.203     4.487 r  IP/FPGAwFIFOn4//DOUTP[2]
+                         net (fo=1, routed)           0.332     4.819    IP/res00000061_wo[67]
+    SLICE_X29Y120        LUT2 (Prop_A6LUT_SLICEM_I0_O)
+                                                      0.058     4.877 r  IP/i__i_11__0/O
+                         net (fo=40, routed)          0.132     5.009    IP/n_Timed_Loop_4241_Diagram/s_s_ques_t_colon_f_840_2
+    SLICE_X31Y119        LUT2 (Prop_E6LUT_SLICEM_I1_O)
+                                                      0.138     5.147 r  IP/cInOneLoc_inferred_i_103__0/O
+                         net (fo=1, routed)           0.240     5.387    IP/cInOneLoc_inferred_i_103__0_n_0
+    SLICE_X34Y119        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.138     5.525 r  IP/cInOneLoc_inferred_i_61__0/O
+                         net (fo=2, routed)           0.127     5.652    IP/cInOneLoc_inferred_i_61__0_n_0
+    SLICE_X35Y119        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.138     5.790 r  IP/cInOneLoc_inferred_i_42__0/O
+                         net (fo=8, routed)           0.193     5.983    IP/cInOneLoc_inferred_i_42__0_n_0
+    SLICE_X36Y119        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     6.136 r  IP/BuiltinFifoIP_i_998/CO[2]
+                         net (fo=8, routed)           0.256     6.393    IP/BuiltinFifoIP_i_998_n_5
+    SLICE_X37Y119        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.550 r  IP/BuiltinFifoIP_i_987/CO[2]
+                         net (fo=15, routed)          0.247     6.797    IP/BuiltinFifoIP_i_987_n_5
+    SLICE_X38Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.954 r  IP/BuiltinFifoIP_i_976/CO[2]
+                         net (fo=8, routed)           0.319     7.272    IP/BuiltinFifoIP_i_976_n_5
+    SLICE_X40Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     7.429 r  IP/BuiltinFifoIP_i_965/CO[2]
+                         net (fo=8, routed)           0.252     7.681    IP/BuiltinFifoIP_i_965_n_5
+    SLICE_X39Y120        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     7.834 r  IP/cInOneLoc_inferred_i_137/CO[2]
+                         net (fo=8, routed)           0.242     8.077    IP/cInOneLoc_inferred_i_137_n_5
+    SLICE_X39Y118        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     8.230 r  IP/cInOneLoc_inferred_i_84/CO[2]
+                         net (fo=14, routed)          0.197     8.426    IP/cInOneLoc_inferred_i_84_n_5
+    SLICE_X40Y118        LUT3 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.149     8.575 f  IP/cInOneLoc_inferred_i_47/O
+                         net (fo=23, routed)          0.115     8.691    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_SubVI_add_data_to_buffer_vi_6575/n_NiFpgaAG_0000011b_CaseStructureFrame_0001_Diagram/s_u64_be_726[5]
+    SLICE_X40Y119        LUT6 (Prop_E6LUT_SLICEM_I5_O)
+                                                      0.057     8.748 f  IP/cInOneLoc_inferred_i_149/O
+                         net (fo=2, routed)           0.177     8.925    IP/cInOneLoc_inferred_i_149_n_0
+    SLICE_X41Y119        LUT4 (Prop_G6LUT_SLICEM_I0_O)
+                                                      0.137     9.062 f  IP/cInOneLoc_inferred_i_95/O
+                         net (fo=8, routed)           0.118     9.180    IP/cInOneLoc_inferred_i_95_n_0
+    SLICE_X41Y121        LUT6 (Prop_D6LUT_SLICEM_I5_O)
+                                                      0.134     9.314 r  IP/cInOneLoc_inferred_i_48/O
+                         net (fo=2, routed)           0.106     9.420    IP/cInOneLoc_inferred_i_48_n_0
+    SLICE_X41Y123        LUT6 (Prop_E6LUT_SLICEM_I3_O)
+                                                      0.057     9.477 f  IP/cInOneLoc_inferred_i_11__0/O
+                         net (fo=15, routed)          0.424     9.901    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/A[5]
+    DSP48E2_X11Y52       DSP_A_B_DATA (Prop_DSP_A_B_DATA_DSP48E2_A[5]_A2_DATA[5])
+                                                      0.258    10.159 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA_INST/A2_DATA[5]
+                         net (fo=1, routed)           0.000    10.159    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA.A2_DATA<5>
+    DSP48E2_X11Y52       DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_DSP48E2_A2_DATA[5]_A2A1[5])
+                                                      0.114    10.273 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA_INST/A2A1[5]
+                         net (fo=1, routed)           0.000    10.273    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA.A2A1<5>
+    DSP48E2_X11Y52       DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_DSP48E2_A2A1[5]_U[26])
+                                                      0.700    10.973 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER_INST/U[26]
+                         net (fo=1, routed)           0.000    10.973    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER.U<26>
+    DSP48E2_X11Y52       DSP_M_DATA (Prop_DSP_M_DATA_DSP48E2_U[26]_U_DATA[26])
+                                                      0.067    11.040 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA_INST/U_DATA[26]
+                         net (fo=1, routed)           0.000    11.040    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA.U_DATA<26>
+    DSP48E2_X11Y52       DSP_ALU (Prop_DSP_ALU_DSP48E2_U_DATA[26]_ALU_OUT[47])
+                                                      0.727    11.767 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    11.767    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y52       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    11.934 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    11.948    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/PCIN[47]
+    DSP48E2_X11Y53       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    12.687 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    12.687    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y53       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    12.854 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.038    12.892    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/PCIN[47]
+    DSP48E2_X11Y54       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    13.631 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    13.631    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y54       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    13.798 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    13.812    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/PCIN[47]
+    DSP48E2_X11Y55       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[20])
+                                                      0.739    14.551 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU_INST/ALU_OUT[20]
+                         net (fo=1, routed)           0.000    14.551    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU.ALU_OUT<20>
+    DSP48E2_X11Y55       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[20]_P[20])
+                                                      0.146    14.697 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_OUTPUT_INST/P[20]
+                         net (fo=2, routed)           0.242    14.939    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14_n_85
+    SLICE_X40Y135        LUT3 (Prop_F5LUT_SLICEM_I1_O)
+                                                      0.200    15.139 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_133/O
+                         net (fo=2, routed)           0.286    15.426    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_133_n_0
+    SLICE_X40Y135        LUT4 (Prop_G6LUT_SLICEM_I3_O)
+                                                      0.137    15.563 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_138/O
+                         net (fo=1, routed)           0.021    15.584    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_138_n_0
+    SLICE_X40Y135        CARRY8 (Prop_CARRY8_SLICEM_S[6]_CO[7])
+                                                      0.175    15.759 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_10/CO[7]
+                         net (fo=1, routed)           0.030    15.789    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_10_n_0
+    SLICE_X40Y136        CARRY8 (Prop_CARRY8_SLICEM_CI_O[5])
+                                                      0.161    15.950 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_9/O[5]
+                         net (fo=1, routed)           0.798    16.748    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult[62]
+    SLICE_X51Y132        LUT5 (Prop_A6LUT_SLICEL_I4_O)
+                                                      0.082    16.830 r  IP/GenWriteHS.iCacheReg[449]_i_8/O
+                         net (fo=1, routed)           0.058    16.888    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/subdiag00000002_out00000025_t00000001_62
+    SLICE_X51Y131        LUT3 (Prop_G6LUT_SLICEL_I2_O)
+                                                      0.057    16.945 r  IP/GenWriteHS.iCacheReg[449]_i_4/O
+                         net (fo=2, routed)           0.062    17.007    IP/GenWriteHS.iCacheReg[449]_i_4_n_0
+    SLICE_X51Y131        LUT6 (Prop_H6LUT_SLICEL_I2_O)
+                                                      0.083    17.090 r  IP/BuiltinFifoIP_i_174__0_comp/O
+                         net (fo=1, routed)           0.232    17.322    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[7].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/din[17]
+    RAMB36_X2Y25         FIFO36E2                                     r  IP/FPGAwFIFOn1/__0/DIN[17]
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                     10.000    10.000 r  
+    PS8_X0Y0             PS8                          0.000    10.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.181    10.181    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.035    10.216 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       2.930    13.146    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[7].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/rd_clk
+    RAMB36_X2Y25         FIFO36E2                                     r  IP/FPGAwFIFOn1/__0/WRCLK
+                         clock pessimism              0.186    13.332    
+                         clock uncertainty           -0.160    13.172    
+    RAMB36_X2Y25         FIFO36E2 (Setup_FIFO36E2_FIFO36_WRCLK_DIN[17])
+                                                     -0.458    12.714    IP/FPGAwFIFOn1/__0
+  -------------------------------------------------------------------
+                         required time                         12.714    
+                         arrival time                         -17.322    
+  -------------------------------------------------------------------
+                         slack                                 -4.608    
+Slack (VIOLATED) :        -4.599ns  (required time - arrival time)
+  Source:                 IP/FPGAwFIFOn4//RDCLK
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            IP/FPGAwFIFOn1/__0/DIN[15]
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_pl_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_pl_0 rise@10.000ns - clk_pl_0 rise@0.000ns)
+  Data Path Delay:        14.050ns  (logic 8.759ns (62.340%)  route 5.291ns (37.660%))
+  Logic Levels:           34  (CARRY8=8 DSP_A_B_DATA=1 DSP_ALU=4 DSP_M_DATA=1 DSP_MULTIPLIER=1 DSP_OUTPUT=4 DSP_PREADD_DATA=1 LUT2=2 LUT3=3 LUT4=2 LUT5=1 LUT6=6)
+  Clock Path Skew:        0.048ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    3.146ns = ( 13.146 - 10.000 ) 
+    Source Clock Delay      (SCD):    3.284ns
+    Clock Pessimism Removal (CPR):    0.186ns
+  Clock Uncertainty:      0.160ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.312ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      3.017ns (routing 1.570ns, distribution 1.447ns)
+  Clock Net Delay (Destination): 2.930ns (routing 1.435ns, distribution 1.495ns)
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                      0.000     0.000 r  
+    PS8_X0Y0             PS8                          0.000     0.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.229     0.229    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.038     0.267 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       3.017     3.284    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_clk
+    RAMB36_X0Y23         FIFO36E2                                     r  IP/FPGAwFIFOn4//RDCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X0Y23         FIFO36E2 (Prop_FIFO36E2_FIFO36_RDCLK_DOUTP[2])
+                                                      1.203     4.487 r  IP/FPGAwFIFOn4//DOUTP[2]
+                         net (fo=1, routed)           0.332     4.819    IP/res00000061_wo[67]
+    SLICE_X29Y120        LUT2 (Prop_A6LUT_SLICEM_I0_O)
+                                                      0.058     4.877 r  IP/i__i_11__0/O
+                         net (fo=40, routed)          0.132     5.009    IP/n_Timed_Loop_4241_Diagram/s_s_ques_t_colon_f_840_2
+    SLICE_X31Y119        LUT2 (Prop_E6LUT_SLICEM_I1_O)
+                                                      0.138     5.147 r  IP/cInOneLoc_inferred_i_103__0/O
+                         net (fo=1, routed)           0.240     5.387    IP/cInOneLoc_inferred_i_103__0_n_0
+    SLICE_X34Y119        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.138     5.525 r  IP/cInOneLoc_inferred_i_61__0/O
+                         net (fo=2, routed)           0.127     5.652    IP/cInOneLoc_inferred_i_61__0_n_0
+    SLICE_X35Y119        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.138     5.790 r  IP/cInOneLoc_inferred_i_42__0/O
+                         net (fo=8, routed)           0.193     5.983    IP/cInOneLoc_inferred_i_42__0_n_0
+    SLICE_X36Y119        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     6.136 r  IP/BuiltinFifoIP_i_998/CO[2]
+                         net (fo=8, routed)           0.256     6.393    IP/BuiltinFifoIP_i_998_n_5
+    SLICE_X37Y119        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.550 r  IP/BuiltinFifoIP_i_987/CO[2]
+                         net (fo=15, routed)          0.247     6.797    IP/BuiltinFifoIP_i_987_n_5
+    SLICE_X38Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.954 r  IP/BuiltinFifoIP_i_976/CO[2]
+                         net (fo=8, routed)           0.319     7.272    IP/BuiltinFifoIP_i_976_n_5
+    SLICE_X40Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     7.429 r  IP/BuiltinFifoIP_i_965/CO[2]
+                         net (fo=8, routed)           0.252     7.681    IP/BuiltinFifoIP_i_965_n_5
+    SLICE_X39Y120        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     7.834 r  IP/cInOneLoc_inferred_i_137/CO[2]
+                         net (fo=8, routed)           0.242     8.077    IP/cInOneLoc_inferred_i_137_n_5
+    SLICE_X39Y118        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     8.230 r  IP/cInOneLoc_inferred_i_84/CO[2]
+                         net (fo=14, routed)          0.197     8.426    IP/cInOneLoc_inferred_i_84_n_5
+    SLICE_X40Y118        LUT3 (Prop_F6LUT_SLICEM_I0_O)
+                                                      0.149     8.575 f  IP/cInOneLoc_inferred_i_47/O
+                         net (fo=23, routed)          0.115     8.691    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_SubVI_add_data_to_buffer_vi_6575/n_NiFpgaAG_0000011b_CaseStructureFrame_0001_Diagram/s_u64_be_726[5]
+    SLICE_X40Y119        LUT6 (Prop_E6LUT_SLICEM_I5_O)
+                                                      0.057     8.748 f  IP/cInOneLoc_inferred_i_149/O
+                         net (fo=2, routed)           0.177     8.925    IP/cInOneLoc_inferred_i_149_n_0
+    SLICE_X41Y119        LUT4 (Prop_G6LUT_SLICEM_I0_O)
+                                                      0.137     9.062 f  IP/cInOneLoc_inferred_i_95/O
+                         net (fo=8, routed)           0.118     9.180    IP/cInOneLoc_inferred_i_95_n_0
+    SLICE_X41Y121        LUT6 (Prop_D6LUT_SLICEM_I5_O)
+                                                      0.134     9.314 r  IP/cInOneLoc_inferred_i_48/O
+                         net (fo=2, routed)           0.106     9.420    IP/cInOneLoc_inferred_i_48_n_0
+    SLICE_X41Y123        LUT6 (Prop_E6LUT_SLICEM_I3_O)
+                                                      0.057     9.477 f  IP/cInOneLoc_inferred_i_11__0/O
+                         net (fo=15, routed)          0.424     9.901    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/A[5]
+    DSP48E2_X11Y52       DSP_A_B_DATA (Prop_DSP_A_B_DATA_DSP48E2_A[5]_A2_DATA[5])
+                                                      0.258    10.159 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA_INST/A2_DATA[5]
+                         net (fo=1, routed)           0.000    10.159    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_A_B_DATA.A2_DATA<5>
+    DSP48E2_X11Y52       DSP_PREADD_DATA (Prop_DSP_PREADD_DATA_DSP48E2_A2_DATA[5]_A2A1[5])
+                                                      0.114    10.273 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA_INST/A2A1[5]
+                         net (fo=1, routed)           0.000    10.273    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_PREADD_DATA.A2A1<5>
+    DSP48E2_X11Y52       DSP_MULTIPLIER (Prop_DSP_MULTIPLIER_DSP48E2_A2A1[5]_U[26])
+                                                      0.700    10.973 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER_INST/U[26]
+                         net (fo=1, routed)           0.000    10.973    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_MULTIPLIER.U<26>
+    DSP48E2_X11Y52       DSP_M_DATA (Prop_DSP_M_DATA_DSP48E2_U[26]_U_DATA[26])
+                                                      0.067    11.040 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA_INST/U_DATA[26]
+                         net (fo=1, routed)           0.000    11.040    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_M_DATA.U_DATA<26>
+    DSP48E2_X11Y52       DSP_ALU (Prop_DSP_ALU_DSP48E2_U_DATA[26]_ALU_OUT[47])
+                                                      0.727    11.767 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    11.767    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y52       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    11.934 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__11/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    11.948    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/PCIN[47]
+    DSP48E2_X11Y53       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    12.687 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    12.687    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y53       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    12.854 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__12/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.038    12.892    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/PCIN[47]
+    DSP48E2_X11Y54       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[47])
+                                                      0.739    13.631 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU_INST/ALU_OUT[47]
+                         net (fo=1, routed)           0.000    13.631    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_ALU.ALU_OUT<47>
+    DSP48E2_X11Y54       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[47]_PCOUT[47])
+                                                      0.167    13.798 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__13/DSP_OUTPUT_INST/PCOUT[47]
+                         net (fo=1, routed)           0.014    13.812    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/PCIN[47]
+    DSP48E2_X11Y55       DSP_ALU (Prop_DSP_ALU_DSP48E2_PCIN[47]_ALU_OUT[20])
+                                                      0.739    14.551 f  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU_INST/ALU_OUT[20]
+                         net (fo=1, routed)           0.000    14.551    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_ALU.ALU_OUT<20>
+    DSP48E2_X11Y55       DSP_OUTPUT (Prop_DSP_OUTPUT_DSP48E2_ALU_OUT[20]_P[20])
+                                                      0.146    14.697 r  PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14/DSP_OUTPUT_INST/P[20]
+                         net (fo=2, routed)           0.242    14.939    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/multOp__14_n_85
+    SLICE_X40Y135        LUT3 (Prop_F5LUT_SLICEM_I1_O)
+                                                      0.200    15.139 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_133/O
+                         net (fo=2, routed)           0.286    15.426    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_133_n_0
+    SLICE_X40Y135        LUT4 (Prop_G6LUT_SLICEM_I3_O)
+                                                      0.137    15.563 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_138/O
+                         net (fo=1, routed)           0.021    15.584    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_138_n_0
+    SLICE_X40Y135        CARRY8 (Prop_CARRY8_SLICEM_S[6]_CO[7])
+                                                      0.175    15.759 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_10/CO[7]
+                         net (fo=1, routed)           0.030    15.789    IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_10_n_0
+    SLICE_X40Y136        CARRY8 (Prop_CARRY8_SLICEM_CI_O[3])
+                                                      0.114    15.903 r  IP/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult_inferred_i_9/O[3]
+                         net (fo=1, routed)           0.739    16.642    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_000001b5_CaseStructureFrame_0002_Diagram/n_SubVI_AddOrder_vi_2320/n_NiFpgaAG_00000259_CaseStructureFrame_0001_Diagram/n_Multiply_1034/GenFixed.NiLvFxpMultiplyx/cMultResult[60]
+    SLICE_X50Y134        LUT5 (Prop_B6LUT_SLICEL_I4_O)
+                                                      0.058    16.700 r  IP/GenWriteHS.iCacheReg[447]_i_8/O
+                         net (fo=1, routed)           0.094    16.794    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/subdiag00000002_out00000025_t00000001_60
+    SLICE_X51Y134        LUT3 (Prop_F6LUT_SLICEL_I2_O)
+                                                      0.056    16.850 r  IP/GenWriteHS.iCacheReg[447]_i_4/O
+                         net (fo=2, routed)           0.177    17.026    IP/GenWriteHS.iCacheReg[447]_i_4_n_0
+    SLICE_X51Y129        LUT6 (Prop_F6LUT_SLICEL_I2_O)
+                                                      0.150    17.176 r  IP/BuiltinFifoIP_i_176__0_comp/O
+                         net (fo=1, routed)           0.158    17.334    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[7].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/din[15]
+    RAMB36_X2Y25         FIFO36E2                                     r  IP/FPGAwFIFOn1/__0/DIN[15]
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                     10.000    10.000 r  
+    PS8_X0Y0             PS8                          0.000    10.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.181    10.181    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.035    10.216 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       2.930    13.146    IP/FPGAwFIFOn1/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[7].inst_extd/gmult_prim.gbi_chain.gp1[1].gbi_top.top_inst_prim/rd_clk
+    RAMB36_X2Y25         FIFO36E2                                     r  IP/FPGAwFIFOn1/__0/WRCLK
+                         clock pessimism              0.186    13.332    
+                         clock uncertainty           -0.160    13.172    
+    RAMB36_X2Y25         FIFO36E2 (Setup_FIFO36E2_FIFO36_WRCLK_DIN[15])
+                                                     -0.436    12.736    IP/FPGAwFIFOn1/__0
+  -------------------------------------------------------------------
+                         required time                         12.736    
+                         arrival time                         -17.334    
+  -------------------------------------------------------------------
+                         slack                                 -4.599    
+===== worst 2 paths without the multiplier =====
+Slack (VIOLATED) :        -1.954ns  (required time - arrival time)
+  Source:                 IP/FPGAwFIFOn4//RDCLK
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][789]/D
+                            (rising edge-triggered cell FDCE clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_pl_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_pl_0 rise@10.000ns - clk_pl_0 rise@0.000ns)
+  Data Path Delay:        11.736ns  (logic 4.350ns (37.066%)  route 7.386ns (62.934%))
+  Logic Levels:           24  (CARRY8=6 LUT2=2 LUT3=2 LUT5=2 LUT6=12)
+  Clock Path Skew:        -0.102ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.996ns = ( 12.996 - 10.000 ) 
+    Source Clock Delay      (SCD):    3.284ns
+    Clock Pessimism Removal (CPR):    0.186ns
+  Clock Uncertainty:      0.160ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.312ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      3.017ns (routing 1.570ns, distribution 1.447ns)
+  Clock Net Delay (Destination): 2.780ns (routing 1.435ns, distribution 1.345ns)
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                      0.000     0.000 r  
+    PS8_X0Y0             PS8                          0.000     0.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.229     0.229    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.038     0.267 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       3.017     3.284    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_clk
+    RAMB36_X0Y23         FIFO36E2                                     r  IP/FPGAwFIFOn4//RDCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X0Y23         FIFO36E2 (Prop_FIFO36E2_FIFO36_RDCLK_DOUTP[2])
+                                                      1.203     4.487 f  IP/FPGAwFIFOn4//DOUTP[2]
+                         net (fo=1, routed)           0.332     4.819    IP/res00000061_wo[67]
+    SLICE_X29Y120        LUT2 (Prop_A6LUT_SLICEM_I0_O)
+                                                      0.058     4.877 f  IP/i__i_11__0/O
+                         net (fo=40, routed)          0.132     5.009    IP/n_Timed_Loop_4241_Diagram/s_s_ques_t_colon_f_840_2
+    SLICE_X31Y119        LUT2 (Prop_E6LUT_SLICEM_I1_O)
+                                                      0.138     5.147 f  IP/cInOneLoc_inferred_i_103__0/O
+                         net (fo=1, routed)           0.240     5.387    IP/cInOneLoc_inferred_i_103__0_n_0
+    SLICE_X34Y119        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.138     5.525 f  IP/cInOneLoc_inferred_i_61__0/O
+                         net (fo=2, routed)           0.127     5.652    IP/cInOneLoc_inferred_i_61__0_n_0
+    SLICE_X35Y119        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.138     5.790 f  IP/cInOneLoc_inferred_i_42__0/O
+                         net (fo=8, routed)           0.193     5.983    IP/cInOneLoc_inferred_i_42__0_n_0
+    SLICE_X36Y119        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     6.136 f  IP/BuiltinFifoIP_i_998/CO[2]
+                         net (fo=8, routed)           0.256     6.393    IP/BuiltinFifoIP_i_998_n_5
+    SLICE_X37Y119        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.550 f  IP/BuiltinFifoIP_i_987/CO[2]
+                         net (fo=15, routed)          0.247     6.797    IP/BuiltinFifoIP_i_987_n_5
+    SLICE_X38Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.954 f  IP/BuiltinFifoIP_i_976/CO[2]
+                         net (fo=8, routed)           0.319     7.272    IP/BuiltinFifoIP_i_976_n_5
+    SLICE_X40Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     7.429 f  IP/BuiltinFifoIP_i_965/CO[2]
+                         net (fo=8, routed)           0.252     7.681    IP/BuiltinFifoIP_i_965_n_5
+    SLICE_X39Y120        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     7.834 f  IP/cInOneLoc_inferred_i_137/CO[2]
+                         net (fo=8, routed)           0.242     8.077    IP/cInOneLoc_inferred_i_137_n_5
+    SLICE_X39Y118        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     8.230 f  IP/cInOneLoc_inferred_i_84/CO[2]
+                         net (fo=14, routed)          0.302     8.531    IP/cInOneLoc_inferred_i_84_n_5
+    SLICE_X38Y122        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.083     8.614 f  IP/cInOneLoc_inferred_i_111__0/O
+                         net (fo=1, routed)           0.107     8.721    IP/cInOneLoc_inferred_i_111__0_n_0
+    SLICE_X38Y122        LUT6 (Prop_D6LUT_SLICEM_I0_O)
+                                                      0.151     8.872 f  IP/cInOneLoc_inferred_i_80/O
+                         net (fo=2, routed)           0.183     9.056    IP/cInOneLoc_inferred_i_80_n_0
+    SLICE_X41Y122        LUT6 (Prop_C6LUT_SLICEM_I3_O)
+                                                      0.135     9.191 r  IP/cInOneLoc_inferred_i_49__0/O
+                         net (fo=9, routed)           0.887    10.078    IP/cInOneLoc_inferred_i_49__0_n_0
+    SLICE_X55Y110        LUT6 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.137    10.215 f  IP/MuxBeforeRegister.cRegArray[0][469]_i_7/O
+                         net (fo=2, routed)           0.050    10.265    IP/MuxBeforeRegister.cRegArray[0][469]_i_7_n_0
+    SLICE_X55Y110        LUT6 (Prop_G6LUT_SLICEL_I3_O)
+                                                      0.057    10.322 r  IP/MuxBeforeRegister.cRegArray[0][469]_i_9/O
+                         net (fo=5, routed)           0.357    10.679    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/s_buffer_out_7021_180
+    SLICE_X52Y117        LUT3 (Prop_A6LUT_SLICEL_I0_O)
+                                                      0.188    10.867 r  IP/MuxBeforeRegister.cRegArray[0][845]_i_20/O
+                         net (fo=2, routed)           0.874    11.741    IP/MuxBeforeRegister.cRegArray[0][845]_i_20_n_0
+    SLICE_X41Y144        LUT6 (Prop_G6LUT_SLICEM_I3_O)
+                                                      0.226    11.967 r  IP/MuxBeforeRegister.cRegArray[0][845]_i_17/O
+                         net (fo=2, routed)           0.366    12.333    IP/MuxBeforeRegister.cRegArray[0][845]_i_17_n_0
+    SLICE_X33Y147        LUT5 (Prop_H6LUT_SLICEL_I1_O)
+                                                      0.083    12.416 r  IP/MuxBeforeRegister.cRegArray[0][845]_i_16/O
+                         net (fo=4, routed)           0.192    12.608    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/s_element_1007[52]
+    SLICE_X29Y147        LUT6 (Prop_F6LUT_SLICEM_I5_O)
+                                                      0.135    12.743 r  IP/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/n_NiFpgaAG_0000087b_CaseStructureFrame_0000_Diagram/n_Logical_Shift_243/FxpLogicalShift/GenVariableScale.FxpDynamicShiftx/MuxBeforeRegister.cRegArray[0][789]_i_11/O
+                         net (fo=1, routed)           0.778    13.521    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/p_52_in__0
+    SLICE_X49Y145        LUT5 (Prop_A6LUT_SLICEL_I0_O)
+                                                      0.225    13.746 r  IP/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/n_NiFpgaAG_0000087b_CaseStructureFrame_0000_Diagram/n_Or_245/MuxBeforeRegister.cRegArray[0][789]_i_10/O
+                         net (fo=1, routed)           0.104    13.850    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/subdiag00000000_out00000020_t00000007[52]
+    SLICE_X49Y142        LUT6 (Prop_H6LUT_SLICEL_I2_O)
+                                                      0.058    13.908 r  IP/MuxBeforeRegister.cRegArray[0][789]_i_8/O
+                         net (fo=1, routed)           0.632    14.540    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/subdiag00000001_out00000038_t00000001[789]
+    SLICE_X48Y124        LUT6 (Prop_A6LUT_SLICEL_I0_O)
+                                                      0.058    14.598 r  IP/MuxBeforeRegister.cRegArray[0][789]_i_5/O
+                         net (fo=1, routed)           0.099    14.697    PARSER/subdiag00000003_out00000025_t00000002_782
+    SLICE_X48Y124        LUT3 (Prop_E6LUT_SLICEL_I0_O)
+                                                      0.152    14.849 r  IP/MuxBeforeRegister.cRegArray[0][789]_i_3/O
+                         net (fo=1, routed)           0.047    14.896    IP/MuxBeforeRegister.cRegArray[0][789]_i_3_n_0
+    SLICE_X48Y124        LUT6 (Prop_D6LUT_SLICEL_I0_O)
+                                                      0.057    14.953 r  IP/MuxBeforeRegister.cRegArray[0][789]_i_2/O
+                         net (fo=1, routed)           0.067    15.020    PARSER/s_output_cluster_9467_1_500
+    SLICE_X48Y124        FDCE                                         r  PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][789]/D
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                     10.000    10.000 r  
+    PS8_X0Y0             PS8                          0.000    10.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.181    10.181    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.035    10.216 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       2.780    12.996    IP/Clk40MhzDerived5x2B00MHz
+    SLICE_X48Y124        FDCE                                         r  PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][789]/C
+                         clock pessimism              0.186    13.182    
+                         clock uncertainty           -0.160    13.022    
+    SLICE_X48Y124        FDCE (Setup_DFF_SLICEL_C_D)
+                                                      0.044    13.066    PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][789]
+  -------------------------------------------------------------------
+                         required time                         13.066    
+                         arrival time                         -15.020    
+  -------------------------------------------------------------------
+                         slack                                 -1.954    
+Slack (VIOLATED) :        -1.913ns  (required time - arrival time)
+  Source:                 IP/FPGAwFIFOn4//RDCLK
+                            (rising edge-triggered cell FIFO36E2 clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][792]/D
+                            (rising edge-triggered cell FDCE clocked by clk_pl_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_pl_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_pl_0 rise@10.000ns - clk_pl_0 rise@0.000ns)
+  Data Path Delay:        11.577ns  (logic 3.556ns (30.715%)  route 8.021ns (69.285%))
+  Logic Levels:           26  (CARRY8=6 LUT2=4 LUT3=3 LUT5=2 LUT6=11)
+  Clock Path Skew:        -0.218ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.932ns = ( 12.932 - 10.000 ) 
+    Source Clock Delay      (SCD):    3.336ns
+    Clock Pessimism Removal (CPR):    0.186ns
+  Clock Uncertainty:      0.160ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.312ns
+    Phase Error              (PE):    0.000ns
+  Clock Net Delay (Source):      3.069ns (routing 1.570ns, distribution 1.499ns)
+  Clock Net Delay (Destination): 2.716ns (routing 1.435ns, distribution 1.281ns)
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                      0.000     0.000 r  
+    PS8_X0Y0             PS8                          0.000     0.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.229     0.229    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.038     0.267 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       3.069     3.336    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[2].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_clk
+    RAMB36_X0Y25         FIFO36E2                                     r  IP/FPGAwFIFOn4//RDCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X0Y25         FIFO36E2 (Prop_FIFO36E2_FIFO36_RDCLK_RDRSTBUSY)
+                                                      0.525     3.861 r  IP/FPGAwFIFOn4//RDRSTBUSY
+                         net (fo=1, routed)           0.359     4.220    IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/RDRSTBUSY
+    SLICE_X27Y121        LUT2 (Prop_A6LUT_SLICEL_I1_O)
+                                                      0.058     4.278 f  IP/FPGAwFIFOn4/BuiltinFifoIP/U0/inst_fifo_gen/gconvfifo.rf/gbi.bi/v8_fifo.fblk/rst_val_sym.gextw_sym[1].inst_extd/gmult_prim.gbi_chain.gp1[2].gbi_last.inst_prim/rd_rst_busy_INST_0/O
+                         net (fo=3, routed)           0.186     4.464    IP/FPGAwFIFOn4/oPopFromPopControl
+    SLICE_X29Y121        LUT2 (Prop_A6LUT_SLICEM_I0_O)
+                                                      0.138     4.602 f  IP/cInOneLoc_inferred_i_69__0/O
+                         net (fo=80, routed)          0.220     4.822    IP/cInOneLoc_inferred_i_69__0_n_0
+    SLICE_X30Y120        LUT2 (Prop_A6LUT_SLICEL_I1_O)
+                                                      0.137     4.959 f  IP/i__i_12__0/O
+                         net (fo=40, routed)          0.148     5.107    IP/n_Timed_Loop_4241_Diagram/s_s_ques_t_colon_f_840_3
+    SLICE_X31Y119        LUT2 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.083     5.190 f  IP/cInOneLoc_inferred_i_103__0/O
+                         net (fo=1, routed)           0.240     5.430    IP/cInOneLoc_inferred_i_103__0_n_0
+    SLICE_X34Y119        LUT6 (Prop_H6LUT_SLICEM_I2_O)
+                                                      0.138     5.568 f  IP/cInOneLoc_inferred_i_61__0/O
+                         net (fo=2, routed)           0.127     5.695    IP/cInOneLoc_inferred_i_61__0_n_0
+    SLICE_X35Y119        LUT6 (Prop_E6LUT_SLICEM_I0_O)
+                                                      0.138     5.833 f  IP/cInOneLoc_inferred_i_42__0/O
+                         net (fo=8, routed)           0.193     6.026    IP/cInOneLoc_inferred_i_42__0_n_0
+    SLICE_X36Y119        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     6.179 f  IP/BuiltinFifoIP_i_998/CO[2]
+                         net (fo=8, routed)           0.256     6.435    IP/BuiltinFifoIP_i_998_n_5
+    SLICE_X37Y119        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.592 f  IP/BuiltinFifoIP_i_987/CO[2]
+                         net (fo=15, routed)          0.247     6.839    IP/BuiltinFifoIP_i_987_n_5
+    SLICE_X38Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     6.996 f  IP/BuiltinFifoIP_i_976/CO[2]
+                         net (fo=8, routed)           0.319     7.315    IP/BuiltinFifoIP_i_976_n_5
+    SLICE_X40Y120        CARRY8 (Prop_CARRY8_SLICEM_CI_CO[2])
+                                                      0.157     7.472 f  IP/BuiltinFifoIP_i_965/CO[2]
+                         net (fo=8, routed)           0.252     7.724    IP/BuiltinFifoIP_i_965_n_5
+    SLICE_X39Y120        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     7.877 f  IP/cInOneLoc_inferred_i_137/CO[2]
+                         net (fo=8, routed)           0.242     8.119    IP/cInOneLoc_inferred_i_137_n_5
+    SLICE_X39Y118        CARRY8 (Prop_CARRY8_SLICEL_CI_CO[2])
+                                                      0.153     8.272 f  IP/cInOneLoc_inferred_i_84/CO[2]
+                         net (fo=14, routed)          0.276     8.548    IP/cInOneLoc_inferred_i_84_n_5
+    SLICE_X39Y117        LUT3 (Prop_D5LUT_SLICEL_I0_O)
+                                                      0.088     8.636 r  IP/cInOneLoc_inferred_i_42/O
+                         net (fo=23, routed)          0.227     8.862    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_SubVI_add_data_to_buffer_vi_6575/n_NiFpgaAG_0000011b_CaseStructureFrame_0001_Diagram/s_u64_be_726[7]
+    SLICE_X38Y117        LUT6 (Prop_H6LUT_SLICEM_I0_O)
+                                                      0.084     8.946 f  IP/BuiltinFifoIP_i_1119/O
+                         net (fo=4, routed)           0.522     9.468    IP/BuiltinFifoIP_i_1119_n_0
+    SLICE_X44Y117        LUT6 (Prop_C6LUT_SLICEL_I2_O)
+                                                      0.136     9.604 r  IP/BuiltinFifoIP_i_937/O
+                         net (fo=9, routed)           0.666    10.270    IP/BuiltinFifoIP_i_937_n_0
+    SLICE_X51Y117        LUT6 (Prop_F6LUT_SLICEL_I3_O)
+                                                      0.081    10.351 f  IP/MuxBeforeRegister.cRegArray[0][400]_i_7/O
+                         net (fo=2, routed)           0.386    10.737    IP/MuxBeforeRegister.cRegArray[0][400]_i_7_n_0
+    SLICE_X52Y111        LUT6 (Prop_C6LUT_SLICEL_I3_O)
+                                                      0.056    10.793 r  IP/MuxBeforeRegister.cRegArray[0][400]_i_9/O
+                         net (fo=5, routed)           0.371    11.165    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/s_buffer_out_7021_111
+    SLICE_X49Y118        LUT3 (Prop_H5LUT_SLICEL_I2_O)
+                                                      0.187    11.352 r  IP/MuxBeforeRegister.cRegArray[0][840]_i_22/O
+                         net (fo=2, routed)           0.806    12.158    IP/MuxBeforeRegister.cRegArray[0][840]_i_22_n_0
+    SLICE_X38Y128        LUT6 (Prop_C6LUT_SLICEM_I3_O)
+                                                      0.135    12.293 r  IP/MuxBeforeRegister.cRegArray[0][840]_i_19/O
+                         net (fo=2, routed)           0.178    12.471    IP/MuxBeforeRegister.cRegArray[0][840]_i_19_n_0
+    SLICE_X38Y128        LUT5 (Prop_H6LUT_SLICEM_I1_O)
+                                                      0.084    12.555 r  IP/MuxBeforeRegister.cRegArray[0][824]_i_19/O
+                         net (fo=6, routed)           0.488    13.042    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/s_element_1007[47]
+    SLICE_X28Y120        LUT6 (Prop_B6LUT_SLICEM_I3_O)
+                                                      0.225    13.267 r  IP/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/n_NiFpgaAG_0000087b_CaseStructureFrame_0000_Diagram/n_Logical_Shift_243/FxpLogicalShift/GenVariableScale.FxpDynamicShiftx/MuxBeforeRegister.cRegArray[0][792]_i_13/O
+                         net (fo=1, routed)           0.105    13.372    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/p_55_in__0
+    SLICE_X28Y120        LUT5 (Prop_G6LUT_SLICEM_I0_O)
+                                                      0.057    13.429 r  IP/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/n_NiFpgaAG_0000087b_CaseStructureFrame_0000_Diagram/n_Or_245/MuxBeforeRegister.cRegArray[0][792]_i_11/O
+                         net (fo=1, routed)           0.634    14.063    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/n_NiFpgaAG_00000177_CaseStructureFrame_0001_Diagram/n_NiFpgaAG_00000878_CaseStructureFrame_0001_Diagram/n_SubVI_compress_buffer_generated_vi_4554/subdiag00000000_out00000020_t00000007[55]
+    SLICE_X43Y100        LUT6 (Prop_E6LUT_SLICEM_I2_O)
+                                                      0.057    14.120 r  IP/MuxBeforeRegister.cRegArray[0][792]_i_9/O
+                         net (fo=1, routed)           0.054    14.174    PARSER/n_NiFpgaAG_00000061_CaseStructureFrame_0003_Diagram/subdiag00000001_out00000038_t00000001[792]
+    SLICE_X43Y100        LUT6 (Prop_B6LUT_SLICEM_I0_O)
+                                                      0.082    14.256 r  IP/MuxBeforeRegister.cRegArray[0][792]_i_5/O
+                         net (fo=1, routed)           0.160    14.416    PARSER/subdiag00000003_out00000025_t00000002_785
+    SLICE_X43Y103        LUT3 (Prop_B6LUT_SLICEM_I0_O)
+                                                      0.057    14.473 r  IP/MuxBeforeRegister.cRegArray[0][792]_i_3/O
+                         net (fo=1, routed)           0.264    14.737    IP/MuxBeforeRegister.cRegArray[0][792]_i_3_n_0
+    SLICE_X45Y103        LUT6 (Prop_D6LUT_SLICEM_I0_O)
+                                                      0.080    14.817 r  IP/MuxBeforeRegister.cRegArray[0][792]_i_2/O
+                         net (fo=1, routed)           0.096    14.913    PARSER/s_output_cluster_9467_1_503
+    SLICE_X45Y103        FDCE                                         r  PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][792]/D
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_pl_0 rise edge)
+                                                     10.000    10.000 r  
+    PS8_X0Y0             PS8                          0.000    10.000 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/PS8_i/PLCLK[0]
+                         net (fo=1, routed)           0.181    10.181    kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/pl_clk_unbuffered[0]
+    BUFG_PS_X0Y72        BUFG_PS (Prop_BUFG_PS_I_O)
+                                                      0.035    10.216 r  kr260_starter_kit_i/zynq_ultra_ps_e_0/inst/buffer_pl_clk_0.PL_CLK_0_BUFG/O
+    X1Y1 (CLOCK_ROOT)    net (fo=36949, routed)       2.716    12.932    IP/Clk40MhzDerived5x2B00MHz
+    SLICE_X45Y103        FDCE                                         r  PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][792]/C
+                         clock pessimism              0.186    13.118    
+                         clock uncertainty           -0.160    12.958    
+    SLICE_X45Y103        FDCE (Setup_DFF_SLICEM_C_D)
+                                                      0.043    13.001    PARSER/n_Feedback_Node_4033/SctlLogic.RegisterWithin.ActualRegisterCorex/MuxBeforeRegister.cRegArray_reg[0][792]
+  -------------------------------------------------------------------
+                         required time                         13.001    
+                         arrival time                         -14.913    
+  -------------------------------------------------------------------
+                         slack                                 -1.913    
