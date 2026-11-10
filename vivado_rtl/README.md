@@ -21,6 +21,9 @@ Nothing under `vivado/` or in the LabVIEW export workflow changes. Harness impro
 `vivado/mktdata_poc.tcl` flow into bitstream 3 automatically; parser ideas proven here can be
 ported back into LabVIEW by hand (that is the point of this fork).
 
+Diagrams of the parser (data flow, state machines, per-word flow charts, UML class diagram, all
+Mermaid, all named after the signals in `ip/`): `DIAGRAMS.md`.
+
 ## Recreating / viewing the projects
 
 Linux (this machine):

@@ -1,0 +1,88 @@
+RESUME ENTRY -- FPGA market data parser (hobby project)
+Numbers below are from hardware runs and simulations recorded in CLAUDE.md, optimize.txt and
+vivado_rtl/README.md (2026-09 .. 2026-11). Trim to taste; the short version is at the end.
+
+====================================================================================================
+10 GbE Cboe BATS PITCH Market Data Parser on AMD Kria KR260            Jan 2025 - present (personal)
+====================================================================================================
+LabVIEW FPGA, Verilog/SystemVerilog, Vivado 2024.1, Vitis/PetaLinux, C/C++, Python | github.com/fpganow/Market.Data.PoC
+
+Built a hardware pipeline that takes Cboe BATS/EDGX "PITCH" multicast market data straight off a
+10 Gigabit Ethernet link and turns it into normalized order-book messages inside the FPGA fabric,
+end to end on an AMD Kria KR260 (Zynq UltraScale+ MPSoC). Parsing logic authored in LabVIEW FPGA,
+exported as a netlist and integrated into a hand-built Vivado block design (10G PCS/PMA, custom
+XGMII-to-AXI-Stream adapters, AXI DMA, capture FIFOs); later re-implemented as a pure-RTL parser
+in the same harness to find the design's speed limits.
+
+What I did
+- Designed and verified a PITCH parser handling 14 message types (Add Order long/short/expanded,
+  Modify, Reduce Size, Order Executed, Order Executed at Price/Size, Delete, Trade variants, Time),
+  emitting a normalized 16 x 64-bit record (type, side, order id, quantity, symbol, price,
+  executed/canceled/remaining, timestamps) across a 156.25 MHz MAC domain and a 100 MHz parser loop.
+- Brought the design up on real hardware: 10G SFP+ DAC from a Linux workstation (Intel E810) to the
+  KR260, UDP frames sent from Python, parsed records read back over AXI on the ARM Linux side.
+  Result on a 659-message, 20-frame test feed: 659/659 records, every field correct, over the
+  cable and in simulation.
+- Root-caused and fixed a frame-boundary corruption bug down to NI's vendor IPv4/UDP stream
+  library (frames whose last 64-bit beat carries 7 or 8 valid bytes emitted one extra bogus word
+  and desynchronized the parser for many frames) by writing bit-exact Python models of the vendor
+  VIs and of my parser that reproduced the gate-level simulation's trace word for word; shipped a
+  two-part fix (pad the final beat, clear the parser buffer at every frame start per the Cboe
+  spec) and a regression pcap.
+- Fixed harness bugs the hard way: an inverted 10G TX reset that had silently disabled transmit,
+  a 64-bit PIO readout that popped two FIFO beats per load (replaced with 32-bit width converters),
+  timing closure of the parser loop at 100 MHz, and Kria dfx-mgr overlay quirks.
+- Built the test and measurement stack: a PITCH pcap generator with spec-validated message
+  lengths and sequence continuity, an xsim testbench that replays pcaps through the exported
+  netlist, a scorer that checks every field of every record against the pcap, a paced UDP sender
+  (pps / Mbit/s / pcap-timestamp replay / top speed), a rate-sweep tool, and an in-fabric
+  AXI-Stream monitor (records, sequence gaps, stall cycles, signed min/max latency, frame counts,
+  a "sink" mode that measures the parser with the host readout out of the loop).
+- Measured the LabVIEW design's ceiling instead of guessing: clean to 1.5 Gbit/s (6.0 M msg/s),
+  desynchronizing from 2 Gbit/s, and traced the limit to the 16-word record serialization
+  (160 ns per message = 6.25 M msg/s) rather than the parser state machine (6-9 cycles/message),
+  then wrote the optimization plan (pack the record, one-word-per-cycle extraction, frame-level
+  parallelism, no clock chasing) against Cboe's published peak rates.
+- Implemented that plan as a pure-Verilog parser in the same block design (filter, one-word-in /
+  one-message-out extractor, field decoder, one 1024-bit record per clock, everything in the
+  156.25 MHz receive clock): 2.3k LUTs, 0 block RAM, timing closed with +0.58 ns slack.
+  [Developed with an AI coding assistant; I specified, reviewed, built and measured it.]
+
+Latency and throughput (hardware unless noted)
+                                          LabVIEW FPGA parser        Pure-RTL parser
+  First message of a frame, after its      20-140 ns                  ~40 ns (6 clocks at 6.4 ns)
+    bytes arrive
+  Last message of a ~1 kB frame            2.0-2.1 us                 0.81 us (= the frame's own
+                                                                        arrival time at 10G)
+  Per-message cost                         6-9 cycles @ 100 MHz        1 cycle @ 156.25 MHz
+                                           (60-90 ns)                  (6.4 ns)
+  Clean throughput                         1.5 Gbit/s = 6.0 M msg/s    10G line rate: 160 000-frame
+                                           (desync from 2 Gbit/s)      burst, 5.27 M records,
+                                                                        0 lost, 0 gaps
+  Fabric                                   11.3k LUTs, 92 BRAM         2.3k LUTs, 0 BRAM
+  Verified on                              659/659 msgs, all fields    659/659 msgs, all fields
+For scale: Cboe publishes 2.1 M msg/s sustained 1-second peaks and ~26 M msg/s 1 ms microbursts
+for its busiest equities feed; the equities feeds are shaped to 1 Gbit/s.
+
+Things I can talk about in an interview
+- Why a 128-byte record at one 64-bit word per 100 MHz cycle caps you at 6.25 M messages/s, and
+  how the measurement showed the knee exactly there.
+- Cut-through vs store-and-forward parsing and why the parser emits the first message ~40 ns
+  after its bytes land while the rest of the frame is still on the wire.
+- Clock-domain crossings (toggle handshakes, async FIFOs, set_max_delay) between the 156.25 MHz
+  MAC domain, the 100 MHz PL domain and the ARM side.
+- Debugging an FPGA datapath you cannot probe: gate-level simulation of a vendor netlist, bit-exact
+  software models, pcap-driven regression, and in-fabric counters instead of host-side capture.
+- The next bottleneck: programmed-I/O FIFO readout (~8k records/s) vs a 128-bit DMA ring into
+  DDR4 on an HP port (GB/s), and why the watchlist filter belongs in fabric.
+
+====================================================================================================
+SHORT VERSION (3 lines)
+====================================================================================================
+10 GbE Cboe PITCH market data parser on AMD Kria KR260 (LabVIEW FPGA + Verilog, Vivado, Linux host
+tools). Parses 14 message types into normalized records in fabric; verified 659/659 messages
+field-exact over a real 10G link. LabVIEW design: first message in 20-140 ns, clean to 1.5 Gbit/s.
+Pure-RTL rewrite: one message per clock at 156.25 MHz, ~40 ns parse latency, 10G line-rate burst
+of 160k frames with zero loss, 2.3k LUTs and no block RAM. Root-caused a vendor library frame-
+boundary bug with bit-exact models of the vendor VIs; built the pcap generator, xsim regression,
+field scorer, in-fabric monitor and rate-sweep tooling that made every number above measurable.
