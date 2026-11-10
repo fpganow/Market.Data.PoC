@@ -252,6 +252,12 @@ kria-load-app:
 kria-reload-app:
 	$(MAKE) -C kria_app reload-app
 
+# -- Web "Run on Hardware" service (tools/hwrun, backend of the fpganow.com page) -------
+# Binds to the Docker bridge so the local WordPress dev container (websites repo) reaches
+# it as host.docker.internal:8300; token in tools/hwrun/token. Stop with: fuser -k 8300/tcp
+hwrun:
+	python3 tools/hwrun/hwrun_server.py --bind 172.17.0.1 --port 8300
+
 # -- Board-side helpers --------------------------------------------------------
 
 board-setup:
@@ -291,7 +297,7 @@ jtag-reboot:
 	done
 	@echo "==> JTAG system reset (NOTE: unreliable for returning to Linux -- power-cycle if it stays silent)"
 	@source $(VITIS_SETTINGS) && xsct -eval ' \
-	    connect; \
+	    connect $(XSCT_CONNECT); \
 	    targets -set -filter {name =~ "PSU" && jtag_cable_name =~ "Xilinx*"}; \
 	    rst -system; \
 	    puts "jtag-reboot: rst -system issued -- if UART stays silent, power-cycle the board to boot Linux"; \
@@ -317,12 +323,48 @@ board-reset:
 	done
 	@echo "==> System-resetting KR260 PS+PL via JTAG"
 	@source $(VITIS_SETTINGS) && xsct -eval ' \
-	    connect; \
+	    connect $(XSCT_CONNECT); \
 	    targets -set -filter {name =~ "PSU" && jtag_cable_name =~ "Xilinx*"}; \
 	    rst -system; \
 	    after 1000; \
 	    disconnect'
 	@echo "==> Reset complete"
+
+# -- KR260 JTAG/UART through Windows (2026-10-23) --------------------------------
+# The J7 micro-USB (FT4232H) is only enumerated by Windows, not by this WSL VM. Both
+# channels are still usable from here:
+#   * JTAG: run Vivado's hw_server on Windows (bound to localhost) and let Linux xsct
+#     connect to it: `make hw-server-win`, then `make jtag-targets` / `make jtag-reboot` /
+#     `make board-reset` (HW_SERVER_URL defaults to that server; set it empty for a local cable).
+#   * UART: `make uart-win CMD='uptime'` / `make uart-listen` run scripts/kr260_uart.ps1 on COM6 (channel B).
+#   Caveat seen 2026-10-23: if the board is reset while hw_server is attached, A53 cores can sit in
+#   "Reset Catch" and the boot never completes (ssh dead, console silent) -- `make board-reset`,
+#   then `make hw-server-win-stop`, then `make uart-listen WAIT_MS=40000` to watch Linux come up.
+HW_SERVER_URL ?= tcp:127.0.0.1:3121
+XSCT_CONNECT   = $(if $(HW_SERVER_URL),-url $(HW_SERVER_URL),)
+WIN_HW_SERVER ?= C:\Xilinx\2025.1\Vivado\bin\hw_server.bat
+KR260_COM     ?= COM6
+
+hw-server-win:
+	@echo "==> starting $(WIN_HW_SERVER) on 127.0.0.1:3121 (Windows side)"
+	@powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -State Listen -LocalPort 3121 -ErrorAction SilentlyContinue) { 'already listening' } else { Start-Process -WindowStyle Hidden -FilePath '$(WIN_HW_SERVER)' -ArgumentList '-s','tcp:127.0.0.1:3121'; Start-Sleep 8; 'started' }"
+
+hw-server-win-stop:
+	@powershell.exe -NoProfile -Command "Get-Process hw_server -ErrorAction SilentlyContinue | Stop-Process; 'stopped'"
+
+# List the JTAG chain (needs hw-server-win, or a cable visible to Linux with HW_SERVER_URL= empty).
+jtag-targets:
+	@source $(VITIS_SETTINGS) && xsct -eval 'connect $(XSCT_CONNECT); puts [targets]'
+
+# One command on the PS-UART console via Windows; CMD is sent followed by Enter.
+# (Do not send anything while the board boots: a keystroke stops U-Boot's autoboot and
+# leaves it at the ZynqMP> prompt -- `make uart-win CMD=boot` continues from there.)
+uart-win:
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$$(wslpath -w scripts/kr260_uart.ps1)" -Port $(KR260_COM) -Send "$(CMD)" -WaitMs $(or $(WAIT_MS),2500) | tr -d '\r'
+
+# Listen only on the console for WAIT_MS milliseconds (e.g. to watch a boot after board-reset).
+uart-listen:
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$$(wslpath -w scripts/kr260_uart.ps1)" -Port $(KR260_COM) -Quiet -WaitMs $(or $(WAIT_MS),10000) | tr -d '\r'
 
 # Auto-detect KR260 PS-UART (Xilinx FT4232H, interface 01).
 KR260_UART ?= $(or $(shell for dev in /sys/class/tty/ttyUSB*; do \

@@ -36,3 +36,9 @@ ip_export/netlist_sim/*.pb
 ip_export/netlist_sim/sim_*.txt
 ip_export/netlist_sim/frames*.txt
 scripts/__pycache__/
+
+# tools/hwrun: run service state (captures/results per run) and its bearer token
+tools/hwrun/runs/
+tools/hwrun/token
+tools/hwrun/pagecheck/node_modules/
+tools/hwrun/__pycache__/

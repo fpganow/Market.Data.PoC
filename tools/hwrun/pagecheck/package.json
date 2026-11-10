@@ -1,0 +1,9 @@
+{
+  "name": "hwrun-pagecheck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-level checks of the fpganow.com Run on Hardware page (puppeteer-core against Windows Chrome headless)",
+  "dependencies": {
+    "puppeteer-core": "^22.15.0"
+  }
+}
