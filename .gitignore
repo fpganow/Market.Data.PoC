@@ -57,3 +57,8 @@ vivado_rtl/sim/beats.txt
 vivado_rtl/sim/sim_out.txt
 vivado/build.pid
 vivado_rtl/build.pid
+
+# --- tools/hwrun: bearer token (secret), per-run results, python cache ---
+tools/hwrun/token
+tools/hwrun/runs/
+tools/hwrun/__pycache__/

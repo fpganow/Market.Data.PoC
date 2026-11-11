@@ -21,6 +21,13 @@ Formats (fpga/poc.ip.kria.vi, bats.parser.vi, 2026-09-15):
 import re, sys
 
 TICK_NS = 10
+# orderbook.command.type enum of CMD word 0 (10-item typedef + Trade = 10, Unsupported = 11)
+CMD_TYPE_NAMES = ["Time", "AddOrder", "OrderExecuted", "OrderExecutedAtPrice", "ReduceSize",
+                  "ModifyOrder", "DeleteOrder", "Get.Everything", "Get.All.Orders", "Get.Top",
+                  "Trade", "Unsupported"]
+
+def cmd_type_name(t):
+    return CMD_TYPE_NAMES[t] if 0 <= t < len(CMD_TYPE_NAMES) else f"?{t}"
 CMD_NAMES = ["type", "side", "orderId", "qty", "symbol", "price", "exec.qty", "cancel.qty",
              "remain.qty", "seconds", "nanos", "flags", "seq", "recv.time", "parse.time", "reserved"]
 MSG_TYPES = {0x20: "Time", 0x21: "AddOrder(long)", 0x22: "AddOrder(short)", 0x23: "OrderExecuted",

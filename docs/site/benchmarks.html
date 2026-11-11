@@ -1,0 +1,128 @@
+<!-- wp:paragraph -->
+<p><em>Latest run: 2026-11-11. Board: AMD Kria KR260 (XCK26, Zynq UltraScale+). Sender: Linux workstation, Intel E810, 3 m passive DAC into the KR260 SFP+ cage. Test feed: a 20-frame, 659-message Cboe PITCH capture (14 message types, about 33 messages per 1028-byte frame). You can repeat the correctness and latency runs yourself on the same board from the <a href="https://fpganow.com/index.php/run-on-hardware/">Run on Hardware</a> page. Source and tooling: <a href="https://github.com/fpganow/Market.Data.PoC">github.com/fpganow/Market.Data.PoC</a>.</em></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">BATS parser on the Kria KR260: all implementations</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Three implementations of the parser are installed on the board and selectable on the live page. All three were run on 2026-11-11 over the 10G cable. Latency is parse time minus receive time, both stamped in the fabric, for every message; the records were read out by the host, which for the 156.25 MHz parser adds queueing that the in-fabric counters do not see.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th></th><th>LabVIEW FPGA IP export (2026-10-20)</th><th>Verilog, LabVIEW IP interface (2026-10-20)</th><th>Pure Verilog (2026-11-08)</th></tr></thead><tbody>
+<tr><td>Parser clock</td><td>100 MHz</td><td>100 MHz</td><td>156.25 MHz (the 10G receive clock)</td></tr>
+<tr><td>Messages field-exact</td><td>659 / 659</td><td>659 / 659</td><td>659 / 659</td></tr>
+<tr><td>Latency, median</td><td>685 ns</td><td>326 ns</td><td>410 ns</td></tr>
+<tr><td>Latency, 99th percentile</td><td>1.32 µs</td><td>582 ns</td><td>5.66 µs</td></tr>
+<tr><td>Latency, max</td><td>1.36 µs</td><td>589 ns</td><td>294 µs with host readout; 0.81 µs in fabric</td></tr>
+<tr><td>Throughput with in-fabric counters</td><td>not measured for this export (an earlier export held 1.5 Gbit/s, see below)</td><td>not measured (this build has no counters)</td><td>0 loss at every rate up to 4.83 Gbit/s (sender limit); 10G burst of 160 000 frames with 0 loss on 2026-11-08</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Notes: on the LabVIEW export, 3 of the 659 records carry no receive timestamp and are left out of its latency figures. The pure Verilog parser's large host-readout maximum has not been investigated; with the records consumed in fabric the same bitstream measures 0.01 to 0.81 µs at every rate.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">In-fabric comparison</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>These numbers come from counters inside the fabric, not from the host, so they measure the parser and nothing else. The LabVIEW column is the 2026-09-23 export measured on 2026-11-08; the Verilog rate sweep was repeated on 2026-11-11.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th></th><th>LabVIEW FPGA IP (mktdata_poc)</th><th>Pure Verilog (mktdata_rtl)</th></tr></thead><tbody>
+<tr><td>Clean throughput</td><td>1.5 Gbit/s = 6.0 M msg/s</td><td>10G line rate: 160 000-frame burst, 5 272 000 records, 0 lost</td></tr>
+<tr><td>First failure</td><td>2 Gbit/s (desync)</td><td>none found; sustained tests limited by the sender at 4.75 Gbit/s</td></tr>
+<tr><td>Max latency, last message of a 1 kB frame</td><td>1.3 µs at 100 Mbit/s, 10 µs at 1 Gbit/s</td><td>0.81 µs (the frame's own arrival time at 10G)</td></tr>
+<tr><td>Cost per message</td><td>6 to 9 cycles at 100 MHz + 160 ns record serialisation</td><td>1 cycle at 156.25 MHz (6.4 ns)</td></tr>
+<tr><td>Parser fabric</td><td>11.3k LUTs, 4.3k FFs, 92 BRAM</td><td>2.3k LUTs, 2.1k FFs, 0 BRAM</td></tr>
+<tr><td>Timing</td><td>100 MHz, closes only with Performance_ExplorePostRoutePhysOpt</td><td>156.25 MHz, WNS +0.578 ns</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">LabVIEW FPGA IP export, rate sweep</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Each row is 20 passes of the capture at the offered rate (13 180 messages). "Desync" means the parser numbered more messages than were sent: it lost bytes mid-frame and resynchronised at the next frame start.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Offered</th><th>msg/s</th><th>Records</th><th>Seq gaps</th><th>Max latency</th><th>Verdict</th></tr></thead><tbody>
+<tr><td>1 Mbit/s to 1.5 Gbit/s</td><td>up to 6.0 M</td><td>13 180</td><td>0</td><td>1.3 to 10 µs</td><td>100 %</td></tr>
+<tr><td>2 Gbit/s</td><td>8.0 M</td><td>12 496</td><td>2 287</td><td>12 µs</td><td>desync (numbered 14 783)</td></tr>
+<tr><td>3 Gbit/s</td><td>12.0 M</td><td>9 425</td><td>5 017</td><td>12 µs</td><td>desync</td></tr>
+<tr><td>4 Gbit/s</td><td>16.0 M</td><td>8 416</td><td>4 762</td><td>8 µs</td><td>36 % numbered, never output</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>The ceiling is the output record: 16 words of 64 bits, written one word per 100 MHz cycle, is 160 ns per message, or 6.25 M msg/s. The knee sits exactly there (6.0 M passes, 8.0 M fails). The parser state machine itself, at 6 to 9 cycles per message, would allow 11 to 16 M msg/s.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Pure Verilog parser</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody>
+<tr><td>Rate sweep, 100 Mbit/s to 4.83 Gbit/s (sender limit), 20 passes each, 2026-11-11</td><td>400 / 400 frames, 13 180 / 13 180 records, 0 gaps, 0 stall cycles, max latency 0.81 µs at every rate</td></tr>
+<tr><td>Four parallel senders at top speed, 160 000 frames, wire saturated per host NIC counters</td><td>160 000 frames received, 5 272 000 contiguous records, 0 gaps, 0 drops, 0 truncated, max latency 0.81 µs</td></tr>
+<tr><td>Vivado simulation, 20-frame capture</td><td>659 / 659 records, every field correct</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>The parser consumes one 64-bit word per 156.25 MHz clock, the XGMII data rate, and emits one message per clock, so it cannot fall behind the wire. It is cut-through: the first message of a frame is out about 40 ns (6 clocks) after its bytes land, while the rest of the frame is still arriving; the 0.81 µs figure is the last message of a 1012-byte frame and equals the frame's own arrival time.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">What is not yet measured</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list">
+<li>Sustained minutes at 10G. The Python senders hold about 4.75 Gbit/s on their own; the 10G result is a 1.3-second burst from four of them. A pktgen or C sender is the next step.</li>
+<li>Line rate into software. Both parsers hand records to the CPU through a 32-bit AXI-Lite FIFO read by a polling process, about 8 000 records/s. At line rate the records are parsed and then dropped at that FIFO. A DMA ring into DDR4 is the planned fix.</li>
+<li>Wire-to-application latency through that readout.</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">For scale</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Cboe publishes, for its busiest equities feed (EDGX), 2.14 M msg/s sustained one-second peaks and about 26 M msg/s in a 1 ms microburst; the equities feeds are shaped to 1 Gbit/s. The LabVIEW IP already covers a gigabit-shaped feed; the Verilog parser covers the 10G line-rate goal and the options feeds.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">How the numbers are taken</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list">
+<li>An AXI-Stream monitor in the fabric (<code>axis_mon</code>) counts records, sequence gaps, stall cycles and received frames, and records min/max receive-to-parse latency. Its "sink" mode consumes the records in fabric so the host readout is out of the loop.</li>
+<li>The sender is <code>scripts/send_pcap_udp.py</code> (pps, Mbit/s, pcap-timestamp replay or top speed); <code>scripts/rate_sweep.py --sink</code> runs the sweep and reads the counters after each rate.</li>
+<li>Correctness is scored by <code>ip_export/netlist_sim/eval_sim.py</code>, which checks every field of every record against the capture.</li>
+<li>Timestamps: the LabVIEW designs count the 156.25 MHz MAC clock (6.4 ns per tick); the Verilog parser keeps a true 10 ns tick. LabVIEW latencies printed by the 2026-11-08 sweep as 10 ns ticks are shown here converted to 6.4 ns ticks. Figures published before 2026-10-11 used 10 ns per tick and are 1.56× too large.</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">History</h2>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Date</th><th>Change</th></tr></thead><tbody>
+<tr><td>2026-11-11</td><td>All three installed implementations re-run through the live page: 659/659 each. Pure Verilog rate sweep repeated: 0 loss to 4.83 Gbit/s, 0.81 µs.</td></tr>
+<tr><td>2026-11-08</td><td>Pure Verilog parser: 10G burst with 0 loss, 0.81 µs. LabVIEW IP ceiling measured at 1.5 Gbit/s with the new in-fabric counters.</td></tr>
+<tr><td>2026-11-06</td><td>First run over a real 10G cable from the Linux workstation: 659/659 field-exact. Host readout found to cap the system at 3 Mbit/s offered rate.</td></tr>
+<tr><td>2026-09-22</td><td>Frame-boundary corruption traced to the vendor IPv4/UDP library; fixed and covered by a regression capture.</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->

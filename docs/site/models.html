@@ -1,0 +1,60 @@
+<!-- wp:paragraph -->
+<p>Three implementations of the same Cboe PITCH parser run on the AMD Kria KR260 in the same 10 Gigabit Ethernet harness. They are the "parser implementation" choices on the <a href="https://fpganow.com/index.php/run-on-hardware/">Run on Hardware</a> page and the subjects of the <a href="https://fpganow.com/index.php/benchmarks/">Benchmarks</a> page. All three take a PITCH multicast frame off the wire and emit one normalised 16 × 64-bit record per message (type, side, order id, quantity, symbol, price, executed/cancelled/remaining, timestamps), so the same host tools read all of them. Source: <a href="https://github.com/fpganow/Market.Data.PoC">github.com/fpganow/Market.Data.PoC</a>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table><thead><tr><th>Model</th><th>Parser written in</th><th>Where it lives</th><th>Kria app</th><th>Status</th></tr></thead><tbody>
+<tr><td>1. LabVIEW FPGA bitfile</td><td>LabVIEW FPGA 2020</td><td><code>fpga/poc.ip.kria.vi</code> + <code>submodules/Market.Data.Bats.Parser</code>, built by the LabVIEW IDE (.lvbitx)</td><td>none, runs under the LabVIEW host</td><td>same design as model 2</td></tr>
+<tr><td>2. LabVIEW FPGA IP export</td><td>LabVIEW FPGA 2020, exported as a netlist</td><td><code>vivado/</code> (block design <code>mktdata_poc.tcl</code>, netlist <code>vivado/ip/NiFpgaAG_poc_ip_kria.v</code>)</td><td><code>mktdata_poc</code></td><td>clean to 1.5 Gbit/s, 659/659</td></tr>
+<tr><td>3. Pure Verilog</td><td>Verilog, 6 files, about 1 500 lines</td><td><code>vivado_rtl/</code> (block design <code>mktdata_rtl.tcl</code>, sources <code>vivado_rtl/ip/</code>)</td><td><code>mktdata_rtl</code></td><td>10G line rate, 0.81 µs, 659/659</td></tr>
+</tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">The shared harness</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Models 2 and 3 share one Vivado block design: the XXV 10G Ethernet subsystem, XGMII-to-AXI-Stream adapters, AXI DMA, capture FIFOs, GPIO control and the Zynq MPSoC configuration all live in <code>vivado/</code>. The Verilog project sources that design and swaps the LabVIEW netlist cell for the RTL parser, so a harness improvement reaches both. The host side (<code>apps/poc_server</code>, <code>apps/poc_inject/poc_mon</code>, <code>scripts/</code>) and the test captures and scorer are common too.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Model 2: LabVIEW FPGA IP export</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list">
+<li>Parser: a 100 MHz LabVIEW single-cycle loop (<code>bats.parser.vi</code>) fed through a 156.25 MHz-to-100 MHz FIFO; 14 message types; one 64-bit word of the record per cycle.</li>
+<li>Build: edit and "IP Export" in LabVIEW on Windows, convert the checkpoint to Verilog, then <code>make ip-install-poc_ip_kria &amp;&amp; make xsa-clean &amp;&amp; make xsa</code> in Vivado 2024.1 on Linux, <code>make kria-build kria-stage kria-deploy-staged kria-load-app</code> for the board.</li>
+<li>Open the design: <code>make -C vivado gui</code>, or in Vivado's Tcl console <code>cd vivado; source mktdata_poc.tcl</code>.</li>
+<li>Limit: the 16-word record serialisation (160 ns per message, 6.25 M msg/s); the optimisation plan is in <code>optimize.txt</code>.</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Model 3: pure Verilog</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul class="wp-block-list">
+<li>Parser: everything in the 156.25 MHz receive clock. Ethernet/IPv4/UDP filter and payload re-aligner, a 64-word FIFO with whole-frame drop, a one-word-in/one-message-out extractor, a field decoder, one 1024-bit record beat per message. 2.3k LUTs, no block RAM.</li>
+<li>Build: <code>make rtl-sim</code> (xsim, scored), <code>make rtl-xsa</code>, <code>make rtl-kria-build rtl-kria-stage rtl-kria-deploy-staged rtl-kria-reload-app</code>.</li>
+<li>Open the design: <code>make -C vivado_rtl gui</code>, or <code>cd vivado_rtl; source mktdata_rtl.tcl</code>.</li>
+<li>Diagrams (data flow, state machines, flow charts, class diagram): <code>vivado_rtl/DIAGRAMS.md</code>.</li>
+<li>Written with an AI coding assistant against the LabVIEW design as the reference; it is the reference implementation for porting the optimisations back into LabVIEW.</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Switching models on the board</h2>
+<!-- /wp:heading -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>sudo xmutil listapps
+sudo xmutil unloadapp
+sudo xmutil loadapp mktdata_rtl      # or mktdata_poc</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:paragraph -->
+<p>Both packages live under <code>/lib/firmware/xilinx/</code> on the KR260 and load in about a second without reflashing. The 10G link only comes up while one of them is loaded, because the XXV PCS must transmit.</p>
+<!-- /wp:paragraph -->

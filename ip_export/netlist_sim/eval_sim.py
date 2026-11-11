@@ -35,7 +35,7 @@ def pcap_frames(path):
         ts, tu, incl, orig = struct.unpack(fmt, d[off:off + 16])
         p = d[off + 16 + 42:off + 16 + incl]; off += 16 + incl
         msgs, o = [], 8
-        while o < len(p):
+        while o < len(p) and p[o]:                # length byte 0 = Ethernet padding after a heartbeat, not a message
             msgs.append(p[o:o + p[o]]); o += p[o]
         out.append((len(p), msgs))
     return out

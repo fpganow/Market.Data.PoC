@@ -1,0 +1,31 @@
+.fpganow-hwrun { margin: 1em 0; }
+.fpganow-hwrun .hwrun-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1em 1.5em; align-items: start;
+  padding: 1em 1.2em; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+.fpganow-hwrun .hwrun-field label { display: block; font-weight: 600; margin-bottom: .3em; }
+.fpganow-hwrun .hwrun-field select { width: 100%; }
+.fpganow-hwrun .hwrun-help { font-size: .85em; color: #555; margin: .35em 0 0; }
+.fpganow-hwrun .hwrun-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .6em 1em; align-items: center; }
+.fpganow-hwrun .hwrun-run { font-weight: 600; }
+.fpganow-hwrun .hwrun-status { font-size: .95em; color: #444; }
+.fpganow-hwrun .hwrun-status.is-ok { color: #1a7f37; }
+.fpganow-hwrun .hwrun-status.is-warn { color: #9a6700; }
+.fpganow-hwrun .hwrun-status.is-error { color: #b32d2e; }
+.fpganow-hwrun .hwrun-log { margin-top: 1em; padding: .8em 1em; font-size: .8em; line-height: 1.45; background: #1e1e1e; color: #e8e8e8; border-radius: 6px; max-height: 14em; overflow: auto; white-space: pre-wrap; }
+.fpganow-hwrun .hwrun-results h3 { margin-top: 1.2em; }
+.fpganow-hwrun .hwrun-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .7em; margin-bottom: 1em; }
+.fpganow-hwrun .hwrun-card { padding: .7em .9em; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+.fpganow-hwrun .hwrun-card.is-ok { border-color: #1a7f37; background: #f0faf3; }
+.fpganow-hwrun .hwrun-card.is-warn { border-color: #d4a72c; background: #fff8e6; }
+.fpganow-hwrun .hwrun-card-value { font-size: 1.15em; font-weight: 600; word-break: break-word; }
+.fpganow-hwrun .hwrun-card-label { font-size: .8em; color: #666; text-transform: uppercase; letter-spacing: .03em; margin-top: .2em; }
+.fpganow-hwrun .hwrun-toolbar { display: flex; flex-wrap: wrap; gap: .6em 1em; align-items: center; margin: .5em 0 1em; }
+.fpganow-hwrun .hwrun-metric select { max-width: 100%; }
+.fpganow-hwrun .hwrun-report { font-size: .8em; max-height: 24em; overflow: auto; background: #f4f4f4; padding: .8em 1em; border-radius: 6px; white-space: pre-wrap; }
+.fpganow-hwrun .hwrun-chart-wrap { position: relative; height: 360px; margin-bottom: 1.2em; }
+.fpganow-hwrun .hwrun-table-wrap { overflow: auto; border: 1px solid #ddd; border-radius: 6px; }
+.fpganow-hwrun .hwrun-messages { max-height: 480px; }
+.fpganow-hwrun table { width: 100%; border-collapse: collapse; font-size: .82em; margin: 0; }
+.fpganow-hwrun th, .fpganow-hwrun td { padding: .3em .5em; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; }
+.fpganow-hwrun thead th { position: sticky; top: 0; background: #f2f2f2; z-index: 1; }
+.fpganow-hwrun tr.is-warn td { background: #fff3cd; }
+.fpganow-hwrun td code { font-size: .95em; }

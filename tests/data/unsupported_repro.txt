@@ -1,0 +1,22 @@
+Insert PITCH message types the parser does not decode into one frame of a pcap.
+source: tests/data/generated_2026_09_17_multi.pcap, frame 10
+frame   0: data       udp payload  970 bytes, hdr length  970, count  28, unit 1, seq 1
+frame   1: data       udp payload  969 bytes, hdr length  969, count  29, unit 1, seq 29
+frame   2: data       udp payload  968 bytes, hdr length  968, count  35, unit 1, seq 58
+frame   3: data       udp payload  995 bytes, hdr length  995, count  37, unit 1, seq 93
+frame   4: data       udp payload  991 bytes, hdr length  991, count  31, unit 1, seq 130
+frame   5: data       udp payload  976 bytes, hdr length  976, count  35, unit 1, seq 161
+frame   6: data       udp payload  996 bytes, hdr length  996, count  31, unit 1, seq 196
+frame   7: data       udp payload 1000 bytes, hdr length 1000, count  34, unit 1, seq 227
+frame   8: data       udp payload  997 bytes, hdr length  997, count  32, unit 1, seq 261
+frame   9: data       udp payload  999 bytes, hdr length  999, count  35, unit 1, seq 293
+frame  10: data+UNSUP udp payload 1011 bytes, hdr length 1011, count  35, unit 1, seq 328
+frame  11: data       udp payload  998 bytes, hdr length  998, count  32, unit 1, seq 363
+frame  12: data       udp payload  976 bytes, hdr length  976, count  36, unit 1, seq 395
+frame  13: data       udp payload  997 bytes, hdr length  997, count  31, unit 1, seq 431
+frame  14: data       udp payload  972 bytes, hdr length  972, count  32, unit 1, seq 462
+frame  15: data       udp payload  998 bytes, hdr length  998, count  32, unit 1, seq 494
+frame  16: data       udp payload  987 bytes, hdr length  987, count  34, unit 1, seq 526
+frame  17: data       udp payload  984 bytes, hdr length  984, count  33, unit 1, seq 560
+frame  18: data       udp payload  986 bytes, hdr length  986, count  33, unit 1, seq 593
+frame  19: data       udp payload  994 bytes, hdr length  994, count  37, unit 1, seq 626
