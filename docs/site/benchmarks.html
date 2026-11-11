@@ -7,22 +7,22 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>Three implementations of the parser are installed on the board and selectable on the live page. All three were run on 2026-11-11 over the 10G cable. Latency is parse time minus receive time, both stamped in the fabric, for every message; the records were read out by the host, which for the 156.25 MHz parser adds queueing that the in-fabric counters do not see.</p>
+<p>Three implementations of the parser are installed on the board and selectable on the live page. All three were run on 2026-11-11 over the 10G cable. Latency is parse time minus receive time, both stamped in the fabric, for every message, with the records read out by the host.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:table -->
-<figure class="wp-block-table"><table><thead><tr><th></th><th>LabVIEW FPGA IP export (2026-10-20)</th><th>Verilog, LabVIEW IP interface (2026-10-20)</th><th>Pure Verilog (2026-11-08)</th></tr></thead><tbody>
+<figure class="wp-block-table"><table><thead><tr><th></th><th>LabVIEW FPGA IP export (2026-10-20)</th><th>Verilog, LabVIEW IP interface (2026-10-20)</th><th>Pure Verilog (build of 2026-11-11)</th></tr></thead><tbody>
 <tr><td>Parser clock</td><td>100 MHz</td><td>100 MHz</td><td>156.25 MHz (the 10G receive clock)</td></tr>
 <tr><td>Messages field-exact</td><td>659 / 659</td><td>659 / 659</td><td>659 / 659</td></tr>
 <tr><td>Latency, median</td><td>685 ns</td><td>326 ns</td><td>410 ns</td></tr>
-<tr><td>Latency, 99th percentile</td><td>1.32 µs</td><td>582 ns</td><td>5.66 µs</td></tr>
-<tr><td>Latency, max</td><td>1.36 µs</td><td>589 ns</td><td>294 µs with host readout; 0.81 µs in fabric</td></tr>
-<tr><td>Throughput with in-fabric counters</td><td>not measured for this export (an earlier export held 1.5 Gbit/s, see below)</td><td>not measured (this build has no counters)</td><td>0 loss at every rate up to 4.83 Gbit/s (sender limit); 10G burst of 160 000 frames with 0 loss on 2026-11-08</td></tr>
+<tr><td>Latency, 99th percentile</td><td>1.32 µs</td><td>582 ns</td><td>800 ns</td></tr>
+<tr><td>Latency, max</td><td>1.36 µs</td><td>589 ns</td><td>0.81 µs</td></tr>
+<tr><td>Throughput with in-fabric counters</td><td>not measured for this export (an earlier export held 1.5 Gbit/s, see below)</td><td>not measured (this build has no counters)</td><td>0 loss at every rate one sender can reach (3.9 to 4.8 Gbit/s); 160 000-frame burst from four senders (9.8 Gbit/s combined), 5 272 000 records, 0 lost</td></tr>
 </tbody></table></figure>
 <!-- /wp:table -->
 
 <!-- wp:paragraph -->
-<p>Notes: on the LabVIEW export, 3 of the 659 records carry no receive timestamp and are left out of its latency figures. The pure Verilog parser's large host-readout maximum has not been investigated; with the records consumed in fabric the same bitstream measures 0.01 to 0.81 µs at every rate.</p>
+<p>Notes: on the LabVIEW export, 3 of the 659 records carry no receive timestamp and are left out of its latency figures. The pure Verilog bitstream was rebuilt on 2026-11-11 with a 1 024-record output FIFO (it was 16): the earlier build stalled behind the slow host readout, which showed up on the live page as latencies of up to 294 µs and lost records at faster playback speeds. The parser itself is unchanged, and both the page and the in-fabric counters now read 0.01 to 0.81 µs at every playback speed.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading -->
@@ -40,7 +40,7 @@
 <tr><td>Max latency, last message of a 1 kB frame</td><td>1.3 µs at 100 Mbit/s, 10 µs at 1 Gbit/s</td><td>0.81 µs (the frame's own arrival time at 10G)</td></tr>
 <tr><td>Cost per message</td><td>6 to 9 cycles at 100 MHz + 160 ns record serialisation</td><td>1 cycle at 156.25 MHz (6.4 ns)</td></tr>
 <tr><td>Parser fabric</td><td>11.3k LUTs, 4.3k FFs, 92 BRAM</td><td>2.3k LUTs, 2.1k FFs, 0 BRAM</td></tr>
-<tr><td>Timing</td><td>100 MHz, closes only with Performance_ExplorePostRoutePhysOpt</td><td>156.25 MHz, WNS +0.578 ns</td></tr>
+<tr><td>Timing</td><td>100 MHz, closes only with Performance_ExplorePostRoutePhysOpt</td><td>156.25 MHz, WNS +0.108 ns</td></tr>
 </tbody></table></figure>
 <!-- /wp:table -->
 
@@ -71,7 +71,7 @@
 
 <!-- wp:table -->
 <figure class="wp-block-table"><table><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody>
-<tr><td>Rate sweep, 100 Mbit/s to 4.83 Gbit/s (sender limit), 20 passes each, 2026-11-11</td><td>400 / 400 frames, 13 180 / 13 180 records, 0 gaps, 0 stall cycles, max latency 0.81 µs at every rate</td></tr>
+<tr><td>Rate sweep, 100 Mbit/s up to the sender limit (3.9 to 4.8 Gbit/s), 20 passes each, 2026-11-11</td><td>400 / 400 frames, 13 180 / 13 180 records, 0 gaps, 0 stall cycles, max latency 0.81 µs at every rate</td></tr>
 <tr><td>Four parallel senders at top speed, 160 000 frames, wire saturated per host NIC counters</td><td>160 000 frames received, 5 272 000 contiguous records, 0 gaps, 0 drops, 0 truncated, max latency 0.81 µs</td></tr>
 <tr><td>Vivado simulation, 20-frame capture</td><td>659 / 659 records, every field correct</td></tr>
 </tbody></table></figure>
@@ -120,7 +120,7 @@
 
 <!-- wp:table -->
 <figure class="wp-block-table"><table><thead><tr><th>Date</th><th>Change</th></tr></thead><tbody>
-<tr><td>2026-11-11</td><td>All three installed implementations re-run through the live page: 659/659 each. Pure Verilog rate sweep repeated: 0 loss to 4.83 Gbit/s, 0.81 µs.</td></tr>
+<tr><td>2026-11-11</td><td>All three installed implementations re-run through the live page: 659/659 each. Pure Verilog bitstream rebuilt with a deeper output FIFO; rate sweep and 160 000-frame burst repeated on it: 0 loss, 0.81 µs. Playback speed added to the live page.</td></tr>
 <tr><td>2026-11-08</td><td>Pure Verilog parser: 10G burst with 0 loss, 0.81 µs. LabVIEW IP ceiling measured at 1.5 Gbit/s with the new in-fabric counters.</td></tr>
 <tr><td>2026-11-06</td><td>First run over a real 10G cable from the Linux workstation: 659/659 field-exact. Host readout found to cap the system at 3 Mbit/s offered rate.</td></tr>
 <tr><td>2026-09-22</td><td>Frame-boundary corruption traced to the vendor IPv4/UDP library; fixed and covered by a regression capture.</td></tr>

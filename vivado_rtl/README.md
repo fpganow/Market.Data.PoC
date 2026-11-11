@@ -95,6 +95,19 @@ Knobs: `GAP=1` (minimum inter-frame gap), `READY=2` (random back-pressure on the
 `GAP=1 READY=2`; last message of a 1012-byte frame emitted ~800 ns after the frame's first byte
 (the frame itself takes 810 ns to arrive at 10 Gbit/s).
 
+## 2026-11-11 rebuild: `cmd_cdc` 16 -> 1024 records (bit.bin md5 `b00a2e33…`, WNS +0.108 ns, 67 BRAM tiles)
+
+The 16-deep CMD FIFO sat in front of the 1024->32 converter (320 ns per record) and the PS readout
+(~8k records/s). With `poc_server poll` in the loop a pcap sent at speed back-pressured the parser
+(stall_cycles 378 697 for one top-speed pass), whose input FIFO then dropped 19 of 20 frames: 50 of
+659 records reached the host, and even at 5 ms per frame the capture showed latencies up to 294 us.
+With 1024 records of depth, hwrun runs pass 659/659 at every playback speed (gap5 .. top) with
+latency 10..810 ns (median 410, p99 800); `rate_sweep.py --sink` 100 Mbit/s .. 3.9 Gbit/s and the
+four-sender 160 000-frame burst (5 272 000 records) are unchanged: 0 gaps, 0 stall, lat_max 0.81 us.
+The parser RTL is untouched. Previous build: `../../board_backup/2026-11-08_af88aab3_mktdata_rtl/`
+and `/home/ubuntu/mktdata_rtl.af88aab3.bak` on the board. Multi-pass captures longer than ~1000
+records at speed still overflow by design (use `--sink`).
+
 ## Hardware results (2026-11-08, app `mktdata_rtl`, bit.bin md5 `af88aab3…`)
 
 | Test | Result |

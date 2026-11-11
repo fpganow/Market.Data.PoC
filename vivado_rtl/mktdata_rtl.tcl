@@ -56,11 +56,14 @@ set pitch_rtl_0 [create_bd_cell -type module -reference pitch_rtl_top pitch_rtl_
 set axis_mon_w_0 [create_bd_cell -type module -reference axis_mon_w axis_mon_w_0]
 
 # RX-clock -> PL-clock FIFOs for the three record streams
-foreach {name bytes} {cmd_cdc 128 dbg_cdc 8 mdbg_cdc 8} {
+# cmd_cdc is 1024 records deep (2026-11-11): the 1024->32 converter behind it needs 320 ns per
+# record and the PS drains ~8k records/s, so with the old 16-deep FIFO a whole pcap sent at speed
+# back-pressured the parser, which then dropped frames (50 of 659 records reached the host).
+foreach {name bytes depth} {cmd_cdc 128 1024 dbg_cdc 8 16 mdbg_cdc 8 16} {
   set f [create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 $name]
   set_property -dict [list \
     CONFIG.TDATA_NUM_BYTES $bytes \
-    CONFIG.FIFO_DEPTH {16} \
+    CONFIG.FIFO_DEPTH $depth \
     CONFIG.IS_ACLK_ASYNC {1} \
     CONFIG.HAS_TLAST {1} \
     CONFIG.HAS_TKEEP {0} \
