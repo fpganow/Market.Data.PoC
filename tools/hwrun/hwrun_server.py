@@ -66,7 +66,7 @@ CATALOG = {
     "implementations": {
         "labview": {"label": "LabVIEW FPGA (IP Export netlist, 2026-10-20)", "app": "mktdata_poc_labview", "tick_ns": 6.4,
                     "description": "bats.parser.vi and poc.ip.kria.vi exported from LabVIEW FPGA 2020 as a netlist (export of 2026-10-20), 100 MHz parser loop."},
-        "rtl": {"label": "Verilog (poc_v, 2026-10-20)", "app": "mktdata_poc_rtl", "tick_ns": 6.4,
+        "rtl": {"label": "Claude Export to Verilog (poc_v, 2026-10-20)", "app": "mktdata_poc_rtl", "tick_ns": 6.4,
                 "description": "Hand-written Verilog parser with the LabVIEW IP's ports and stream formats (poc_v/, build of 2026-10-20), 100 MHz parser clock."},
         "rtl156": {"label": "Pure Verilog, 156.25 MHz (vivado_rtl, 2026-11-11)", "app": "mktdata_rtl", "tick_ns": 10.0,
                    "description": "vivado_rtl/ip/pitch_rtl_top.v: one message per clock in the 10G receive clock, one 1024-bit record beat (bitstream 3). 10G line rate, 0.81 us max latency."},
