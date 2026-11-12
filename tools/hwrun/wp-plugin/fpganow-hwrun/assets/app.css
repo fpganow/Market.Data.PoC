@@ -29,3 +29,7 @@
 .fpganow-hwrun thead th { position: sticky; top: 0; background: #f2f2f2; z-index: 1; }
 .fpganow-hwrun tr.is-warn td { background: #fff3cd; }
 .fpganow-hwrun td code { font-size: .95em; }
+.fpganow-hwrun .hwrun-auth { grid-column: 1 / -1; padding-top: .8em; border-top: 1px solid #ddd; font-size: .95em; }
+.fpganow-hwrun .hwrun-auth p { margin: 0 0 .6em; }
+.fpganow-hwrun .hwrun-auth-alt { font-size: .85em; color: #555; margin-top: .6em !important; }
+.fpganow-hwrun .hwrun-auth-note { color: #b32d2e; min-height: 1em; }

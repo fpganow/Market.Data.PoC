@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FPGA Now - Run on Hardware
  * Description: Replays one of the pre-canned CBOE PITCH test pcaps against the live FPGA board (LabVIEW FPGA or Verilog parser) through the hwrun service and shows every parsed message with its latency: table, CSV download and chart. Shortcode: [fpganow_hwrun]
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: FPGA Now
  * License: GPL-2.0-or-later
  *
@@ -11,10 +11,17 @@
  * bearer token, so the service and its token are never exposed to the browser. Settings ->
  * Run on Hardware holds the service URL, the token and the per-visitor cooldown; the constants
  * FPGANOW_HWRUN_URL / FPGANOW_HWRUN_TOKEN in wp-config.php override them.
+ *
+ * Since 1.2.0 starting a run needs a signed-in account (setting "Require sign-in"). Visitors sign
+ * in with Google on the page itself: the browser gets an ID token from Google Identity Services,
+ * the plugin checks it with Google (tokeninfo), then finds or creates a subscriber account for that
+ * verified e-mail address and logs it in. Only a Google OAuth client ID is needed, no secret.
+ * Accounts registered through wp-login.php (e-mail + password) may run only if the setting
+ * "Also allow e-mail accounts" is on; editors and administrators always may.
  */
 if (!defined('ABSPATH')) { exit; }
 
-define('FPGANOW_HWRUN_VERSION', '1.1.0');
+define('FPGANOW_HWRUN_VERSION', '1.2.0');
 define('FPGANOW_HWRUN_NS', 'fpganow-hwrun/v1');
 
 function fpganow_hwrun_url() {
@@ -27,6 +34,25 @@ function fpganow_hwrun_token() {
 function fpganow_hwrun_cooldown() {
     return max(0, (int) get_option('fpganow_hwrun_cooldown', 20));
 }
+function fpganow_hwrun_google_client_id() {
+    return trim(defined('FPGANOW_HWRUN_GOOGLE_CLIENT_ID') ? FPGANOW_HWRUN_GOOGLE_CLIENT_ID : (string) get_option('fpganow_hwrun_google_client_id', ''));
+}
+function fpganow_hwrun_require_login() {
+    return (bool) get_option('fpganow_hwrun_require_login', 1);
+}
+function fpganow_hwrun_allow_email_accounts() {
+    return (bool) get_option('fpganow_hwrun_allow_email_accounts', 0);
+}
+/** May the current visitor start a run? */
+function fpganow_hwrun_user_may_run() {
+    if (!fpganow_hwrun_require_login()) { return true; }
+    if (!is_user_logged_in()) { return false; }
+    if (current_user_can('edit_posts')) { return true; }
+    if (get_user_meta(get_current_user_id(), 'fpganow_google_sub', true)) { return true; }
+    return fpganow_hwrun_allow_email_accounts();
+}
+// accounts created for the run page have no business in wp-admin: no toolbar for them on the site
+add_filter('show_admin_bar', function ($show) { return current_user_can('edit_posts') ? $show : false; });
 
 /* ---------------------------------------------------------------- settings */
 add_action('admin_menu', function () {
@@ -36,6 +62,9 @@ add_action('admin_init', function () {
     register_setting('fpganow_hwrun', 'fpganow_hwrun_url', ['sanitize_callback' => 'esc_url_raw']);
     register_setting('fpganow_hwrun', 'fpganow_hwrun_token', ['sanitize_callback' => 'sanitize_text_field']);
     register_setting('fpganow_hwrun', 'fpganow_hwrun_cooldown', ['sanitize_callback' => 'absint']);
+    register_setting('fpganow_hwrun', 'fpganow_hwrun_require_login', ['sanitize_callback' => 'absint']);
+    register_setting('fpganow_hwrun', 'fpganow_hwrun_allow_email_accounts', ['sanitize_callback' => 'absint']);
+    register_setting('fpganow_hwrun', 'fpganow_hwrun_google_client_id', ['sanitize_callback' => 'sanitize_text_field']);
 });
 function fpganow_hwrun_settings_page() {
     if (!current_user_can('manage_options')) { return; }
@@ -60,7 +89,19 @@ function fpganow_hwrun_settings_page() {
           <tr><th scope="row"><label for="fpganow_hwrun_cooldown">Cooldown per visitor (s)</label></th>
               <td><input name="fpganow_hwrun_cooldown" id="fpganow_hwrun_cooldown" type="number" min="0" class="small-text"
                          value="<?php echo esc_attr(fpganow_hwrun_cooldown()); ?>">
-                  <p class="description">Minimum time between two runs started from the same IP address.</p></td></tr>
+                  <p class="description">Minimum time between two runs started by the same account (or IP address when sign-in is off).</p></td></tr>
+          <tr><th scope="row">Sign-in</th>
+              <td><label><input name="fpganow_hwrun_require_login" type="checkbox" value="1" <?php checked(fpganow_hwrun_require_login()); ?>>
+                    Require sign-in to start a run</label><br>
+                  <label><input name="fpganow_hwrun_allow_email_accounts" type="checkbox" value="1" <?php checked(fpganow_hwrun_allow_email_accounts()); ?>>
+                    Also allow e-mail accounts (registered through wp-login.php, not Google)</label>
+                  <p class="description">With the second box off, only accounts that signed in with Google (and editors/administrators) can start runs.</p></td></tr>
+          <tr><th scope="row"><label for="fpganow_hwrun_google_client_id">Google client ID</label></th>
+              <td><input name="fpganow_hwrun_google_client_id" id="fpganow_hwrun_google_client_id" type="text" class="large-text"
+                         value="<?php echo esc_attr(fpganow_hwrun_google_client_id()); ?>" <?php disabled(defined('FPGANOW_HWRUN_GOOGLE_CLIENT_ID')); ?>
+                         placeholder="1234567890-abc...apps.googleusercontent.com">
+                  <p class="description">Google Cloud console &rarr; APIs &amp; Services &rarr; Credentials &rarr; Create OAuth client ID &rarr; Web application.
+                     Authorised JavaScript origin: <code><?php echo esc_html(set_url_scheme(home_url(), 'https')); ?></code>. No redirect URI and no client secret are needed.</p></td></tr>
         </table>
         <?php submit_button(); ?>
       </form>
@@ -112,7 +153,11 @@ function fpganow_hwrun_start(WP_REST_Request $req) {
     if ($req->get_header('x-fpganow-hwrun') !== '1') {
         return new WP_Error('hwrun_forbidden', 'Missing request header', ['status' => 403]);
     }
-    $key = 'fpganow_hwrun_rl_' . md5(fpganow_hwrun_client_ip());
+    if (!fpganow_hwrun_user_may_run()) {
+        return new WP_Error('hwrun_login', is_user_logged_in()
+            ? 'This account cannot start runs. Sign in with Google.' : 'Sign in to start a run.', ['status' => 401]);
+    }
+    $key = 'fpganow_hwrun_rl_' . (is_user_logged_in() ? 'u' . get_current_user_id() : md5(fpganow_hwrun_client_ip()));
     $cool = fpganow_hwrun_cooldown();
     if ($cool > 0 && get_transient($key)) {
         return new WP_Error('hwrun_cooldown', 'Please wait ' . $cool . ' seconds between runs.', ['status' => 429]);
@@ -129,7 +174,69 @@ function fpganow_hwrun_start(WP_REST_Request $req) {
     return $r;
 }
 
+/**
+ * Sign in with Google: verify the ID token the browser got from Google Identity Services, then
+ * log in the account for that verified e-mail address, creating a subscriber if there is none.
+ */
+function fpganow_hwrun_google_login(WP_REST_Request $req) {
+    if ($req->get_header('x-fpganow-hwrun') !== '1') {
+        return new WP_Error('hwrun_forbidden', 'Missing request header', ['status' => 403]);
+    }
+    $cid = fpganow_hwrun_google_client_id();
+    if ($cid === '') { return new WP_Error('hwrun_google_off', 'Google sign-in is not configured.', ['status' => 503]); }
+    $rl = 'fpganow_hwrun_gl_' . md5(fpganow_hwrun_client_ip());
+    $tries = (int) get_transient($rl);
+    if ($tries >= 10) { return new WP_Error('hwrun_cooldown', 'Too many sign-in attempts, try again later.', ['status' => 429]); }
+    set_transient($rl, $tries + 1, 10 * MINUTE_IN_SECONDS);
+
+    $cred = (string) $req->get_param('credential');
+    if ($cred === '' || strlen($cred) > 4096 || !preg_match('/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/', $cred)) {
+        return new WP_Error('hwrun_google_bad', 'Malformed sign-in token.', ['status' => 400]);
+    }
+    $r = wp_remote_get('https://oauth2.googleapis.com/tokeninfo?id_token=' . rawurlencode($cred), ['timeout' => 10]);
+    if (is_wp_error($r)) { return new WP_Error('hwrun_google_unreachable', 'Could not reach Google to check the sign-in.', ['status' => 502]); }
+    $t = json_decode(wp_remote_retrieve_body($r), true);
+    $ok = (int) wp_remote_retrieve_response_code($r) === 200 && is_array($t)
+        && isset($t['aud'], $t['iss'], $t['exp'], $t['sub'], $t['email'])
+        && hash_equals($cid, (string) $t['aud'])
+        && in_array($t['iss'], ['accounts.google.com', 'https://accounts.google.com'], true)
+        && (int) $t['exp'] > time()
+        && in_array($t['email_verified'] ?? false, [true, 'true'], true)
+        && is_email($t['email']);
+    if (!$ok) { return new WP_Error('hwrun_google_rejected', 'Google did not confirm this sign-in.', ['status' => 401]); }
+
+    $sub = sanitize_text_field((string) $t['sub']);
+    $email = sanitize_email($t['email']);
+    $found = get_users(['meta_key' => 'fpganow_google_sub', 'meta_value' => $sub, 'number' => 1]);
+    $user = $found ? $found[0] : get_user_by('email', $email);
+    if ($user && user_can($user, 'edit_posts')) {
+        // never hand out a privileged session through this endpoint
+        return new WP_Error('hwrun_google_staff', 'Editors and administrators sign in on the normal login page.', ['status' => 403]);
+    }
+    if (!$user) {
+        $base = sanitize_user(strstr($email, '@', true), true);
+        if ($base === '') { $base = 'user'; }
+        $login = $base;
+        for ($i = 2; username_exists($login); $i++) { $login = $base . $i; }
+        $name = isset($t['name']) ? sanitize_text_field((string) $t['name']) : '';
+        $id = wp_insert_user([
+            'user_login' => $login, 'user_email' => $email, 'user_pass' => wp_generate_password(32, true, true),
+            'display_name' => $name !== '' ? $name : $base, 'role' => 'subscriber',
+        ]);
+        if (is_wp_error($id)) { return new WP_Error('hwrun_google_create', 'Could not create the account.', ['status' => 500]); }
+        $user = get_user_by('id', $id);
+    }
+    update_user_meta($user->ID, 'fpganow_google_sub', $sub);
+    wp_set_current_user($user->ID);
+    wp_set_auth_cookie($user->ID, true);
+    return new WP_REST_Response(['ok' => true, 'name' => $user->display_name], 200);
+}
+
 add_action('rest_api_init', function () {
+    register_rest_route(FPGANOW_HWRUN_NS, '/google-login', [
+        'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'fpganow_hwrun_google_login',
+        'args' => ['credential' => ['required' => true]],
+    ]);
     register_rest_route(FPGANOW_HWRUN_NS, '/catalog', [
         'methods' => 'GET', 'permission_callback' => '__return_true',
         'callback' => function () { return fpganow_hwrun_request('GET', '/api/catalog'); },
@@ -166,6 +273,23 @@ add_action('wp_enqueue_scripts', function () {
     wp_register_style('fpganow-hwrun', $base . 'assets/app.css', [], FPGANOW_HWRUN_VERSION);
 });
 
+/** What the page script needs to know about sign-in. */
+function fpganow_hwrun_auth_config() {
+    $here = get_permalink();
+    $u = wp_get_current_user();
+    return [
+        'required'       => fpganow_hwrun_require_login(),
+        'loggedIn'       => is_user_logged_in(),
+        'mayRun'         => fpganow_hwrun_user_may_run(),
+        'user'           => is_user_logged_in() ? $u->display_name : '',
+        'googleClientId' => fpganow_hwrun_google_client_id(),
+        'emailAccounts'  => fpganow_hwrun_allow_email_accounts(),
+        'loginUrl'       => wp_login_url($here),
+        'registerUrl'    => get_option('users_can_register') ? wp_registration_url() : '',
+        'logoutUrl'      => html_entity_decode(wp_logout_url($here)),
+    ];
+}
+
 add_shortcode('fpganow_hwrun', function ($atts) {
     wp_enqueue_script('fpganow-hwrun');
     wp_enqueue_style('fpganow-hwrun');
@@ -173,7 +297,11 @@ add_shortcode('fpganow_hwrun', function ($atts) {
         'restUrl' => esc_url_raw(rest_url(FPGANOW_HWRUN_NS . '/')),
         'nonce'   => wp_create_nonce('wp_rest'),
         'pollMs'  => 1500,
+        'auth'    => fpganow_hwrun_auth_config(),
     ]);
+    if (fpganow_hwrun_require_login() && !fpganow_hwrun_user_may_run() && fpganow_hwrun_google_client_id() !== '') {
+        wp_enqueue_script('fpganow-hwrun-gsi', 'https://accounts.google.com/gsi/client', [], null, true); // phpcs:ignore -- Google's loader, unversioned by design
+    }
     ob_start(); ?>
     <div class="fpganow-hwrun" id="fpganow-hwrun">
       <form class="hwrun-form" autocomplete="off">
@@ -193,6 +321,7 @@ add_shortcode('fpganow_hwrun', function ($atts) {
           <button type="submit" class="hwrun-run button" id="hwrun-run">Run on hardware</button>
           <span class="hwrun-status" id="hwrun-status"></span>
         </div>
+        <div class="hwrun-auth" id="hwrun-auth" hidden></div>
       </form>
       <pre class="hwrun-log" id="hwrun-log" hidden></pre>
       <div class="hwrun-results" id="hwrun-results" hidden>

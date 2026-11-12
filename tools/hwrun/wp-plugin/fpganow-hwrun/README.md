@@ -29,3 +29,15 @@ the custom header `X-FPGANOW-HWRUN: 1` (blocks cross-site requests) and is rate-
 For the production site the service must be reachable from the web server: an SSH reverse
 tunnel, Tailscale or a Cloudflare tunnel from the lab PC to the server (the service is only
 ever bound to a private address and still needs the token).
+
+## Sign-in (v1.2.0, 2026-11-12)
+
+Starting a run needs a signed-in account (Settings -> Run on Hardware -> "Require sign-in").
+Visitors sign in with Google on the page: Google Identity Services hands the browser an ID token,
+`POST fpganow-hwrun/v1/google-login` checks it with `https://oauth2.googleapis.com/tokeninfo`
+(audience = our client ID, verified e-mail) and logs in the subscriber account for that address,
+creating it on first use (user meta `fpganow_google_sub`). Only a Google OAuth **client ID** is
+needed (type "Web application", authorised JavaScript origin `https://fpganow.com`); no secret, no
+redirect URI. Accounts registered by e-mail through wp-login.php can run only if "Also allow e-mail
+accounts" is ticked; editors and administrators always can, and never sign in through Google here.
+Viewing the catalog and finished runs stays public.

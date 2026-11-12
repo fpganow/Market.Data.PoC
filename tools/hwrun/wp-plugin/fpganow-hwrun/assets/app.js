@@ -34,6 +34,49 @@
   function fmt(v, d) { return (v === null || v === undefined || v === '') ? '' : Number(v).toLocaleString(undefined, { maximumFractionDigits: d === undefined ? 1 : d, minimumFractionDigits: d === undefined ? 1 : d }); }
   function price(v) { return (v === '' || v === null || v === undefined) ? '' : (Number(v) / 10000).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 }); }
 
+  // ---- sign-in: runs need an account when cfg.auth.required is set
+  var auth = cfg.auth || {};
+  function mayRun() { return !auth.required || !!auth.mayRun; }
+  function enableRun() { $('hwrun-run').disabled = !mayRun(); }
+
+  function googleButton(el, tries) {
+    if (!window.google || !google.accounts || !google.accounts.id) {   // Google's loader is async
+      if ((tries || 0) < 40) { setTimeout(function () { googleButton(el, (tries || 0) + 1); }, 250); }
+      else { el.textContent = 'Google sign-in could not be loaded (blocked by the browser?).'; }
+      return;
+    }
+    google.accounts.id.initialize({ client_id: auth.googleClientId, callback: function (resp) {
+      var note = $('hwrun-auth-note'); note.textContent = 'Signing in...';
+      api('google-login', { method: 'POST', body: JSON.stringify({ credential: resp.credential }),
+                            headers: { 'Content-Type': 'application/json', 'X-FPGANOW-HWRUN': '1' } })
+        .then(function () { window.location.reload(); })   // reload: the page needs a fresh nonce for the new session
+        .catch(function (e) { note.textContent = 'Sign-in failed: ' + e.message; });
+    } });
+    google.accounts.id.renderButton(el, { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular' });
+  }
+
+  function renderAuth() {
+    var box = $('hwrun-auth');
+    if (!auth.required) { return; }
+    box.hidden = false;
+    if (mayRun()) {
+      box.innerHTML = 'Signed in as <strong>' + esc(auth.user) + '</strong>. <a href="' + esc(auth.logoutUrl) + '">Sign out</a>';
+      return;
+    }
+    var h = '<p class="hwrun-auth-lead">' + (auth.loggedIn
+      ? 'You are signed in as <strong>' + esc(auth.user) + '</strong>, but only accounts verified with Google can start runs. <a href="' + esc(auth.logoutUrl) + '">Sign out</a>'
+      : 'Sign in to run a capture on the board. Earlier results stay viewable without an account.') + '</p>';
+    h += auth.googleClientId ? '<div id="hwrun-google"></div>' : '<p>Google sign-in is being set up; please check back soon.</p>';
+    if (!auth.loggedIn) {
+      h += '<p class="hwrun-auth-alt">' + (auth.emailAccounts
+        ? '<a href="' + esc(auth.loginUrl) + '">Log in with e-mail</a>' + (auth.registerUrl ? ' or <a href="' + esc(auth.registerUrl) + '">register</a>' : '')
+        : '<a href="' + esc(auth.loginUrl) + '">Site staff login</a>') + '</p>';
+    }
+    h += '<p class="hwrun-auth-note" id="hwrun-auth-note"></p>';
+    box.innerHTML = h;
+    if (auth.googleClientId) { googleButton($('hwrun-google')); }
+  }
+
   function setStatus(text, kind) {
     var el = $('hwrun-status'); el.textContent = text; el.className = 'hwrun-status' + (kind ? ' is-' + kind : '');
   }
@@ -95,6 +138,7 @@
       $('hwrun-speed').addEventListener('change', speedHelp);
       fillSpeeds();
       setStatus(boardLine(), 'ok');
+      enableRun();
     }).catch(function (e) {
       $('hwrun-pcap').innerHTML = '';
       setStatus('The hardware is not available right now (' + e.message + ').', 'error');
@@ -105,6 +149,7 @@
   function start(ev) {
     ev.preventDefault();
     if (run && (run.status === 'queued' || run.status === 'running')) { return; }
+    if (!mayRun()) { setStatus('Sign in to start a run.', 'warn'); return; }
     var body = { pcap: $('hwrun-pcap').value, implementation: $('hwrun-impl').value, board: $('hwrun-board').value };
     if (!$('hwrun-speed-field').hidden && $('hwrun-speed').value) { body.speed = $('hwrun-speed').value; }
     $('hwrun-run').disabled = true;
@@ -118,7 +163,7 @@
         setStatus('Queued (position ' + r.position + ')...');
         poll();
       })
-      .catch(function (e) { setStatus('Could not start the run: ' + e.message, 'error'); $('hwrun-run').disabled = false; });
+      .catch(function (e) { setStatus('Could not start the run: ' + e.message, 'error'); enableRun(); });
   }
 
   function poll() {
@@ -129,16 +174,16 @@
       else if (r.status === 'running') { setStatus('Running: ' + (r.step || '') + '...'); }
       if (r.status === 'done') {
         setStatus('Done. ' + (r.summary && r.summary.pass ? 'All messages parsed correctly.' : 'Finished with differences, see below.'), r.summary && r.summary.pass ? 'ok' : 'warn');
-        render(r); $('hwrun-run').disabled = false;
+        render(r); enableRun();
         try { // a shareable link to this result: ?hwrun=<id> re-opens it
           var u = new URL(window.location.href); u.searchParams.set('hwrun', r.id); window.history.replaceState(null, '', u.toString());
         } catch (e) { /* ignore */ }
         return;
       }
-      if (r.status === 'failed') { setStatus('Run failed: ' + (r.error || 'unknown error'), 'error'); $('hwrun-run').disabled = false; return; }
+      if (r.status === 'failed') { setStatus('Run failed: ' + (r.error || 'unknown error'), 'error'); enableRun(); return; }
       timer = setTimeout(poll, parseInt(cfg.pollMs, 10) || 1500);
     }).catch(function (e) {
-      setStatus('Lost contact with the run service: ' + e.message, 'error'); $('hwrun-run').disabled = false;
+      setStatus('Lost contact with the run service: ' + e.message, 'error'); enableRun();
     });
   }
 
@@ -226,6 +271,7 @@
   $('hwrun-report-toggle').addEventListener('click', function () {
     var p = $('hwrun-report'); p.hidden = !p.hidden; this.textContent = p.hidden ? 'Show scorer report' : 'Hide scorer report';
   });
+  renderAuth(); enableRun();
   loadCatalog().then(function () {
     var id = null;
     try { id = new URL(window.location.href).searchParams.get('hwrun'); } catch (e) { /* ignore */ }
